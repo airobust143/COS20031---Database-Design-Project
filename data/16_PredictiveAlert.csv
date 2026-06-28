@@ -1,0 +1,301 @@
+AlertID,VehicleID,AlertType,Severity,GeneratedAt,Status,ResolvedAt
+1,105,EV Motor Efficiency Drop,Medium,2025-01-01 16:59:50,Resolved,2025-04-15 20:55:57
+2,116,"Scheduled Service Overdue (5,000 km)",Low,2024-07-29 19:01:55,Open,
+3,98,Oil Life < 10%,Critical,2023-04-02 18:23:00,In Progress,
+4,39,Tyre Pressure Low (Rear Right),High,2023-06-12 12:06:01,In Progress,
+5,70,ABS Sensor Fault Detected,Medium,2022-07-15 21:25:10,Acknowledged,
+6,59,Battery Charge Below 15%,Low,2025-03-19 19:27:54,Acknowledged,
+7,91,Refrigeration Unit Temperature Drift,Critical,2022-10-16 16:45:30,Resolved,2023-03-10 13:33:31
+8,107,Coolant Level Low,Medium,2024-02-21 11:21:40,Acknowledged,
+9,157,High-Voltage Battery Degradation,Low,2023-02-21 22:18:21,Resolved,2025-05-28 10:23:36
+10,17,DPF Filter 90% Full,Low,2024-06-27 19:15:13,Dismissed,
+11,81,"Scheduled Service Overdue (5,000 km)",High,2025-01-31 14:35:21,Resolved,2025-03-15 12:57:08
+12,162,High-Voltage Battery Degradation,High,2023-09-12 13:52:52,Acknowledged,
+13,5,ABS Sensor Fault Detected,Medium,2022-12-13 18:48:09,Resolved,2023-03-07 22:31:29
+14,18,Battery Charge Below 15%,Medium,2023-07-01 14:45:09,In Progress,
+15,122,"Scheduled Service Overdue (5,000 km)",Medium,2022-06-07 16:22:52,Resolved,2023-04-03 14:20:31
+16,155,Refrigeration Unit Temperature Drift,Critical,2023-07-15 12:59:38,Resolved,2024-05-13 07:47:56
+17,135,Engine Temperature Anomaly,High,2023-12-31 13:50:24,In Progress,
+18,77,EV Motor Efficiency Drop,Medium,2023-03-23 15:01:01,Resolved,2025-05-12 19:05:23
+19,199,Tyre Pressure Low (Front Left),Critical,2023-03-30 20:40:24,Resolved,2024-11-28 20:48:20
+20,71,"Scheduled Service Overdue (5,000 km)",Medium,2023-07-11 20:18:10,Resolved,2024-06-06 06:07:03
+21,142,Engine Temperature Anomaly,Medium,2023-03-18 16:53:46,In Progress,
+22,161,"Scheduled Service Overdue (5,000 km)",Medium,2024-03-25 18:11:20,Resolved,2025-04-19 07:41:18
+23,145,Brake Wear Critical,High,2022-08-20 22:03:46,Resolved,2023-01-03 21:04:59
+24,36,Check Engine Light Active,Low,2025-05-06 11:45:15,Open,
+25,92,Battery Charge Below 15%,Medium,2024-09-23 16:48:04,In Progress,
+26,135,Refrigeration Unit Temperature Drift,Medium,2024-08-19 10:35:52,Open,
+27,115,DPF Filter 90% Full,Low,2023-11-17 13:15:03,Resolved,2023-12-12 07:41:53
+28,123,"Scheduled Service Overdue (5,000 km)",Low,2023-08-23 13:09:55,Open,
+29,83,Engine Temperature Anomaly,Medium,2024-08-19 06:32:48,Acknowledged,
+30,172,Engine Temperature Anomaly,High,2024-09-27 08:02:12,Resolved,2024-11-20 13:37:31
+31,90,Refrigeration Unit Temperature Drift,High,2024-06-23 22:57:53,Acknowledged,
+32,39,Oil Life < 10%,Medium,2023-12-29 14:35:23,In Progress,
+33,52,EV Motor Efficiency Drop,High,2023-11-07 16:12:20,Resolved,2024-12-14 09:41:18
+34,8,Alternator Output Low,Medium,2025-04-14 18:13:11,Open,
+35,28,Transmission Fluid Degraded,High,2023-07-27 12:48:36,Resolved,2024-05-28 12:56:37
+36,93,Engine Temperature Anomaly,Medium,2023-09-14 14:13:32,Open,
+37,56,"Scheduled Service Overdue (5,000 km)",High,2024-04-14 12:31:46,In Progress,
+38,118,Tyre Pressure Low (Front Left),Critical,2023-05-05 21:30:35,Resolved,2025-03-19 13:04:39
+39,1,EV Motor Efficiency Drop,Critical,2022-09-11 06:17:59,Open,
+40,98,Refrigeration Unit Temperature Drift,High,2023-04-23 09:03:23,Acknowledged,
+41,109,Transmission Fluid Degraded,High,2024-07-03 08:17:26,Resolved,2024-12-03 07:57:07
+42,37,Tyre Pressure Low (Front Left),Medium,2023-07-25 09:58:40,Resolved,2023-08-26 21:11:00
+43,23,Tyre Pressure Low (Rear Right),High,2024-12-19 14:17:01,Resolved,2025-04-21 08:46:44
+44,56,EV Motor Efficiency Drop,Low,2024-07-12 06:02:31,In Progress,
+45,106,ABS Sensor Fault Detected,Low,2022-06-28 07:42:04,Dismissed,
+46,182,ABS Sensor Fault Detected,Medium,2025-02-06 12:51:17,Open,
+47,49,Battery Charge Below 15%,Medium,2024-12-04 06:41:02,Resolved,2025-03-26 21:50:14
+48,74,Check Engine Light Active,Medium,2024-06-22 20:52:30,In Progress,
+49,169,Oil Life < 10%,Critical,2023-03-26 16:47:40,Acknowledged,
+50,149,High-Voltage Battery Degradation,Medium,2025-01-13 17:49:18,Open,
+51,173,Tyre Pressure Low (Rear Right),Medium,2024-06-07 19:05:38,Acknowledged,
+52,86,Tyre Pressure Low (Rear Right),Critical,2025-01-11 20:48:34,Resolved,2025-02-23 07:21:32
+53,154,Alternator Output Low,Medium,2023-04-23 10:52:50,Acknowledged,
+54,21,Engine Temperature Anomaly,High,2023-01-16 22:34:02,In Progress,
+55,66,Check Engine Light Active,Critical,2023-05-04 13:43:45,Resolved,2024-09-16 09:20:46
+56,141,Coolant Level Low,Critical,2025-05-07 18:14:36,In Progress,
+57,177,Refrigeration Unit Temperature Drift,High,2023-01-04 13:40:41,In Progress,
+58,184,Transmission Fluid Degraded,Low,2025-03-30 09:31:09,Dismissed,
+59,62,Refrigeration Unit Temperature Drift,High,2024-02-11 12:34:40,Open,
+60,7,EV Motor Efficiency Drop,Low,2024-01-27 09:13:11,Resolved,2025-01-10 08:04:16
+61,31,Transmission Fluid Degraded,Medium,2024-06-02 18:00:44,Resolved,2024-11-25 18:23:13
+62,110,High-Voltage Battery Degradation,High,2025-02-04 07:43:31,Dismissed,
+63,82,Tyre Pressure Low (Front Left),Medium,2023-11-06 21:55:51,In Progress,
+64,109,High-Voltage Battery Degradation,High,2024-05-19 21:01:24,Open,
+65,195,Tyre Pressure Low (Front Left),Critical,2025-01-28 14:34:05,Open,
+66,117,Transmission Fluid Degraded,Medium,2024-04-21 13:38:30,Open,
+67,142,Tyre Pressure Low (Rear Right),High,2024-12-11 12:39:26,Open,
+68,152,EV Motor Efficiency Drop,Critical,2022-07-28 22:28:04,In Progress,
+69,71,High-Voltage Battery Degradation,High,2024-08-03 07:16:37,Open,
+70,45,Brake Wear Critical,Critical,2024-01-22 11:02:18,Resolved,2024-08-28 09:43:09
+71,51,Oil Life < 10%,Medium,2023-10-24 06:24:49,Resolved,2024-04-22 18:02:19
+72,58,Tyre Pressure Low (Rear Right),Medium,2025-03-07 13:45:28,Resolved,2025-03-22 09:10:08
+73,190,Check Engine Light Active,Critical,2022-07-19 20:31:23,Resolved,2024-12-16 06:45:33
+74,163,Coolant Level Low,Medium,2024-10-05 21:02:17,In Progress,
+75,18,DPF Filter 90% Full,Low,2023-11-21 17:30:25,In Progress,
+76,36,High-Voltage Battery Degradation,Low,2023-04-28 08:36:11,Resolved,2024-07-28 17:35:16
+77,18,Refrigeration Unit Temperature Drift,Critical,2023-06-15 19:07:35,Open,
+78,38,Engine Temperature Anomaly,Medium,2024-08-09 06:23:03,In Progress,
+79,29,High-Voltage Battery Degradation,Medium,2023-11-27 22:00:19,Resolved,2024-04-16 16:58:15
+80,55,Alternator Output Low,Low,2025-01-28 21:30:13,Open,
+81,142,Brake Wear Critical,High,2022-10-24 10:42:08,Resolved,2023-03-22 08:30:32
+82,145,Battery Charge Below 15%,Low,2024-09-24 17:14:52,Acknowledged,
+83,193,DPF Filter 90% Full,Medium,2024-03-18 18:01:12,Resolved,2024-09-26 18:28:38
+84,192,Transmission Fluid Degraded,Critical,2025-02-06 22:56:26,Resolved,2025-05-14 11:15:38
+85,128,Battery Charge Below 15%,High,2024-11-03 06:26:04,Resolved,2025-05-03 10:49:41
+86,95,"Scheduled Service Overdue (5,000 km)",Medium,2023-12-28 20:41:51,Dismissed,
+87,78,Alternator Output Low,High,2024-03-31 15:54:30,In Progress,
+88,194,Brake Wear Critical,Critical,2023-03-09 21:21:05,Resolved,2024-02-23 22:39:40
+89,65,"Scheduled Service Overdue (5,000 km)",High,2023-12-08 15:38:32,Acknowledged,
+90,62,Coolant Level Low,High,2024-05-14 15:12:52,Acknowledged,
+91,72,Check Engine Light Active,Medium,2024-10-16 12:49:39,Resolved,2024-11-21 15:12:43
+92,183,Transmission Fluid Degraded,Medium,2024-03-19 12:51:29,Resolved,2024-06-16 09:46:46
+93,164,ABS Sensor Fault Detected,Medium,2024-04-21 11:56:41,Resolved,2024-10-30 13:25:30
+94,146,Tyre Pressure Low (Front Left),Medium,2024-04-30 10:16:38,Open,
+95,97,ABS Sensor Fault Detected,High,2024-08-14 06:04:12,Resolved,2024-12-23 21:29:59
+96,131,Alternator Output Low,High,2023-07-13 14:03:27,Resolved,2024-11-26 09:30:27
+97,81,ABS Sensor Fault Detected,Low,2023-06-06 09:23:48,Resolved,2023-08-01 07:54:04
+98,28,Coolant Level Low,Medium,2023-12-02 10:50:06,Dismissed,
+99,53,ABS Sensor Fault Detected,Low,2022-10-01 06:07:21,Dismissed,
+100,73,Tyre Pressure Low (Rear Right),Medium,2023-09-16 13:39:38,Resolved,2024-06-16 17:53:15
+101,6,Alternator Output Low,High,2024-03-10 13:10:51,Dismissed,
+102,53,DPF Filter 90% Full,Medium,2022-07-06 11:05:36,Resolved,2024-01-10 21:07:06
+103,105,ABS Sensor Fault Detected,Medium,2024-12-28 11:57:11,Dismissed,
+104,28,Tyre Pressure Low (Front Left),Low,2024-02-22 19:37:55,Resolved,2024-09-07 20:13:14
+105,21,ABS Sensor Fault Detected,Medium,2024-11-26 20:09:47,Resolved,2025-05-03 18:01:34
+106,53,"Scheduled Service Overdue (5,000 km)",Critical,2025-03-03 19:50:56,In Progress,
+107,6,Brake Wear Critical,Medium,2024-08-03 20:38:13,In Progress,
+108,154,"Scheduled Service Overdue (5,000 km)",High,2024-07-13 11:50:25,Acknowledged,
+109,91,High-Voltage Battery Degradation,Medium,2023-10-23 15:57:14,In Progress,
+110,7,Engine Temperature Anomaly,High,2023-10-13 08:28:45,Resolved,2024-11-15 17:23:24
+111,126,DPF Filter 90% Full,Medium,2024-11-29 19:05:27,Acknowledged,
+112,69,Refrigeration Unit Temperature Drift,Medium,2023-11-15 21:10:10,Acknowledged,
+113,10,Oil Life < 10%,Critical,2024-06-16 07:48:14,Open,
+114,24,EV Motor Efficiency Drop,High,2022-09-11 14:05:33,Dismissed,
+115,39,Coolant Level Low,Medium,2024-11-09 14:55:58,Acknowledged,
+116,80,High-Voltage Battery Degradation,Low,2022-10-15 13:55:05,Resolved,2024-05-24 11:18:35
+117,109,ABS Sensor Fault Detected,Critical,2023-09-27 06:51:12,Resolved,2023-12-15 08:49:06
+118,46,Oil Life < 10%,Medium,2025-01-03 17:46:11,Acknowledged,
+119,63,Engine Temperature Anomaly,High,2024-03-28 11:49:17,In Progress,
+120,129,Tyre Pressure Low (Rear Right),Medium,2022-09-25 18:08:10,Open,
+121,34,Tyre Pressure Low (Front Left),Medium,2024-06-22 14:29:15,In Progress,
+122,183,EV Motor Efficiency Drop,Medium,2022-08-26 08:24:08,Open,
+123,136,Check Engine Light Active,High,2024-08-17 18:56:33,In Progress,
+124,156,High-Voltage Battery Degradation,High,2024-09-07 14:33:59,In Progress,
+125,33,Transmission Fluid Degraded,High,2023-07-29 08:38:23,Resolved,2023-11-25 19:24:24
+126,96,Tyre Pressure Low (Rear Right),Low,2025-02-22 12:48:01,Acknowledged,
+127,116,DPF Filter 90% Full,Critical,2023-03-14 15:25:15,Open,
+128,113,Refrigeration Unit Temperature Drift,Medium,2024-08-26 20:45:29,In Progress,
+129,119,Check Engine Light Active,Low,2022-09-14 13:09:57,Resolved,2022-12-27 15:23:03
+130,120,High-Voltage Battery Degradation,Critical,2024-11-04 08:38:18,In Progress,
+131,11,Oil Life < 10%,Critical,2025-02-06 08:22:21,Acknowledged,
+132,3,Check Engine Light Active,Critical,2023-03-26 14:03:01,In Progress,
+133,7,Check Engine Light Active,Medium,2024-04-15 20:22:39,Acknowledged,
+134,14,Battery Charge Below 15%,High,2023-02-08 20:48:31,In Progress,
+135,171,ABS Sensor Fault Detected,High,2025-04-02 08:09:59,Resolved,2025-04-24 20:46:46
+136,37,DPF Filter 90% Full,Low,2023-07-08 08:39:24,Acknowledged,
+137,11,ABS Sensor Fault Detected,Low,2022-06-25 10:12:26,Resolved,2024-10-28 10:27:35
+138,54,High-Voltage Battery Degradation,Low,2022-10-14 11:54:02,Acknowledged,
+139,17,ABS Sensor Fault Detected,Medium,2023-05-06 21:07:05,Resolved,2024-04-21 17:54:30
+140,148,DPF Filter 90% Full,High,2024-04-08 16:33:09,Resolved,2025-04-10 22:43:17
+141,58,Transmission Fluid Degraded,High,2024-11-05 21:17:21,Dismissed,
+142,128,DPF Filter 90% Full,Critical,2024-09-06 07:37:19,Resolved,2025-01-16 09:52:09
+143,57,Check Engine Light Active,Critical,2023-10-23 20:57:09,Dismissed,
+144,106,High-Voltage Battery Degradation,High,2024-10-06 16:19:05,Acknowledged,
+145,170,"Scheduled Service Overdue (5,000 km)",Low,2024-03-04 07:27:25,Resolved,2024-05-22 19:30:01
+146,95,Alternator Output Low,Low,2023-09-26 21:56:31,Dismissed,
+147,151,"Scheduled Service Overdue (5,000 km)",Medium,2024-10-28 13:18:15,Resolved,2024-12-10 16:10:38
+148,152,High-Voltage Battery Degradation,Medium,2022-11-17 09:05:05,Resolved,2022-11-26 10:34:27
+149,24,Tyre Pressure Low (Rear Right),Critical,2023-04-08 07:00:30,Acknowledged,
+150,75,Oil Life < 10%,Critical,2024-06-21 17:42:36,Open,
+151,80,Refrigeration Unit Temperature Drift,Medium,2022-08-19 08:02:39,Open,
+152,44,Brake Wear Critical,Critical,2025-03-01 09:17:37,Acknowledged,
+153,157,Tyre Pressure Low (Front Left),Medium,2022-10-12 20:38:54,Acknowledged,
+154,128,Oil Life < 10%,High,2024-01-03 07:25:54,Acknowledged,
+155,178,Alternator Output Low,Medium,2024-12-13 17:32:19,Acknowledged,
+156,108,EV Motor Efficiency Drop,High,2023-09-25 15:42:20,Acknowledged,
+157,39,Tyre Pressure Low (Rear Right),High,2022-08-15 08:03:37,Resolved,2023-01-14 09:28:08
+158,186,Transmission Fluid Degraded,Low,2024-04-12 16:37:15,Resolved,2024-11-21 19:07:59
+159,182,Check Engine Light Active,Medium,2025-01-25 07:23:10,In Progress,
+160,17,Alternator Output Low,Low,2023-10-30 18:11:52,In Progress,
+161,182,Oil Life < 10%,Critical,2024-12-07 10:52:20,Resolved,2025-03-26 16:58:48
+162,2,"Scheduled Service Overdue (5,000 km)",Critical,2023-05-03 14:26:05,In Progress,
+163,38,ABS Sensor Fault Detected,Low,2023-03-15 13:32:38,In Progress,
+164,52,Check Engine Light Active,High,2024-10-03 07:49:00,Resolved,2025-04-04 16:51:39
+165,87,ABS Sensor Fault Detected,Low,2025-02-13 22:12:13,Open,
+166,136,Battery Charge Below 15%,Medium,2025-05-18 12:27:49,Dismissed,
+167,117,Coolant Level Low,Critical,2024-01-16 20:02:18,Acknowledged,
+168,151,EV Motor Efficiency Drop,High,2022-10-07 21:53:56,In Progress,
+169,156,Battery Charge Below 15%,High,2024-03-07 13:28:16,Acknowledged,
+170,59,Battery Charge Below 15%,High,2023-11-03 18:16:00,In Progress,
+171,57,Brake Wear Critical,Critical,2024-12-07 13:25:00,In Progress,
+172,71,Transmission Fluid Degraded,Medium,2024-10-01 06:32:55,Dismissed,
+173,197,Transmission Fluid Degraded,High,2022-09-13 21:37:13,In Progress,
+174,200,Refrigeration Unit Temperature Drift,Low,2023-09-24 18:35:46,Acknowledged,
+175,4,Engine Temperature Anomaly,High,2022-11-11 16:41:15,Dismissed,
+176,26,Refrigeration Unit Temperature Drift,Low,2023-11-11 11:42:18,Resolved,2025-01-10 11:57:27
+177,187,Tyre Pressure Low (Front Left),Low,2022-12-17 15:19:34,Resolved,2024-10-02 08:04:09
+178,1,EV Motor Efficiency Drop,Critical,2022-10-14 14:11:07,Resolved,2023-09-25 09:32:49
+179,131,Oil Life < 10%,Low,2023-12-22 08:22:50,Open,
+180,100,"Scheduled Service Overdue (5,000 km)",High,2023-10-26 06:58:58,Resolved,2024-01-23 08:10:09
+181,42,Alternator Output Low,Medium,2025-05-31 12:30:59,Resolved,2025-06-01 06:21:54
+182,194,High-Voltage Battery Degradation,Medium,2025-04-15 18:13:10,Acknowledged,
+183,199,High-Voltage Battery Degradation,High,2022-10-16 13:53:42,Dismissed,
+184,143,Battery Charge Below 15%,High,2024-08-02 16:41:23,Acknowledged,
+185,10,"Scheduled Service Overdue (5,000 km)",Medium,2022-06-08 17:01:42,Dismissed,
+186,107,Tyre Pressure Low (Front Left),High,2022-06-16 16:55:29,Open,
+187,153,Battery Charge Below 15%,Medium,2023-01-25 10:30:31,Resolved,2024-08-12 16:07:39
+188,164,ABS Sensor Fault Detected,Medium,2024-03-01 19:18:02,Resolved,2024-03-30 15:42:08
+189,98,Check Engine Light Active,Critical,2023-12-27 16:54:26,Dismissed,
+190,20,"Scheduled Service Overdue (5,000 km)",Medium,2024-02-05 19:01:01,Dismissed,
+191,48,"Scheduled Service Overdue (5,000 km)",High,2023-03-09 22:38:38,Resolved,2024-03-15 09:06:16
+192,82,Battery Charge Below 15%,Critical,2023-06-10 12:37:51,Open,
+193,71,Battery Charge Below 15%,Medium,2022-11-11 15:58:35,Resolved,2023-02-22 18:48:59
+194,80,Battery Charge Below 15%,Critical,2024-10-08 08:42:21,Acknowledged,
+195,36,Check Engine Light Active,Low,2022-06-09 09:57:30,Open,
+196,104,Oil Life < 10%,Medium,2023-11-24 11:37:35,Resolved,2024-08-04 08:21:10
+197,167,DPF Filter 90% Full,Critical,2022-12-30 06:30:13,Resolved,2023-05-09 11:47:52
+198,105,Battery Charge Below 15%,Low,2025-05-07 14:36:50,Resolved,2025-05-14 21:35:15
+199,111,Tyre Pressure Low (Rear Right),Medium,2024-08-04 12:52:33,Acknowledged,
+200,104,ABS Sensor Fault Detected,Critical,2024-09-20 15:17:15,Resolved,2025-05-06 09:45:26
+201,166,ABS Sensor Fault Detected,High,2022-06-03 09:25:37,Acknowledged,
+202,177,Battery Charge Below 15%,Low,2023-06-13 09:42:15,Open,
+203,60,Refrigeration Unit Temperature Drift,Critical,2022-09-04 08:43:25,Open,
+204,71,Refrigeration Unit Temperature Drift,Critical,2022-06-06 12:45:07,Resolved,2022-07-05 19:06:21
+205,115,ABS Sensor Fault Detected,Low,2023-02-08 17:20:26,In Progress,
+206,114,DPF Filter 90% Full,High,2023-03-26 12:24:22,Acknowledged,
+207,126,EV Motor Efficiency Drop,Medium,2023-12-13 19:03:16,Open,
+208,41,Tyre Pressure Low (Front Left),Low,2022-10-01 20:33:18,Acknowledged,
+209,74,Brake Wear Critical,Low,2023-12-25 11:27:49,Open,
+210,151,Oil Life < 10%,Medium,2024-02-11 13:28:12,Resolved,2024-07-02 21:24:17
+211,123,Tyre Pressure Low (Rear Right),Medium,2023-03-01 06:49:15,Resolved,2024-03-29 13:35:32
+212,29,Transmission Fluid Degraded,Medium,2024-06-29 22:16:44,Open,
+213,192,DPF Filter 90% Full,Medium,2022-10-07 09:15:57,Acknowledged,
+214,194,Engine Temperature Anomaly,Critical,2025-05-21 11:40:31,Dismissed,
+215,39,Refrigeration Unit Temperature Drift,Critical,2024-04-01 19:36:21,Open,
+216,48,Check Engine Light Active,Low,2024-02-18 19:16:44,Resolved,2024-12-15 12:40:25
+217,25,"Scheduled Service Overdue (5,000 km)",Medium,2023-07-07 13:20:02,Resolved,2024-07-07 21:48:15
+218,127,Refrigeration Unit Temperature Drift,Medium,2022-07-04 08:06:36,Resolved,2023-10-21 19:55:02
+219,120,Tyre Pressure Low (Rear Right),Medium,2022-10-27 09:43:35,In Progress,
+220,57,Coolant Level Low,High,2023-08-22 17:06:02,Acknowledged,
+221,31,Tyre Pressure Low (Front Left),Critical,2024-12-08 12:05:21,Dismissed,
+222,24,Oil Life < 10%,High,2023-10-07 07:30:44,Acknowledged,
+223,169,DPF Filter 90% Full,High,2022-06-14 21:52:13,Resolved,2024-04-22 09:05:32
+224,148,Tyre Pressure Low (Front Left),Medium,2024-10-22 17:59:22,Resolved,2025-03-14 11:01:47
+225,161,Battery Charge Below 15%,High,2023-12-16 12:11:52,Acknowledged,
+226,188,EV Motor Efficiency Drop,Low,2023-08-03 12:08:18,In Progress,
+227,58,Coolant Level Low,High,2022-08-04 09:46:58,Resolved,2024-08-24 15:53:43
+228,40,Battery Charge Below 15%,High,2023-04-22 21:24:00,Acknowledged,
+229,137,Brake Wear Critical,Low,2024-10-08 09:05:48,Acknowledged,
+230,40,"Scheduled Service Overdue (5,000 km)",Medium,2024-11-07 13:44:52,Acknowledged,
+231,116,EV Motor Efficiency Drop,Low,2025-05-27 12:28:27,Acknowledged,
+232,72,EV Motor Efficiency Drop,Medium,2023-08-13 06:12:25,Acknowledged,
+233,24,Tyre Pressure Low (Front Left),Critical,2023-01-23 10:57:03,Acknowledged,
+234,144,DPF Filter 90% Full,Medium,2023-03-04 07:33:11,In Progress,
+235,33,Brake Wear Critical,Medium,2022-09-12 22:54:38,In Progress,
+236,62,ABS Sensor Fault Detected,Medium,2022-11-19 16:33:34,Open,
+237,86,DPF Filter 90% Full,Medium,2023-06-01 07:27:31,Resolved,2023-12-29 10:51:50
+238,179,Brake Wear Critical,High,2025-04-26 10:39:28,Open,
+239,189,"Scheduled Service Overdue (5,000 km)",High,2024-12-30 11:43:17,Dismissed,
+240,8,Brake Wear Critical,Low,2022-06-24 06:49:42,Resolved,2022-08-26 08:20:10
+241,22,Engine Temperature Anomaly,High,2025-02-09 09:28:50,Resolved,2025-05-03 17:03:50
+242,185,Transmission Fluid Degraded,Low,2024-05-24 16:24:43,Open,
+243,193,High-Voltage Battery Degradation,Medium,2023-04-23 08:34:52,Open,
+244,74,High-Voltage Battery Degradation,Medium,2022-11-04 10:11:52,Resolved,2024-04-01 07:20:24
+245,11,ABS Sensor Fault Detected,Medium,2025-01-13 06:02:38,Open,
+246,63,Tyre Pressure Low (Rear Right),Medium,2024-04-30 08:23:46,In Progress,
+247,104,Battery Charge Below 15%,Medium,2023-02-07 13:26:09,Resolved,2024-07-15 13:20:23
+248,94,Refrigeration Unit Temperature Drift,Medium,2023-05-15 18:46:02,Resolved,2023-06-25 21:03:26
+249,62,Battery Charge Below 15%,Medium,2024-12-29 17:50:01,Resolved,2025-05-13 11:08:04
+250,69,Engine Temperature Anomaly,High,2023-02-06 18:16:53,In Progress,
+251,67,DPF Filter 90% Full,High,2023-11-12 11:35:30,In Progress,
+252,133,DPF Filter 90% Full,Low,2023-06-20 22:41:04,In Progress,
+253,40,Oil Life < 10%,High,2023-03-17 18:39:43,Acknowledged,
+254,134,Coolant Level Low,High,2024-02-20 19:19:10,Open,
+255,194,ABS Sensor Fault Detected,High,2024-06-24 22:27:13,Open,
+256,22,Check Engine Light Active,Medium,2022-08-23 18:18:40,In Progress,
+257,193,Oil Life < 10%,Medium,2024-01-17 07:11:25,Resolved,2025-01-21 17:21:34
+258,76,ABS Sensor Fault Detected,Low,2022-07-18 08:30:24,Acknowledged,
+259,75,DPF Filter 90% Full,Medium,2025-05-22 22:58:58,Open,
+260,188,EV Motor Efficiency Drop,Low,2023-10-08 22:33:11,Resolved,2024-07-17 16:46:08
+261,157,Refrigeration Unit Temperature Drift,High,2022-10-05 16:02:18,Resolved,2022-12-03 15:15:13
+262,54,"Scheduled Service Overdue (5,000 km)",Critical,2024-05-28 12:53:33,Acknowledged,
+263,182,EV Motor Efficiency Drop,Low,2023-08-29 10:51:06,Open,
+264,135,Brake Wear Critical,Medium,2023-02-09 07:38:12,Acknowledged,
+265,162,Battery Charge Below 15%,High,2025-03-05 12:08:25,Resolved,2025-04-03 07:56:26
+266,186,Alternator Output Low,Low,2022-11-19 22:31:48,Dismissed,
+267,25,Oil Life < 10%,Medium,2025-03-22 19:49:35,Resolved,2025-05-29 06:00:58
+268,54,Tyre Pressure Low (Rear Right),High,2022-07-31 09:21:49,In Progress,
+269,153,High-Voltage Battery Degradation,Medium,2022-06-27 13:44:24,Acknowledged,
+270,68,Check Engine Light Active,High,2023-02-01 19:58:00,Resolved,2024-12-29 12:25:23
+271,35,Transmission Fluid Degraded,Critical,2022-11-04 15:38:04,Resolved,2025-04-14 22:40:49
+272,28,Engine Temperature Anomaly,Medium,2023-09-06 13:25:33,In Progress,
+273,151,DPF Filter 90% Full,Low,2024-09-12 12:10:52,Resolved,2025-01-01 22:09:04
+274,116,Battery Charge Below 15%,Medium,2024-04-22 19:04:05,Acknowledged,
+275,179,Battery Charge Below 15%,High,2024-01-24 10:33:34,In Progress,
+276,94,Coolant Level Low,High,2024-04-22 13:31:59,In Progress,
+277,191,Engine Temperature Anomaly,Low,2022-12-14 09:47:08,In Progress,
+278,11,Alternator Output Low,Critical,2022-09-22 22:56:13,In Progress,
+279,156,"Scheduled Service Overdue (5,000 km)",Low,2022-07-26 18:09:43,In Progress,
+280,191,Battery Charge Below 15%,Medium,2023-05-26 12:16:57,Acknowledged,
+281,111,High-Voltage Battery Degradation,Medium,2023-06-11 19:36:06,In Progress,
+282,109,Battery Charge Below 15%,High,2023-03-20 12:33:53,Acknowledged,
+283,30,Transmission Fluid Degraded,Medium,2022-06-11 22:28:49,Acknowledged,
+284,61,Check Engine Light Active,Medium,2025-05-18 10:26:02,Acknowledged,
+285,158,Engine Temperature Anomaly,High,2022-09-18 09:42:23,In Progress,
+286,156,Oil Life < 10%,High,2025-04-05 17:36:37,Resolved,2025-05-27 15:18:36
+287,5,Coolant Level Low,High,2024-12-14 14:37:51,Acknowledged,
+288,197,Transmission Fluid Degraded,High,2024-07-09 15:53:35,Resolved,2025-05-13 20:05:56
+289,38,"Scheduled Service Overdue (5,000 km)",Medium,2024-06-19 18:40:36,Acknowledged,
+290,145,Tyre Pressure Low (Front Left),Low,2022-07-14 22:56:19,Resolved,2023-08-17 11:56:12
+291,48,Battery Charge Below 15%,High,2023-08-31 15:49:09,Resolved,2024-11-14 18:36:35
+292,105,EV Motor Efficiency Drop,High,2022-07-18 21:09:25,Resolved,2025-02-09 19:57:01
+293,45,Check Engine Light Active,High,2024-02-24 13:33:38,Acknowledged,
+294,167,Check Engine Light Active,Medium,2025-05-01 10:42:57,Resolved,2025-05-02 15:52:00
+295,105,Tyre Pressure Low (Rear Right),Critical,2023-01-28 10:57:44,Resolved,2024-04-17 16:01:35
+296,104,Alternator Output Low,High,2024-06-04 10:27:42,Acknowledged,
+297,147,High-Voltage Battery Degradation,Medium,2024-09-11 08:59:53,Acknowledged,
+298,110,"Scheduled Service Overdue (5,000 km)",Low,2023-03-26 12:51:33,Acknowledged,
+299,193,Transmission Fluid Degraded,Low,2023-06-29 14:25:34,Open,
+300,131,DPF Filter 90% Full,Medium,2022-08-23 06:53:10,In Progress,

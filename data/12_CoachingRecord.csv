@@ -1,0 +1,151 @@
+CoachingID,DriverID,Reason,ScheduledDate,CompleteDate,Outcome
+1,245,Excessive speeding detected on highway,2024-08-17,,
+2,69,Excessive speeding detected on highway,2023-02-12,2023-02-16,Referred to occupational health
+3,153,Multiple harsh braking incidents,2022-07-03,2022-07-07,Refresher training completed successfully
+4,169,Seatbelt violations x3,2025-02-10,2025-02-21,No further action; isolated incident
+5,2,Excessive idling behaviour,2023-06-26,2023-07-09,Refresher training completed successfully
+6,85,Phone distraction alerts in past 30 days,2025-01-26,2025-01-28,Refresher training completed successfully
+7,12,Excessive idling behaviour,2024-11-28,,
+8,168,Repeat safety event within 14 days,2022-07-11,,
+9,160,Sharp cornering incidents on city routes,2023-10-10,2023-10-20,Driver acknowledged; corrective action plan agreed
+10,116,Sharp cornering incidents on city routes,2024-04-14,2024-04-25,No further action; isolated incident
+11,84,Low monthly safety score (<70),2025-03-12,2025-03-22,Driver suspended pending further review
+12,188,Low monthly safety score (<70),2022-08-15,2022-08-23,Route reassigned to lower-risk corridor
+13,239,Low monthly safety score (<70),2025-02-24,2025-02-25,Driver acknowledged; corrective action plan agreed
+14,233,Excessive speeding detected on highway,2024-10-12,2024-10-21,Driver suspended pending further review
+15,205,Excessive speeding detected on highway,2024-10-02,,
+16,146,Rapid acceleration pattern identified,2025-03-10,2025-03-21,No further action; isolated incident
+17,34,Seatbelt violations x3,2024-11-10,2024-11-15,No further action; isolated incident
+18,55,Seatbelt violations x3,2024-05-05,2024-05-14,Route reassigned to lower-risk corridor
+19,221,Excessive idling behaviour,2024-04-25,,
+20,13,Sharp cornering incidents on city routes,2023-02-24,,
+21,206,Rapid acceleration pattern identified,2024-10-01,,
+22,165,Phone distraction alerts in past 30 days,2025-01-23,,
+23,73,Excessive speeding detected on highway,2023-07-30,2023-08-11,Safety awareness module completed
+24,83,Phone distraction alerts in past 30 days,2025-02-13,2025-02-17,Route reassigned to lower-risk corridor
+25,236,Excessive idling behaviour,2025-03-04,2025-03-11,Driver suspended pending further review
+26,15,Multiple harsh braking incidents,2023-09-24,2023-09-25,Driver suspended pending further review
+27,191,Phone distraction alerts in past 30 days,2023-11-17,2023-11-20,Referred to occupational health
+28,19,Rapid acceleration pattern identified,2025-03-28,2025-03-30,No further action; isolated incident
+29,141,Low monthly safety score (<70),2023-01-20,2023-01-22,Refresher training completed successfully
+30,155,Rapid acceleration pattern identified,2025-02-21,2025-02-27,Referred to occupational health
+31,98,Low monthly safety score (<70),2022-09-04,,
+32,24,Low monthly safety score (<70),2023-11-30,,
+33,103,Excessive idling behaviour,2022-12-31,2023-01-08,Referred to occupational health
+34,66,Repeat safety event within 14 days,2023-01-14,,
+35,46,Multiple harsh braking incidents,2022-12-26,,
+36,62,Excessive speeding detected on highway,2025-04-04,2025-04-15,Referred to occupational health
+37,198,Phone distraction alerts in past 30 days,2023-07-26,,
+38,218,Low monthly safety score (<70),2024-01-20,2024-02-02,No further action; isolated incident
+39,23,Rapid acceleration pattern identified,2022-12-21,2022-12-27,Referred to occupational health
+40,6,Excessive idling behaviour,2023-03-10,2023-03-14,No further action; isolated incident
+41,54,Excessive idling behaviour,2022-06-14,2022-06-27,Driver suspended pending further review
+42,42,Fatigue warning triggered,2024-01-09,2024-01-11,Driver suspended pending further review
+43,100,Seatbelt violations x3,2024-09-27,2024-10-08,Refresher training completed successfully
+44,200,Phone distraction alerts in past 30 days,2025-05-20,2025-05-24,Referred to occupational health
+45,104,Excessive idling behaviour,2024-10-26,2024-11-02,Referred to occupational health
+46,228,Rapid acceleration pattern identified,2025-04-23,,
+47,166,Multiple harsh braking incidents,2022-07-31,2022-08-13,Safety awareness module completed
+48,193,Excessive speeding detected on highway,2025-04-25,,
+49,243,Phone distraction alerts in past 30 days,2024-04-23,2024-05-06,No further action; isolated incident
+50,40,Phone distraction alerts in past 30 days,2022-10-04,2022-10-05,Route reassigned to lower-risk corridor
+51,31,Low monthly safety score (<70),2022-09-27,,
+52,77,Low monthly safety score (<70),2024-01-27,2024-02-07,Referred to occupational health
+53,126,Rapid acceleration pattern identified,2024-02-14,2024-02-20,Driver acknowledged; corrective action plan agreed
+54,111,Repeat safety event within 14 days,2023-12-25,,
+55,189,Seatbelt violations x3,2023-03-28,2023-04-05,Route reassigned to lower-risk corridor
+56,80,Sharp cornering incidents on city routes,2024-11-22,2024-12-05,Referred to occupational health
+57,176,Excessive speeding detected on highway,2023-07-10,,
+58,232,Phone distraction alerts in past 30 days,2022-08-15,2022-08-22,Route reassigned to lower-risk corridor
+59,234,Low monthly safety score (<70),2024-01-03,2024-01-12,Driver suspended pending further review
+60,92,Phone distraction alerts in past 30 days,2025-05-03,2025-05-14,Driver acknowledged; corrective action plan agreed
+61,171,Low monthly safety score (<70),2022-07-28,,
+62,25,Fatigue warning triggered,2023-11-12,2023-11-25,Safety awareness module completed
+63,95,Excessive speeding detected on highway,2024-10-13,,
+64,132,Fatigue warning triggered,2022-10-01,,
+65,52,Excessive speeding detected on highway,2025-04-05,2025-04-06,No further action; isolated incident
+66,214,Excessive idling behaviour,2024-02-01,2024-02-02,Driver suspended pending further review
+67,115,Repeat safety event within 14 days,2023-09-27,,
+68,208,Seatbelt violations x3,2025-05-28,,
+69,122,Repeat safety event within 14 days,2024-05-18,2024-05-29,Safety awareness module completed
+70,249,Seatbelt violations x3,2023-03-14,2023-03-23,Driver acknowledged; corrective action plan agreed
+71,145,Rapid acceleration pattern identified,2024-04-02,2024-04-06,No further action; isolated incident
+72,154,Sharp cornering incidents on city routes,2022-12-18,2022-12-25,Driver acknowledged; corrective action plan agreed
+73,109,Excessive idling behaviour,2022-12-06,2022-12-09,Refresher training completed successfully
+74,219,Low monthly safety score (<70),2024-11-30,2024-12-11,No further action; isolated incident
+75,178,Fatigue warning triggered,2025-04-28,,
+76,238,Excessive idling behaviour,2025-03-18,2025-03-26,Safety awareness module completed
+77,158,Phone distraction alerts in past 30 days,2024-10-01,,
+78,48,Excessive idling behaviour,2025-04-01,2025-04-13,Refresher training completed successfully
+79,112,Excessive speeding detected on highway,2025-04-17,,
+80,162,Phone distraction alerts in past 30 days,2023-08-10,2023-08-11,Route reassigned to lower-risk corridor
+81,110,Excessive speeding detected on highway,2024-06-26,,
+82,177,Repeat safety event within 14 days,2024-09-14,2024-09-20,Driver suspended pending further review
+83,11,Rapid acceleration pattern identified,2022-08-22,2022-08-24,Driver suspended pending further review
+84,187,Multiple harsh braking incidents,2024-07-06,2024-07-14,Referred to occupational health
+85,88,Sharp cornering incidents on city routes,2023-03-20,2023-03-30,Driver acknowledged; corrective action plan agreed
+86,119,Seatbelt violations x3,2024-02-15,,
+87,58,Excessive idling behaviour,2023-06-10,,
+88,201,Excessive speeding detected on highway,2022-06-05,2022-06-11,Referred to occupational health
+89,127,Fatigue warning triggered,2022-08-31,2022-09-10,Route reassigned to lower-risk corridor
+90,135,Sharp cornering incidents on city routes,2024-12-13,,
+91,161,Repeat safety event within 14 days,2025-01-29,,
+92,22,Low monthly safety score (<70),2023-02-27,,
+93,75,Excessive idling behaviour,2024-12-30,,
+94,120,Rapid acceleration pattern identified,2023-04-02,,
+95,172,Repeat safety event within 14 days,2022-11-30,,
+96,21,Rapid acceleration pattern identified,2024-09-16,2024-09-23,Route reassigned to lower-risk corridor
+97,123,Excessive idling behaviour,2022-09-02,,
+98,199,Phone distraction alerts in past 30 days,2023-12-21,2024-01-04,Safety awareness module completed
+99,39,Fatigue warning triggered,2022-07-21,2022-08-03,Route reassigned to lower-risk corridor
+100,33,Seatbelt violations x3,2023-02-09,2023-02-11,Route reassigned to lower-risk corridor
+101,122,Low monthly safety score (<70),2022-09-17,,
+102,98,Low monthly safety score (<70),2023-06-23,,
+103,236,Phone distraction alerts in past 30 days,2022-07-09,2022-07-18,Driver acknowledged; corrective action plan agreed
+104,100,Seatbelt violations x3,2023-12-16,,
+105,176,Repeat safety event within 14 days,2024-11-26,2024-12-05,Driver suspended pending further review
+106,80,Multiple harsh braking incidents,2024-08-31,2024-09-08,Driver suspended pending further review
+107,22,Low monthly safety score (<70),2024-11-12,2024-11-13,Driver suspended pending further review
+108,77,Excessive speeding detected on highway,2024-07-22,2024-07-24,Route reassigned to lower-risk corridor
+109,77,Fatigue warning triggered,2023-05-11,2023-05-14,Referred to occupational health
+110,42,Phone distraction alerts in past 30 days,2022-12-01,2022-12-08,Driver acknowledged; corrective action plan agreed
+111,166,Multiple harsh braking incidents,2024-03-28,2024-04-09,Driver suspended pending further review
+112,109,Sharp cornering incidents on city routes,2024-08-07,2024-08-10,Driver suspended pending further review
+113,177,Excessive speeding detected on highway,2023-11-11,2023-11-25,Driver acknowledged; corrective action plan agreed
+114,62,Repeat safety event within 14 days,2023-07-20,2023-07-30,Refresher training completed successfully
+115,234,Sharp cornering incidents on city routes,2025-03-06,2025-03-15,Driver acknowledged; corrective action plan agreed
+116,158,Low monthly safety score (<70),2023-12-04,2023-12-12,No further action; isolated incident
+117,69,Seatbelt violations x3,2022-10-13,2022-10-20,Driver acknowledged; corrective action plan agreed
+118,178,Excessive speeding detected on highway,2023-12-04,2023-12-14,Refresher training completed successfully
+119,166,Excessive idling behaviour,2023-02-13,2023-02-20,Driver acknowledged; corrective action plan agreed
+120,112,Rapid acceleration pattern identified,2025-03-21,2025-03-24,Route reassigned to lower-risk corridor
+121,88,Low monthly safety score (<70),2023-05-11,,
+122,2,Low monthly safety score (<70),2024-10-15,,
+123,42,Excessive idling behaviour,2024-12-12,2024-12-26,Referred to occupational health
+124,145,Multiple harsh braking incidents,2024-01-14,2024-01-17,Driver acknowledged; corrective action plan agreed
+125,24,Sharp cornering incidents on city routes,2025-02-12,2025-02-17,Driver suspended pending further review
+126,109,Fatigue warning triggered,2023-08-10,2023-08-19,Driver acknowledged; corrective action plan agreed
+127,238,Excessive speeding detected on highway,2023-04-27,2023-05-07,Driver suspended pending further review
+128,104,Phone distraction alerts in past 30 days,2022-12-01,2022-12-03,Safety awareness module completed
+129,110,Seatbelt violations x3,2023-12-25,,
+130,46,Rapid acceleration pattern identified,2025-03-30,,
+131,22,Excessive idling behaviour,2024-05-02,2024-05-15,Driver suspended pending further review
+132,177,Rapid acceleration pattern identified,2023-10-17,2023-10-23,Refresher training completed successfully
+133,165,Rapid acceleration pattern identified,2024-12-28,,
+134,168,Phone distraction alerts in past 30 days,2022-07-03,,
+135,39,Multiple harsh braking incidents,2022-06-05,2022-06-06,Safety awareness module completed
+136,15,Excessive idling behaviour,2023-05-22,2023-06-03,Referred to occupational health
+137,208,Excessive speeding detected on highway,2024-08-13,2024-08-26,Route reassigned to lower-risk corridor
+138,200,Excessive idling behaviour,2022-08-03,,
+139,69,Sharp cornering incidents on city routes,2023-02-08,2023-02-22,Referred to occupational health
+140,6,Multiple harsh braking incidents,2024-06-03,2024-06-17,Driver acknowledged; corrective action plan agreed
+141,69,Excessive idling behaviour,2025-01-03,2025-01-07,Driver acknowledged; corrective action plan agreed
+142,214,Fatigue warning triggered,2023-08-28,2023-09-10,Safety awareness module completed
+143,166,Repeat safety event within 14 days,2024-06-02,2024-06-16,Safety awareness module completed
+144,54,Seatbelt violations x3,2024-02-11,,
+145,214,Rapid acceleration pattern identified,2023-09-23,,
+146,178,Repeat safety event within 14 days,2022-08-15,2022-08-27,Refresher training completed successfully
+147,109,Sharp cornering incidents on city routes,2022-06-15,2022-06-29,Driver acknowledged; corrective action plan agreed
+148,98,Phone distraction alerts in past 30 days,2023-12-21,2023-12-29,Route reassigned to lower-risk corridor
+149,177,Repeat safety event within 14 days,2023-07-02,2023-07-12,Route reassigned to lower-risk corridor
+150,25,Excessive speeding detected on highway,2023-05-26,2023-05-29,Refresher training completed successfully

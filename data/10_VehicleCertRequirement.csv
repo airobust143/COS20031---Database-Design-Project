@@ -1,0 +1,9 @@
+ReqID,VehicleType,CertTypeID
+1,Delivery Van,1
+2,Service Vehicle,1
+3,Heavy Transport Truck,1
+4,Heavy Transport Truck,2
+5,Refrigerated Truck,1
+6,Refrigerated Truck,3
+7,Electric Van,1
+8,Electric Van,4

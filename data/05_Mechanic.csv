@@ -1,0 +1,81 @@
+MechanicID,FirstName,LastName,WorkshopID,EmploymentStatus
+1,Duong,Thi Hoa,3,On Leave
+2,Ly,Thi Nhung,1,Suspended
+3,Le,Thi Huong,4,Active
+4,Le,Quoc Tuan,5,Active
+5,Vo,Minh Khoa,1,Active
+6,Mai,Thi Dung,4,Active
+7,Hoang,Thi Nhung,10,On Leave
+8,Tran,Quoc Bao,10,On Leave
+9,Hoang,Thi Thu,2,Active
+10,Phan,Huu Duc,10,Active
+11,Ngo,Van Hai,6,Active
+12,Le,Xuan Truong,6,Active
+13,Mai,Xuan Truong,1,Active
+14,Do,Minh Tuan,6,On Leave
+15,Le,Van Hai,3,Terminated
+16,Phan,Thi Dung,6,Suspended
+17,Hoang,Ngoc Anh,3,Terminated
+18,Cao,Minh Tuan,7,Active
+19,Ha,Thi Lan,9,Active
+20,Le,Thi Lan,2,Terminated
+21,Ha,Xuan Truong,7,Terminated
+22,Vu,Thi Dung,8,Active
+23,Cao,Van Minh,2,Active
+24,Mai,Thi Thu,5,Terminated
+25,Do,Thi Hoa,6,Active
+26,Duong,Thi Thu,7,Active
+27,Le,Thi Lan,2,Active
+28,Dinh,Thi Nhung,5,Active
+29,Dinh,Van Nam,8,Active
+30,Cao,Thi Huong,1,Active
+31,Ho,Minh Khoa,7,Active
+32,Hoang,Minh Khoa,2,On Leave
+33,Mai,Quoc Bao,9,Active
+34,Dang,Quoc Tuan,3,Active
+35,Bui,Quoc Tuan,10,Active
+36,Hoang,Quoc Bao,6,Active
+37,Do,Van Long,9,Suspended
+38,Ly,Thi Mai,9,Active
+39,Ho,Thi Dung,9,Active
+40,Vu,Ngoc Anh,7,Active
+41,Vo,Quoc Tuan,3,Active
+42,Do,Thi Hoa,4,Active
+43,Le,Van Long,3,On Leave
+44,Dinh,Thi Mai,5,Active
+45,Ha,Minh Khoa,5,Active
+46,Tran,Thi Thu,8,Active
+47,Cao,Thi Hoa,10,Active
+48,Mai,Van Minh,4,Active
+49,Ly,Thi Huong,9,Active
+50,Ngo,Van Long,6,Active
+51,Tran,Van Long,3,Active
+52,Ha,Thi Yen,9,Active
+53,Ngo,Thi Yen,4,Active
+54,Le,Van Long,3,On Leave
+55,Dinh,Thi Yen,5,Active
+56,Cao,Minh Tuan,5,Active
+57,Hoang,Quoc Bao,4,Active
+58,Ngo,Huu Duc,4,On Leave
+59,Ngo,Thi Huong,2,Active
+60,Cao,Van Hai,7,Active
+61,Vo,Thi Lan,2,Active
+62,Tran,Thi Huong,8,Active
+63,Truong,Van Hai,2,Active
+64,Hoang,Minh Tuan,2,On Leave
+65,Hoang,Huu Duc,6,Suspended
+66,Ho,Ngoc Anh,1,Active
+67,Cao,Thi Thu,1,Suspended
+68,Ho,Van Hai,10,On Leave
+69,Mai,Thi Hoa,8,Suspended
+70,Do,Thi Hoa,8,Active
+71,Ngo,Huu Duc,10,Terminated
+72,Pham,Thi Nhung,6,Suspended
+73,Do,Van Minh,4,Suspended
+74,Truong,Xuan Truong,8,Terminated
+75,Ha,Thi Dung,8,Active
+76,Tran,Thi Dung,10,Active
+77,Phan,Van Hai,5,Terminated
+78,Cao,Van Long,3,Active
+79,Dang,Thi Lan,10,Suspended
+80,Pham,Van Nam,1,Active

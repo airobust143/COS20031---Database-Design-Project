@@ -1,0 +1,6 @@
+CertTypeID,Name,Expire
+1,Standard Licence,0
+2,Heavy Vehicle Licence,1
+3,Refrigerated Transport Certification,1
+4,EV Certification,1
+5,Hazardous Goods Certification,1
