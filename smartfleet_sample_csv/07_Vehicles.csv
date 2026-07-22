@@ -1,0 +1,6 @@
+VehicleID,RegistrationNumber,CategoryID,Model,Manufacturer,YearOfManufacture,CurrentOdometerReading,DepotID,OperationalStatus
+1,29A-123.45,1,Canter FE71,Mitsubishi Fuso,2021,45310,1,Active
+2,51C-789.01,2,300 Series,Hino,2020,112480,3,Active
+3,43E-456.78,3,e-Delivery 350,VinFast,2023,12300,2,Active
+4,92H-135.79,5,Xcient,Hyundai,2019,210500,4,Under Maintenance
+5,30G-246.80,4,Transit Custom,Ford,2022,58200,1,Available

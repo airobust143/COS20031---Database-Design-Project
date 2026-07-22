@@ -1,0 +1,4 @@
+AlertID,VehicleID,AlertType,Severity,GeneratedAt,Status,ResolvedAt
+1,1,Brake Wear Warning,High,2024-05-11 08:00:00,Escalated,2024-05-13 03:00:00
+2,2,Cooling System Anomaly,Medium,2024-05-13 07:00:00,Scheduled,2024-05-14 14:00:00
+3,4,Engine Overheating Risk,Critical,2024-05-18 10:30:00,Escalated,

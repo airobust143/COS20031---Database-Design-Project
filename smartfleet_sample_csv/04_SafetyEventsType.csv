@@ -1,9 +1,9 @@
 EventsTypeID,Name,DefaultSeverity
-1,Harsh Braking,Medium
+1,Harsh Braking,Low
 2,Rapid Acceleration,Low
 3,Excessive Speeding,High
 4,Sharp Cornering,Medium
 5,Excessive Idling,Low
-6,Fatigue Warning,Critical
-7,Seatbelt Violation,High
-8,Phone Distraction Alert,Critical
+6,Fatigue Warning,High
+7,Seatbelt Violation,Medium
+8,Phone Distraction Alert,High

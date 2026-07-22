@@ -1,0 +1,10 @@
+ActivityTypeID,Name,MecCertTypeID
+1,Routine Inspection,1
+2,Preventative Servicing,1
+3,Diagnostic Testing,1
+4,Emergency Repair,1
+5,Brake Service,1
+6,Tyre Replacement,1
+7,EV Battery / Electrical Repair,2
+8,Refrigeration System Repair,3
+9,Heavy Vehicle Repair,4

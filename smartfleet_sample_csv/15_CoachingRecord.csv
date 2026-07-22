@@ -1,0 +1,3 @@
+CoachingID,DriverID,Reason,ScheduledDate,CompleteDate,Outcome,RecordType,EventID,ScoreID
+1,2,"Monthly safety score reached coaching threshold (75) - mandatory driver coaching session required",2024-06-05,,Pending,Low Safety Score,,2
+2,2,"Critical speeding event recorded - mandatory safety retraining required before vehicle can be reassigned",2024-05-20,,Pending,Critical Event,6,

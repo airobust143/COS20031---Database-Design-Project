@@ -1,0 +1,9 @@
+PermissionID,TableName,Action
+1,SafetyEvents,SELECT
+2,SafetyEvents,INSERT
+3,MaintenanceJobs,SELECT
+4,MaintenanceJobs,INSERT
+5,Drivers,SELECT
+6,Vehicles,ALL
+7,DriverSafetyScore,SELECT
+8,MaintenanceActivity,SELECT

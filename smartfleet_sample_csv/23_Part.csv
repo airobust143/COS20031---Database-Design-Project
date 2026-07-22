@@ -1,0 +1,5 @@
+PartID,PartNumber,Description,UnitPrice
+1,PART-BRK-001,Brake Pad Set (Front Axle),450000.00
+2,PART-TYR-001,Tyre 195/70R15C,1250000.00
+3,PART-FRIDGE-001,Refrigeration Compressor Belt,380000.00
+4,PART-HOSE-001,Radiator Hose Assembly,220000.00

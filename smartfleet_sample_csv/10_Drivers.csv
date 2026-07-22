@@ -1,0 +1,6 @@
+DriverID,FirstName,LastName,ContactInformation,DepotID,LicenceType,LicenceExpiryDate,EmploymentStatus,EmergencyContactDetails
+1,Nguyen,Van An,"vanan.nguyen@smartfleet.vn / 0912 345 671",1,B2,2028-03-10,Active,"Nguyen Thi Hoa (spouse) - 0912 345 999"
+2,Tran,Thi Bich,"thibich.tran@smartfleet.vn / 0912 345 672",3,C,2027-08-22,Inactive,"Tran Van Nam (spouse) - 0912 345 998"
+3,Le,Quoc Minh,"quocminh.le@smartfleet.vn / 0912 345 673",1,B2,2029-01-05,Active,"Le Thi Mai (mother) - 0912 345 997"
+4,Pham,Duc Long,"duclong.pham@smartfleet.vn / 0912 345 674",4,C,2026-12-15,Active,"Pham Van Son (brother) - 0912 345 996"
+5,Vo,Thi Ha,"thiha.vo@smartfleet.vn / 0912 345 675",2,B2,2027-05-30,Active,"Vo Van Tam (father) - 0912 345 995"

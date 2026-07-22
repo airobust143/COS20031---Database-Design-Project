@@ -1,0 +1,5 @@
+UserID,Username,PasswordHash,IsActive,DriverID,MechanicID,DepotID
+1,btran.safety,$2b$12$examplehashvalueforbtran0001,1,,,1
+2,dnguyen.workshop,$2b$12$examplehashvalusfordnguyen02,1,,,3
+3,admin,$2b$12$examplehashvalueforadmin00003,1,,,
+4,vanan.driver,$2b$12$examplehashvalueforvanan0004,1,1,,
