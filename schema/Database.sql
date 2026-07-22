@@ -190,6 +190,7 @@ CREATE TABLE `Drivers` (
     PRIMARY KEY (`DriverID`),
     KEY `idx_drivers_depot` (`DepotID`),
     KEY `idx_drivers_status` (`EmploymentStatus`),
+    KEY `idx_drivers_licexp` (`LicenceExpiryDate`),
     CONSTRAINT `fk_drivers_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -239,6 +240,7 @@ CREATE TABLE `DriverCertifications` (
     PRIMARY KEY (`DriverCertID`),
     KEY `idx_dc_driver` (`DriverID`),
     KEY `idx_dc_certtype` (`CertTypeID`),
+    KEY `idx_dc_expire` (`ExpireDate`),
     CONSTRAINT `chk_dc_dates` CHECK (`ExpireDate` IS NULL OR `ExpireDate` >= `IssueDate`),
     CONSTRAINT `fk_dc_driver`
         FOREIGN KEY (`DriverID`) REFERENCES `Drivers` (`DriverID`)
