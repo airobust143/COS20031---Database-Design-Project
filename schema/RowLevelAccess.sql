@@ -24,6 +24,23 @@ WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
 GRANT SELECT ON `smart_fleet_management`.`v_my_safety_events` TO 'sf_driver';
 GRANT SELECT ON `smart_fleet_management`.`v_my_safety_scores` TO 'sf_driver';
 
+-- Labour hours: mechanic may only touch their own row
+CREATE OR REPLACE VIEW `v_my_labour` AS
+SELECT am.ActivityID, am.MechanicID, am.LabourHours
+FROM `ActivityMechanic` am
+JOIN `UserAccount` ua ON ua.MechanicID = am.MechanicID
+WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1)
+WITH CHECK OPTION;
+
+-- Diagnostic results: only on activities they're assigned to
+CREATE OR REPLACE VIEW `v_my_activities` AS
+SELECT ma.ActivityID, ma.JobID, ma.DiagnosticResult, ma.IsRepeatFault,
+       ma.StartedAt, ma.CompleteAt
+FROM `MaintenanceActivity` ma
+JOIN `ActivityMechanic` am ON am.ActivityID = ma.ActivityID
+JOIN `UserAccount` ua      ON ua.MechanicID = am.MechanicID
+WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+
 -- =====================================================================
 -- Useful inspection commands
 --   SHOW GRANTS FOR 'sf_safety_ops';
