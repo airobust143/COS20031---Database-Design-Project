@@ -247,21 +247,21 @@ SELECT se.EventID, se.Timestamp, se.VehicleID, se.EventsTypeID,
        se.Severity, se.DepotID, se.Odometer, se.ReviewStatus
 FROM `SafetyEvents` se
 JOIN `UserAccount` ua ON ua.DriverID = se.DriverID
-WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1);
 
 CREATE OR REPLACE VIEW `v_my_safety_scores` AS
 SELECT dss.ScorePeriod, dss.BaseScore, dss.DeductedPoints, dss.FinalScore,
        dss.CoachingRequired, dss.Suspended
 FROM `DriverSafetyScore` dss
 JOIN `UserAccount` ua ON ua.DriverID = dss.DriverID
-WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1);
 
 CREATE OR REPLACE VIEW `v_my_certifications` AS
 SELECT dc.DriverCertID, ct.Name AS Certification, dc.IssueDate, dc.ExpireDate
 FROM `DriverCertifications` dc
 JOIN `CertificationType` ct ON ct.CertTypeID = dc.CertTypeID
 JOIN `UserAccount` ua       ON ua.DriverID = dc.DriverID
-WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1);
 
 GRANT SELECT ON `smart_fleet_management`.`v_my_safety_events`  TO sf_driver;
 GRANT SELECT ON `smart_fleet_management`.`v_my_safety_scores`  TO sf_driver;
