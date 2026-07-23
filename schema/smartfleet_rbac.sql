@@ -274,17 +274,21 @@ GRANT SELECT ON `smart_fleet_management`.`v_my_certifications` TO sf_driver;
 CREATE OR REPLACE VIEW `v_my_labour` AS
 SELECT am.ActivityID, am.MechanicID, am.LabourHours
 FROM `ActivityMechanic` am
-JOIN `UserAccount` ua ON ua.MechanicID = am.MechanicID
-WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1)
-WITH CHECK OPTION;
+WHERE am.MechanicID = (
+    SELECT ua.MechanicID FROM `UserAccount` ua
+    WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1)
+);
 
 CREATE OR REPLACE VIEW `v_my_activities` AS
 SELECT ma.ActivityID, ma.JobID, ma.DiagnosticResult, ma.IsRepeatFault,
        ma.StartedAt, ma.CompleteAt
 FROM `MaintenanceActivity` ma
-JOIN `ActivityMechanic` am ON am.ActivityID = ma.ActivityID
-JOIN `UserAccount` ua      ON ua.MechanicID = am.MechanicID
-WHERE ua.Username = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+WHERE ma.ActivityID IN (
+    SELECT am.ActivityID
+    FROM `ActivityMechanic` am
+    JOIN `UserAccount` ua ON ua.MechanicID = am.MechanicID
+    WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1)
+);
 
 GRANT SELECT, UPDATE (`LabourHours`)
       ON `smart_fleet_management`.`v_my_labour` TO sf_mechanic;
