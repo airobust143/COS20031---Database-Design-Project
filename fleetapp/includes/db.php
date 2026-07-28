@@ -1,19 +1,19 @@
 <?php
-// Database connection (SQLite demo database)
-// To point this app at a real MySQL server instead, swap the DSN below, e.g.:
-//   new PDO('mysql:host=localhost;dbname=smart_fleet_management;charset=utf8mb4', $user, $pass)
+// Database connection
 
-$dbPath = __DIR__ . '/../db/fleet.sqlite';
-
-if (!file_exists($dbPath)) {
-    die('Database file not found at: ' . htmlspecialchars($dbPath));
-}
+$host     = 'localhost';
+$dbname   = 'smart_fleet_management';
+$username = 'root';
+$password = '';
 
 try {
-    $pdo = new PDO('sqlite:' . $dbPath);
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $username,
+        $password
+    );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    $pdo->exec('PRAGMA foreign_keys = ON');
 } catch (PDOException $e) {
     die('Database connection failed: ' . htmlspecialchars($e->getMessage()));
 }
