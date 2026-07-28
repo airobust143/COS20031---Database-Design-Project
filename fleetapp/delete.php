@@ -21,8 +21,12 @@ foreach ($pkCols as $c) { $pkValues[$c] = $_POST[$c] ?? null; }
 $error = null;
 try {
     $where = pkWhereClause($pkValues);
+    $bind = [];
+    foreach ($pkValues as $c => $v) {
+        $bind[':pk_' . $c] = $v;
+    }
     $stmt = $pdo->prepare("DELETE FROM `$table` WHERE $where");
-    $stmt->execute($pkValues);
+    $stmt->execute($bind);
 } catch (PDOException $e) {
     $error = $e->getMessage();
 }

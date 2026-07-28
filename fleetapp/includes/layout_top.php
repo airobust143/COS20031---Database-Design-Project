@@ -24,9 +24,9 @@ $currentTable = $_GET['table'] ?? null;
       <a class="nav-home <?= $currentTable === null && basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? 'active' : '' ?>" href="index.php">📊 Dashboard</a>
       <?php foreach ($TABLE_GROUPS as $group): ?>
         <div class="nav-group"><?= e($group) ?></div>
-        <?php foreach ($TABLES as $tName => $meta): if ($meta['group'] !== $group) continue; ?>
+        <?php foreach ($TABLES as $tName => $navMeta): if ($navMeta['group'] !== $group) continue; ?>
           <a class="<?= $currentTable === $tName ? 'active' : '' ?>" href="list.php?table=<?= urlencode($tName) ?>">
-            <?= e($meta['label']) ?>
+            <?= e($navMeta['label']) ?>
           </a>
         <?php endforeach; ?>
       <?php endforeach; ?>

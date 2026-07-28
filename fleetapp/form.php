@@ -109,8 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } elseif ($isEdit) {
     $pkFromGet = pkFromRequest($_GET, $meta['pk']);
     $where = pkWhereClause($pkFromGet);
+    $bind = [];
+    foreach ($pkFromGet as $c => $v) {
+        $bind[':pk_' . $c] = $v;
+    }
     $stmt = $pdo->prepare("SELECT * FROM `$table` WHERE $where");
-    $stmt->execute($pkFromGet);
+    $stmt->execute($bind);
     $row = $stmt->fetch();
     if (!$row) {
         die('Record not found.');
