@@ -4,7 +4,6 @@ require __DIR__ . '/includes/tables.php';
 require __DIR__ . '/includes/functions.php';
 
 $pageTitle = 'Dashboard';
-$ASSET_BASE = '';
 
 /** Helper function to return a single scalar integer count from SQL. */
 function count1(PDO $pdo, string $sql): int {

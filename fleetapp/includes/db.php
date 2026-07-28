@@ -1,5 +1,8 @@
 <?php
 // Database connection (SQLite demo database)
+
+define('ASSET_BASE', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/');
+
 // To point this app at a real MySQL server instead, swap the DSN below, e.g.:
 //   new PDO('mysql:host=localhost;dbname=smart_fleet_management;charset=utf8mb4', $user, $pass)
 

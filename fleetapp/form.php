@@ -127,7 +127,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $pageTitle = ($isEdit ? 'Edit' : 'Add') . ' — ' . $meta['label'];
-$ASSET_BASE = '';
 require __DIR__ . '/includes/layout_top.php';
 ?>
 

@@ -44,7 +44,6 @@ $rows = $stmt->fetchAll();
 $listColumns = array_filter($meta['columns'], fn($c) => $c['list'] ?? true);
 
 $pageTitle = $meta['label'];
-$ASSET_BASE = '';
 require __DIR__ . '/includes/layout_top.php';
 ?>
 
