@@ -63,8 +63,8 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     ('Part','SELECT'), ('Part','INSERT'), ('Part','UPDATE'), ('Part','DELETE'),
     ('Supplier','SELECT'), ('Supplier','INSERT'), ('Supplier','UPDATE'), ('Supplier','DELETE'),
     ('SupplyPart','SELECT'), ('SupplyPart','INSERT'), ('SupplyPart','UPDATE'), ('SupplyPart','DELETE'),
-    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'),
-    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE');
+    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'), ('WarrantyClaim','DELETE'),
+    ('WarrantyClaimParts','SELECT'), ('WarrantyClaimParts','INSERT'), ('WarrantyClaimParts','UPDATE'), ('WarrantyClaimParts','DELETE');
 
 -- 3. Role -> Permission mappings --------------------------------------
 
@@ -105,8 +105,8 @@ WHERE r.RoleName = 'workshop_mgr'
         (p.TableName IN ('MaintenanceJobs','MaintenanceActivity','ActivityMechanic',
                          'ActivityPart','Part','Supplier','SupplyPart')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE','DELETE')) OR
-        (p.TableName IN ('WarrantyClaim','WarrantyClaimPart','Mechanic',
-                         'MechanicCertification')
+        (p.TableName IN ('WarrantyClaim','Mechanic',
+                         'MechanicCertification', 'WarrantyClaimParts')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE'))
       );
 
