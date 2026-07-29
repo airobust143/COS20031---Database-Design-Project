@@ -12,7 +12,7 @@ define('ASSET_BASE', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/');
 $dbHost = 'localhost';
 $dbName = 'smart_fleet_management';
 $dbUser = 'root';
-$dbPass = ''; // <-- Set your MySQL password here if you have one.
+$dbPass = 'ha431'; // <-- Set your MySQL password here if you have one.
 $dbCharset = 'utf8mb4';
 
 $dsn = "mysql:host=$dbHost;dbname=$dbName;charset=$dbCharset";
