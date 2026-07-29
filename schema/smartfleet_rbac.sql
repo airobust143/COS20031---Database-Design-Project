@@ -96,8 +96,9 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     ('Part','SELECT'), ('Part','INSERT'), ('Part','UPDATE'), ('Part','DELETE'),
     ('Supplier','SELECT'), ('Supplier','INSERT'), ('Supplier','UPDATE'), ('Supplier','DELETE'),
     ('SupplyPart','SELECT'), ('SupplyPart','INSERT'), ('SupplyPart','UPDATE'), ('SupplyPart','DELETE'),
-    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'),
-    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE'), ('WarrantyClaimPart','DELETE');
+    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'), ('WarrantyClaim','DELETE'),
+    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE'), ('WarrantyClaimPart','DELETE'),
+    ('UserAccount','SELECT'), ('UserAccount','INSERT'), ('UserAccount','UPDATE'), ('UserAccount','DELETE');
 
 -- 3. Role -> Permission mappings --------------------------------------
 
