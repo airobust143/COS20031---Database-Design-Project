@@ -35,7 +35,9 @@ require __DIR__ . '/includes/layout_top.php';
 <?php foreach ($TABLE_GROUPS as $group): ?>
   <h2><?= e($group) ?></h2>
   <div class="group-tiles">
-    <?php foreach ($TABLES as $tName => $meta): if (($meta['group'] ?? '') !== $group || !isset($meta['alias'])) continue;
+    <?php foreach ($TABLES as $tName => $meta):
+      if (($meta['group'] ?? '') !== $group || !isset($meta['alias'])) continue;
+      if (!hasPermission($tName, 'SELECT')) continue;
       $count = count1($pdo, "SELECT COUNT(*) FROM `$tName`");
     ?>
       <a class="group-tile" href="list.php?t=<?= urlencode($meta['alias']) ?>">
