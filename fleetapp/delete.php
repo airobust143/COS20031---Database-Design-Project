@@ -9,10 +9,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $alias = $_POST['t'] ?? '';
 $table = $TABLE_ALIASES_REVERSE[$alias] ?? null;
 if ($table === null || !isset($TABLES[$table])) {
-    http_response_code(404);
-    die('Unknown resource.');
+    http_response_code(404); die('Unknown resource.');
 }
 $meta = $TABLES[$table];
+
+// --- Authorization Check ---
+if (!hasPermission($table, 'DELETE')) {
+    http_response_code(403);
+    die('Forbidden: You do not have permission to perform this action.');
+}
 $pkCols = explode(',', $meta['pk']);
 $pkValues = [];
 foreach ($pkCols as $c) { $pkValues[$c] = $_POST[$c] ?? null; }

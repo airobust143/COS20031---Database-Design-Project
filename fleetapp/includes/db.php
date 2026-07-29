@@ -1,5 +1,14 @@
 <?php
-// Database connection (SQLite demo database)
+session_start();
+
+// --- Authentication Check ---
+// All pages except login.php require an authenticated user.
+$isLoginPage = basename($_SERVER['SCRIPT_NAME']) === 'login.php';
+if (!isset($_SESSION['user_id']) && !$isLoginPage) {
+    // If not logged in and not on the login page, redirect to login.
+    header('Location: login.php');
+    exit;
+}
 
 define('ASSET_BASE', rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\') . '/');
 
@@ -34,6 +43,21 @@ try {
 // Load core application files
 require_once __DIR__ . '/tables.php';
 require_once __DIR__ . '/functions.php';
+
+/**
+ * Checks if the currently logged-in user has a specific permission.
+ * @param string $table The name of the table.
+ * @param string $action The action to check (e.g., 'SELECT', 'INSERT', 'UPDATE', 'DELETE').
+ * @return bool True if the user has the permission, false otherwise.
+ */
+function hasPermission(string $table, string $action): bool {
+    if (!isset($_SESSION['permissions'])) {
+        return false; // Should not happen for a logged-in user.
+    }
+    // Check for specific permission (e.g., 'UPDATE') or a wildcard 'ALL' permission.
+    $userPerms = $_SESSION['permissions'][$table] ?? [];
+    return in_array($action, $userPerms) || in_array('ALL', $userPerms);
+}
 
 // Build a reverse map from alias to table name for URL shortening.
 // This ensures table names are not exposed in URLs.

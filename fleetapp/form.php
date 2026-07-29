@@ -4,8 +4,7 @@ require __DIR__ . '/includes/db.php';
 $alias = $_GET['t'] ?? $_POST['t'] ?? '';
 $table = $TABLE_ALIASES_REVERSE[$alias] ?? null;
 if ($table === null || !isset($TABLES[$table])) {
-    http_response_code(404);
-    die('Unknown resource.');
+    http_response_code(404); die('Unknown resource.');
 }
 $meta = $TABLES[$table];
 $pkCols = explode(',', $meta['pk']);
@@ -21,6 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     $pkFromGet = pkFromRequest($_GET, $meta['pk']);
     $isEdit = !in_array(null, $pkFromGet, true) && !in_array('', $pkFromGet, true);
+}
+
+// --- Authorization Check ---
+$requiredAction = $isEdit ? 'UPDATE' : 'INSERT';
+if (!hasPermission($table, $requiredAction)) {
+    http_response_code(403);
+    die('Forbidden: You do not have permission to perform this action.');
 }
 
 $errors = [];

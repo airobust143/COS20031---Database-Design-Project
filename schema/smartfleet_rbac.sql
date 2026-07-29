@@ -63,8 +63,8 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     ('Part','SELECT'), ('Part','INSERT'), ('Part','UPDATE'), ('Part','DELETE'),
     ('Supplier','SELECT'), ('Supplier','INSERT'), ('Supplier','UPDATE'), ('Supplier','DELETE'),
     ('SupplyPart','SELECT'), ('SupplyPart','INSERT'), ('SupplyPart','UPDATE'), ('SupplyPart','DELETE'),
-    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'), ('WarrantyClaim','DELETE'),
-    ('WarrantyClaimParts','SELECT'), ('WarrantyClaimParts','INSERT'), ('WarrantyClaimParts','UPDATE'), ('WarrantyClaimParts','DELETE');
+    ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'),
+    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE'), ('WarrantyClaimPart','DELETE');
 
 -- 3. Role -> Permission mappings --------------------------------------
 
@@ -105,8 +105,8 @@ WHERE r.RoleName = 'workshop_mgr'
         (p.TableName IN ('MaintenanceJobs','MaintenanceActivity','ActivityMechanic',
                          'ActivityPart','Part','Supplier','SupplyPart')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE','DELETE')) OR
-        (p.TableName IN ('WarrantyClaim','Mechanic',
-                         'MechanicCertification', 'WarrantyClaimParts')
+        (p.TableName IN ('WarrantyClaim','Mechanic', 'WarrantyClaimPart',
+                         'MechanicCertification')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE'))
       );
 
@@ -137,6 +137,34 @@ WHERE r.RoleName = 'driver'
 -- JOIN `Permission` p ON p.PermissionID = rp.PermissionID
 -- WHERE r.RoleName = 'safety_ops' AND p.TableName = 'Drivers' AND p.Action = 'UPDATE';
 
+-- 4. User -> Role mappings --------------------------------------------
+-- This part links the application users in UserAccount to the roles defined above.
+-- It assumes you have already created these users in the UserAccount table.
+
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'fleet_admin'
+WHERE ua.Username = 'anna_admin' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'safety_ops'
+WHERE ua.Username = 'sam_safety' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'workshop_mgr'
+WHERE ua.Username = 'wendy_wshop' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'mechanic'
+WHERE ua.Username = 'mike_mech' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'driver'
+WHERE ua.Username = 'dan_driver' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 -- =====================================================================
 -- PART B — DATABASE-LEVEL RBAC (MariaDB 10.4 syntax)

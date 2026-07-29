@@ -14,19 +14,28 @@ $currentTable = $TABLE_ALIASES_REVERSE[$currentAlias] ?? null;
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-mark">🚚</span>
+    <a href="index.php" class="brand">
+      <span class="brand-icon">🚚</span>
       <div>
         <div class="brand-title">Smart Fleet</div>
         <div class="brand-sub">Management Console</div>
       </div>
+    </a>
+    <div class="user-panel">
+      <div class="user-info">
+        Logged in as: <strong><?= e($_SESSION['username'] ?? 'N/A') ?></strong>
+      </div>
+      <a href="logout.php" class="logout-link">Logout &rarr;</a>
     </div>
     <nav>
       <a class="nav-home <?= $currentTable === null && basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? 'active' : '' ?>" href="index.php">📊 Dashboard</a>
       <?php foreach ($TABLE_GROUPS as $group): ?>
         <div class="nav-group"><?= e($group) ?></div>
-        <?php foreach ($TABLES as $tName => $navMeta): if (($navMeta['group'] ?? '') !== $group || !isset($navMeta['alias'])) continue; ?>
-          <a class="<?= $currentTable === $tName ? 'active' : '' ?>" href="list.php?t=<?= urlencode($navMeta['alias']) ?>">
+        <?php foreach ($TABLES as $tName => $navMeta):
+          if (($navMeta['group'] ?? '') !== $group || !isset($navMeta['alias'])) continue;
+          if (!hasPermission($tName, 'SELECT')) continue;
+        ?>
+          <a class="nav-link <?= $currentTable === $tName ? 'active' : '' ?>" href="list.php?t=<?= urlencode($navMeta['alias']) ?>">
             <?= e($navMeta['label']) ?>
           </a>
         <?php endforeach; ?>
