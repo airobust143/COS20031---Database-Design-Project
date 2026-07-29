@@ -690,6 +690,38 @@ CREATE TABLE `RolePermission` (
         ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ---------------------------------------------------------------------
+-- RolePermission (junction)
+-- ---------------------------------------------------------------------
+
+CREATE TABLE `AuditLog` (
+    `LogID`        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `UserID`       INT UNSIGNED NULL,
+    `Username`     VARCHAR(50) NULL,
+    -- What was affected
+    `TableName`    VARCHAR(100) NOT NULL,
+    `RecordID`     VARCHAR(100) NOT NULL,
+    -- Action type
+    `Action`       ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+    -- Data snapshots
+    `OldData`      JSON NULL,
+    `NewData`      JSON NULL,
+    -- Extra metadata
+    `ChangedAt`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `ChangedByDBUser` VARCHAR(100) NULL, -- DB login (CURRENT_USER())
+
+    PRIMARY KEY (`LogID`),
+
+    KEY `idx_audit_table` (`TableName`),
+    KEY `idx_audit_user` (`UserID`),
+    KEY `idx_audit_time` (`ChangedAt`),
+
+    CONSTRAINT `fk_audit_user`
+        FOREIGN KEY (`UserID`) REFERENCES `UserAccount` (`UserID`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
