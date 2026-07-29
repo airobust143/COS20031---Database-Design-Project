@@ -1,13 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/db.php';
 
 // If user is already logged in, redirect them to the dashboard.
 if (isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit;
 }
-
-require_once __DIR__ . '/includes/db.php';
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
