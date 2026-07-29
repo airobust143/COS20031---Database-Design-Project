@@ -29,6 +29,9 @@ $currentTable = $TABLE_ALIASES_REVERSE[$currentAlias] ?? null;
     </div>
     <nav>
       <a class="nav-home <?= $currentTable === null && basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? 'active' : '' ?>" href="index.php">📊 Dashboard</a>
+      <?php if (hasPermission('UserAccount', 'INSERT') && hasPermission('UserRole', 'INSERT')): ?>
+        <a class="nav-home <?= basename($_SERVER['SCRIPT_NAME']) === 'create_account.php' ? 'active' : '' ?>" href="create_account.php">➕ New Account</a>
+      <?php endif; ?>
       <?php foreach ($TABLE_GROUPS as $group): ?>
         <div class="nav-group"><?= e($group) ?></div>
         <?php foreach ($TABLES as $tName => $navMeta):
