@@ -259,7 +259,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Part`         
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Supplier`            TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`SupplyPart`          TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaim`         TO sf_workshop_mgr;
-GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimPart`     TO sf_workshop_mgr;
+GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimParts`    TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`Mechanic`              TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`MechanicCertification` TO sf_workshop_mgr;
 
