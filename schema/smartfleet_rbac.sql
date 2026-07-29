@@ -97,7 +97,7 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     ('Supplier','SELECT'), ('Supplier','INSERT'), ('Supplier','UPDATE'), ('Supplier','DELETE'),
     ('SupplyPart','SELECT'), ('SupplyPart','INSERT'), ('SupplyPart','UPDATE'), ('SupplyPart','DELETE'),
     ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'), ('WarrantyClaim','DELETE'),
-    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE'), ('WarrantyClaimPart','DELETE'),
+    ('WarrantyClaimParts','SELECT'), ('WarrantyClaimParts','INSERT'), ('WarrantyClaimParts','UPDATE'), ('WarrantyClaimParts','DELETE'),
     ('UserAccount','SELECT'), ('UserAccount','INSERT'), ('UserAccount','UPDATE'), ('UserAccount','DELETE');
 
 -- 3. Role -> Permission mappings --------------------------------------
@@ -139,7 +139,7 @@ WHERE r.RoleName = 'workshop_mgr'
         (p.TableName IN ('MaintenanceJobs','MaintenanceActivity','ActivityMechanic',
                          'ActivityPart','Part','Supplier','SupplyPart')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE','DELETE')) OR
-        (p.TableName IN ('WarrantyClaim','Mechanic', 'WarrantyClaimPart',
+        (p.TableName IN ('WarrantyClaim','Mechanic', 'WarrantyClaimParts',
                          'MechanicCertification')
                                               AND p.Action IN ('SELECT','INSERT','UPDATE'))
       );
@@ -252,7 +252,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Part`         
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Supplier`            TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`SupplyPart`          TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaim`         TO sf_workshop_mgr;
-GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimPart`     TO sf_workshop_mgr;
+GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimParts`    TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`Mechanic`              TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`MechanicCertification` TO sf_workshop_mgr;
 
