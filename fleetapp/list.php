@@ -1,12 +1,11 @@
 <?php
 require __DIR__ . '/includes/db.php';
-require __DIR__ . '/includes/tables.php';
-require __DIR__ . '/includes/functions.php';
 
-$table = $_GET['table'] ?? '';
-if (!isset($TABLES[$table])) {
+$alias = $_GET['t'] ?? '';
+$table = $TABLE_ALIASES_REVERSE[$alias] ?? null;
+if ($table === null || !isset($TABLES[$table])) {
     http_response_code(404);
-    die('Unknown table.');
+    die('Unknown resource.');
 }
 $meta = $TABLES[$table];
 $pkCols = explode(',', $meta['pk']);
@@ -62,11 +61,11 @@ require __DIR__ . '/includes/layout_top.php';
   </div>
   <div style="display:flex; gap:10px;">
     <form method="get" style="display:flex; gap:6px;">
-      <input type="hidden" name="table" value="<?= e($table) ?>">
+      <input type="hidden" name="t" value="<?= e($alias) ?>">
       <input type="text" name="q" placeholder="Search…" value="<?= e($q) ?>" style="width:200px;">
       <button class="btn btn-outline" type="submit">Search</button>
     </form>
-    <a class="btn btn-amber" href="form.php?table=<?= urlencode($table) ?>">+ Add new</a>
+    <a class="btn btn-amber" href="form.php?t=<?= urlencode($alias) ?>">+ Add new</a>
   </div>
 </div>
 
@@ -74,7 +73,7 @@ require __DIR__ . '/includes/layout_top.php';
   <div class="empty-state card">
     <div class="big">🗂️</div>
     <p><?= $q !== '' ? 'No records match your search.' : 'No records yet.' ?></p>
-    <a class="btn btn-amber" href="form.php?table=<?= urlencode($table) ?>">+ Add the first record</a>
+    <a class="btn btn-amber" href="form.php?t=<?= urlencode($alias) ?>">+ Add the first record</a>
   </div>
 <?php else: ?>
 <div style="overflow-x:auto;">
@@ -110,9 +109,9 @@ require __DIR__ . '/includes/layout_top.php';
           </td>
         <?php endforeach; ?>
         <td class="actions-cell">
-          <a class="btn btn-outline btn-sm" href="form.php?table=<?= urlencode($table) ?>&<?= $qsPk ?>">Edit</a>
+          <a class="btn btn-outline btn-sm" href="form.php?t=<?= urlencode($alias) ?>&<?= $qsPk ?>">Edit</a>
           <form class="inline" method="post" action="delete.php" onsubmit="return confirm('Delete this record? This cannot be undone.');">
-            <input type="hidden" name="table" value="<?= e($table) ?>">
+            <input type="hidden" name="t" value="<?= e($alias) ?>">
             <?php foreach ($pkVals as $c => $v): ?>
               <input type="hidden" name="<?= e($c) ?>" value="<?= e($v) ?>">
             <?php endforeach; ?>

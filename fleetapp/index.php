@@ -1,7 +1,5 @@
 <?php
 require __DIR__ . '/includes/db.php';
-require __DIR__ . '/includes/tables.php';
-require __DIR__ . '/includes/functions.php';
 
 $pageTitle = 'Dashboard';
 
@@ -37,10 +35,10 @@ require __DIR__ . '/includes/layout_top.php';
 <?php foreach ($TABLE_GROUPS as $group): ?>
   <h2><?= e($group) ?></h2>
   <div class="group-tiles">
-    <?php foreach ($TABLES as $tName => $meta): if ($meta['group'] !== $group) continue;
+    <?php foreach ($TABLES as $tName => $meta): if (($meta['group'] ?? '') !== $group || !isset($meta['alias'])) continue;
       $count = count1($pdo, "SELECT COUNT(*) FROM `$tName`");
     ?>
-      <a class="group-tile" href="list.php?table=<?= urlencode($tName) ?>">
+      <a class="group-tile" href="list.php?t=<?= urlencode($meta['alias']) ?>">
         <div class="g-title"><?= e($meta['label']) ?></div>
         <div class="g-count"><?= $count ?> record<?= $count === 1 ? '' : 's' ?></div>
       </a>

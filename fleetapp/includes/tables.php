@@ -22,7 +22,7 @@ $TABLES = [
 
     // ================= CORE FLEET =================
     'Depots' => [
-        'label' => 'Depots', 'group' => 'Core Fleet', 'pk' => 'DepotID', 'order_by' => 'Name',
+        'label' => 'Depots', 'group' => 'Core Fleet', 'pk' => 'DepotID', 'order_by' => 'Name', 'alias' => 'dep',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'City', 'label' => 'City', 'type' => 'text', 'required' => true],
@@ -31,13 +31,13 @@ $TABLES = [
         ],
     ],
     'VehiclesCategory' => [
-        'label' => 'Vehicle Categories', 'group' => 'Core Fleet', 'pk' => 'CategoryID', 'order_by' => 'CategoryName',
+        'label' => 'Vehicle Categories', 'group' => 'Core Fleet', 'pk' => 'CategoryID', 'order_by' => 'CategoryName', 'alias' => 'vc',
         'columns' => [
             ['name' => 'CategoryName', 'label' => 'Category Name', 'type' => 'text', 'required' => true],
         ],
     ],
     'Vehicles' => [
-        'label' => 'Vehicles', 'group' => 'Core Fleet', 'pk' => 'VehicleID', 'order_by' => 'RegistrationNumber',
+        'label' => 'Vehicles', 'group' => 'Core Fleet', 'pk' => 'VehicleID', 'order_by' => 'RegistrationNumber', 'alias' => 'v',
         'columns' => [
             ['name' => 'RegistrationNumber', 'label' => 'Registration No.', 'type' => 'text', 'required' => true],
             ['name' => 'CategoryID', 'label' => 'Category', 'type' => 'fk', 'fk_table' => 'VehiclesCategory', 'fk_label' => 'CategoryName', 'required' => true],
@@ -51,7 +51,7 @@ $TABLES = [
         ],
     ],
     'VehiclesDepotHistory' => [
-        'label' => 'Vehicle Depot History', 'group' => 'Core Fleet', 'pk' => 'HistoryID', 'order_by' => 'MovedFrom DESC',
+        'label' => 'Vehicle Depot History', 'group' => 'Core Fleet', 'pk' => 'HistoryID', 'order_by' => 'MovedFrom DESC', 'alias' => 'vdh',
         'columns' => [
             ['name' => 'VehicleID', 'label' => 'Vehicle', 'type' => 'fk', 'fk_table' => 'Vehicles', 'fk_label' => 'RegistrationNumber', 'required' => true],
             ['name' => 'DepotID', 'label' => 'Depot', 'type' => 'fk', 'fk_table' => 'Depots', 'fk_label' => 'Name', 'required' => true],
@@ -60,7 +60,7 @@ $TABLES = [
         ],
     ],
     'Drivers' => [
-        'label' => 'Drivers', 'group' => 'Core Fleet', 'pk' => 'DriverID', 'order_by' => 'LastName',
+        'label' => 'Drivers', 'group' => 'Core Fleet', 'pk' => 'DriverID', 'order_by' => 'LastName', 'alias' => 'd',
         'columns' => [
             ['name' => 'FirstName', 'label' => 'First Name', 'type' => 'text', 'required' => true],
             ['name' => 'LastName', 'label' => 'Last Name', 'type' => 'text', 'required' => true],
@@ -74,7 +74,7 @@ $TABLES = [
         ],
     ],
     'VehicleAssignments' => [
-        'label' => 'Vehicle Assignments', 'group' => 'Core Fleet', 'pk' => 'AssignmentID', 'order_by' => 'StartDate DESC',
+        'label' => 'Vehicle Assignments', 'group' => 'Core Fleet', 'pk' => 'AssignmentID', 'order_by' => 'StartDate DESC', 'alias' => 'va',
         'columns' => [
             ['name' => 'VehicleID', 'label' => 'Vehicle', 'type' => 'fk', 'fk_table' => 'Vehicles', 'fk_label' => 'RegistrationNumber', 'required' => true],
             ['name' => 'DriverID', 'label' => 'Driver', 'type' => 'fk', 'fk_table' => 'Drivers', 'fk_label' => ['FirstName','LastName'], 'required' => true],
@@ -87,21 +87,21 @@ $TABLES = [
 
     // ================= DRIVER & SAFETY =================
     'CertificationType' => [
-        'label' => 'Driver Certification Types', 'group' => 'Driver & Safety', 'pk' => 'CertTypeID', 'order_by' => 'Name',
+        'label' => 'Driver Certification Types', 'group' => 'Driver & Safety', 'pk' => 'CertTypeID', 'order_by' => 'Name', 'alias' => 'ct',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'Expire', 'label' => 'Requires Renewal?', 'type' => 'bool'],
         ],
     ],
     'VehicleCertRequirement' => [
-        'label' => 'Vehicle Certification Matrix', 'group' => 'Driver & Safety', 'pk' => 'ReqID', 'order_by' => 'CategoryID',
+        'label' => 'Vehicle Certification Matrix', 'group' => 'Driver & Safety', 'pk' => 'ReqID', 'order_by' => 'CategoryID', 'alias' => 'vcr',
         'columns' => [
             ['name' => 'CategoryID', 'label' => 'Vehicle Category', 'type' => 'fk', 'fk_table' => 'VehiclesCategory', 'fk_label' => 'CategoryName', 'required' => true],
             ['name' => 'CertTypeID', 'label' => 'Required Certification', 'type' => 'fk', 'fk_table' => 'CertificationType', 'fk_label' => 'Name', 'required' => true],
         ],
     ],
     'DriverCertifications' => [
-        'label' => 'Driver Certifications', 'group' => 'Driver & Safety', 'pk' => 'DriverCertID', 'order_by' => 'ExpireDate',
+        'label' => 'Driver Certifications', 'group' => 'Driver & Safety', 'pk' => 'DriverCertID', 'order_by' => 'ExpireDate', 'alias' => 'dc',
         'columns' => [
             ['name' => 'DriverID', 'label' => 'Driver', 'type' => 'fk', 'fk_table' => 'Drivers', 'fk_label' => ['FirstName','LastName'], 'required' => true],
             ['name' => 'CertTypeID', 'label' => 'Certification', 'type' => 'fk', 'fk_table' => 'CertificationType', 'fk_label' => 'Name', 'required' => true],
@@ -110,7 +110,7 @@ $TABLES = [
         ],
     ],
     'SafetyEventsType' => [
-        'label' => 'Safety Event Types', 'group' => 'Driver & Safety', 'pk' => 'EventsTypeID', 'order_by' => 'Name',
+        'label' => 'Safety Event Types', 'group' => 'Driver & Safety', 'pk' => 'EventsTypeID', 'order_by' => 'Name', 'alias' => 'set',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'DefaultSeverity', 'label' => 'Default Severity', 'type' => 'select', 'required' => true,
@@ -118,7 +118,7 @@ $TABLES = [
         ],
     ],
     'SafetyEvents' => [
-        'label' => 'Safety Events', 'group' => 'Driver & Safety', 'pk' => 'EventID', 'order_by' => 'Timestamp DESC',
+        'label' => 'Safety Events', 'group' => 'Driver & Safety', 'pk' => 'EventID', 'order_by' => 'Timestamp DESC', 'alias' => 'se',
         'columns' => [
             ['name' => 'Timestamp', 'label' => 'Timestamp', 'type' => 'datetime', 'required' => true],
             ['name' => 'DriverID', 'label' => 'Driver', 'type' => 'fk', 'fk_table' => 'Drivers', 'fk_label' => ['FirstName','LastName'], 'required' => true],
@@ -134,7 +134,7 @@ $TABLES = [
         ],
     ],
     'DriverSafetyScore' => [
-        'label' => 'Driver Safety Scores', 'group' => 'Driver & Safety', 'pk' => 'ScoreID', 'order_by' => 'ScorePeriod DESC',
+        'label' => 'Driver Safety Scores', 'group' => 'Driver & Safety', 'pk' => 'ScoreID', 'order_by' => 'ScorePeriod DESC', 'alias' => 'dss',
         'columns' => [
             ['name' => 'DriverID', 'label' => 'Driver', 'type' => 'fk', 'fk_table' => 'Drivers', 'fk_label' => ['FirstName','LastName'], 'required' => true],
             ['name' => 'ScorePeriod', 'label' => 'Period (YYYY-MM)', 'type' => 'text', 'required' => true],
@@ -150,7 +150,7 @@ $TABLES = [
         ],
     ],
     'CoachingRecord' => [
-        'label' => 'Coaching Records', 'group' => 'Driver & Safety', 'pk' => 'CoachingID', 'order_by' => 'ScheduledDate DESC',
+        'label' => 'Coaching Records', 'group' => 'Driver & Safety', 'pk' => 'CoachingID', 'order_by' => 'ScheduledDate DESC', 'alias' => 'cr',
         'columns' => [
             ['name' => 'DriverID', 'label' => 'Driver', 'type' => 'fk', 'fk_table' => 'Drivers', 'fk_label' => ['FirstName','LastName'], 'required' => true],
             ['name' => 'RecordType', 'label' => 'Type', 'type' => 'select', 'required' => true,
@@ -167,7 +167,7 @@ $TABLES = [
 
     // ================= WORKSHOPS & PEOPLE =================
     'Workshop' => [
-        'label' => 'Workshops', 'group' => 'Workshops & People', 'pk' => 'WorkshopID', 'order_by' => 'Name',
+        'label' => 'Workshops', 'group' => 'Workshops & People', 'pk' => 'WorkshopID', 'order_by' => 'Name', 'alias' => 'ws',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'DepotID', 'label' => 'Depot', 'type' => 'fk', 'fk_table' => 'Depots', 'fk_label' => 'Name', 'required' => true],
@@ -176,7 +176,7 @@ $TABLES = [
         ],
     ],
     'Mechanic' => [
-        'label' => 'Mechanics', 'group' => 'Workshops & People', 'pk' => 'MechanicID', 'order_by' => 'LastName',
+        'label' => 'Mechanics', 'group' => 'Workshops & People', 'pk' => 'MechanicID', 'order_by' => 'LastName', 'alias' => 'm',
         'columns' => [
             ['name' => 'FirstName', 'label' => 'First Name', 'type' => 'text', 'required' => true],
             ['name' => 'LastName', 'label' => 'Last Name', 'type' => 'text', 'required' => true],
@@ -186,14 +186,14 @@ $TABLES = [
         ],
     ],
     'MechanicCertType' => [
-        'label' => 'Mechanic Certification Types', 'group' => 'Workshops & People', 'pk' => 'MecCertTypeID', 'order_by' => 'Name',
+        'label' => 'Mechanic Certification Types', 'group' => 'Workshops & People', 'pk' => 'MecCertTypeID', 'order_by' => 'Name', 'alias' => 'mct',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'Expire', 'label' => 'Requires Renewal?', 'type' => 'bool'],
         ],
     ],
     'MechanicCertification' => [
-        'label' => 'Mechanic Certifications', 'group' => 'Workshops & People', 'pk' => 'MecCertID', 'order_by' => 'ExpireDate',
+        'label' => 'Mechanic Certifications', 'group' => 'Workshops & People', 'pk' => 'MecCertID', 'order_by' => 'ExpireDate', 'alias' => 'mc',
         'columns' => [
             ['name' => 'MechanicID', 'label' => 'Mechanic', 'type' => 'fk', 'fk_table' => 'Mechanic', 'fk_label' => ['FirstName','LastName'], 'required' => true],
             ['name' => 'MecCertTypeID', 'label' => 'Certification', 'type' => 'fk', 'fk_table' => 'MechanicCertType', 'fk_label' => 'Name', 'required' => true],
@@ -204,14 +204,14 @@ $TABLES = [
 
     // ================= MAINTENANCE =================
     'ActivityType' => [
-        'label' => 'Activity Types', 'group' => 'Maintenance', 'pk' => 'ActivityTypeID', 'order_by' => 'Name',
+        'label' => 'Activity Types', 'group' => 'Maintenance', 'pk' => 'ActivityTypeID', 'order_by' => 'Name', 'alias' => 'at',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'MecCertTypeID', 'label' => 'Required Mechanic Certification', 'type' => 'fk', 'fk_table' => 'MechanicCertType', 'fk_label' => 'Name', 'required' => true],
         ],
     ],
     'PredictiveAlert' => [
-        'label' => 'Predictive Alerts', 'group' => 'Maintenance', 'pk' => 'AlertID', 'order_by' => 'GeneratedAt DESC',
+        'label' => 'Predictive Alerts', 'group' => 'Maintenance', 'pk' => 'AlertID', 'order_by' => 'GeneratedAt DESC', 'alias' => 'pa',
         'columns' => [
             ['name' => 'VehicleID', 'label' => 'Vehicle', 'type' => 'fk', 'fk_table' => 'Vehicles', 'fk_label' => 'RegistrationNumber', 'required' => true],
             ['name' => 'AlertType', 'label' => 'Alert Type', 'type' => 'select', 'required' => true, 'options' => [
@@ -226,7 +226,7 @@ $TABLES = [
         ],
     ],
     'MaintenanceJobs' => [
-        'label' => 'Maintenance Jobs', 'group' => 'Maintenance', 'pk' => 'JobID', 'order_by' => 'DateOpened DESC',
+        'label' => 'Maintenance Jobs', 'group' => 'Maintenance', 'pk' => 'JobID', 'order_by' => 'DateOpened DESC', 'alias' => 'mj',
         'columns' => [
             ['name' => 'VehicleID', 'label' => 'Vehicle', 'type' => 'fk', 'fk_table' => 'Vehicles', 'fk_label' => 'RegistrationNumber', 'required' => true],
             ['name' => 'WorkshopID', 'label' => 'Workshop', 'type' => 'fk', 'fk_table' => 'Workshop', 'fk_label' => 'Name', 'required' => true],
@@ -238,7 +238,7 @@ $TABLES = [
         ],
     ],
     'MaintenanceActivity' => [
-        'label' => 'Maintenance Activities', 'group' => 'Maintenance', 'pk' => 'ActivityID', 'order_by' => 'StartedAt DESC',
+        'label' => 'Maintenance Activities', 'group' => 'Maintenance', 'pk' => 'ActivityID', 'order_by' => 'StartedAt DESC', 'alias' => 'ma',
         'columns' => [
             ['name' => 'JobID', 'label' => 'Job', 'type' => 'fk', 'fk_table' => 'MaintenanceJobs', 'fk_label' => 'JobID', 'required' => true],
             ['name' => 'ActivityTypeID', 'label' => 'Activity Type', 'type' => 'fk', 'fk_table' => 'ActivityType', 'fk_label' => 'Name', 'required' => true],
@@ -249,7 +249,7 @@ $TABLES = [
         ],
     ],
     'ActivityMechanic' => [
-        'label' => 'Activity ↔ Mechanics', 'group' => 'Maintenance', 'pk' => 'ActivityID,MechanicID', 'order_by' => 'ActivityID',
+        'label' => 'Activity ↔ Mechanics', 'group' => 'Maintenance', 'pk' => 'ActivityID,MechanicID', 'order_by' => 'ActivityID', 'alias' => 'am',
         'composite' => true,
         'columns' => [
             ['name' => 'ActivityID', 'label' => 'Activity', 'type' => 'fk', 'fk_table' => 'MaintenanceActivity', 'fk_label' => 'ActivityID', 'required' => true, 'part_of_pk' => true],
@@ -258,7 +258,7 @@ $TABLES = [
         ],
     ],
     'WarrantyClaim' => [
-        'label' => 'Warranty Claims', 'group' => 'Maintenance', 'pk' => 'ClaimID', 'order_by' => 'ClaimDate DESC',
+        'label' => 'Warranty Claims', 'group' => 'Maintenance', 'pk' => 'ClaimID', 'order_by' => 'ClaimDate DESC', 'alias' => 'wc',
         'columns' => [
             ['name' => 'ActivityID', 'label' => 'Activity', 'type' => 'fk', 'fk_table' => 'MaintenanceActivity', 'fk_label' => 'ActivityID', 'required' => true],
             ['name' => 'WarrantyType', 'label' => 'Warranty Type', 'type' => 'select', 'required' => true, 'options' => ['Manufacturer','Supplier']],
@@ -268,7 +268,7 @@ $TABLES = [
         ],
     ],
     'WarrantyClaimPart' => [
-        'label' => 'Warranty Claim ↔ Parts', 'group' => 'Maintenance', 'pk' => 'ClaimID,PartID', 'order_by' => 'ClaimID',
+        'label' => 'Warranty Claim ↔ Parts', 'group' => 'Maintenance', 'pk' => 'ClaimID,PartID', 'order_by' => 'ClaimID', 'alias' => 'wcp',
         'composite' => true,
         'columns' => [
             ['name' => 'ClaimID', 'label' => 'Warranty Claim', 'type' => 'fk', 'fk_table' => 'WarrantyClaim', 'fk_label' => 'ClaimID', 'required' => true, 'part_of_pk' => true],
@@ -276,7 +276,7 @@ $TABLES = [
         ],
     ],
     'Part' => [
-        'label' => 'Parts', 'group' => 'Maintenance', 'pk' => 'PartID', 'order_by' => 'PartNumber',
+        'label' => 'Parts', 'group' => 'Maintenance', 'pk' => 'PartID', 'order_by' => 'PartNumber', 'alias' => 'p',
         'columns' => [
             ['name' => 'PartNumber', 'label' => 'Part Number', 'type' => 'text', 'required' => true],
             ['name' => 'Description', 'label' => 'Description', 'type' => 'text'],
@@ -284,7 +284,7 @@ $TABLES = [
         ],
     ],
     'ActivityPart' => [
-        'label' => 'Activity ↔ Parts Used', 'group' => 'Maintenance', 'pk' => 'ActivityID,PartID', 'order_by' => 'ActivityID',
+        'label' => 'Activity ↔ Parts Used', 'group' => 'Maintenance', 'pk' => 'ActivityID,PartID', 'order_by' => 'ActivityID', 'alias' => 'ap',
         'composite' => true,
         'columns' => [
             ['name' => 'ActivityID', 'label' => 'Activity', 'type' => 'fk', 'fk_table' => 'MaintenanceActivity', 'fk_label' => 'ActivityID', 'required' => true, 'part_of_pk' => true],
@@ -294,7 +294,7 @@ $TABLES = [
         ],
     ],
     'Supplier' => [
-        'label' => 'Suppliers', 'group' => 'Maintenance', 'pk' => 'SupplierID', 'order_by' => 'Name',
+        'label' => 'Suppliers', 'group' => 'Maintenance', 'pk' => 'SupplierID', 'order_by' => 'Name', 'alias' => 's',
         'columns' => [
             ['name' => 'Name', 'label' => 'Name', 'type' => 'text', 'required' => true],
             ['name' => 'ContactInfo', 'label' => 'Contact Info', 'type' => 'text'],
@@ -302,7 +302,7 @@ $TABLES = [
         ],
     ],
     'SupplyPart' => [
-        'label' => 'Supplier ↔ Parts', 'group' => 'Maintenance', 'pk' => 'PartID,SupplierID', 'order_by' => 'PartID',
+        'label' => 'Supplier ↔ Parts', 'group' => 'Maintenance', 'pk' => 'PartID,SupplierID', 'order_by' => 'PartID', 'alias' => 'sp',
         'composite' => true,
         'columns' => [
             ['name' => 'PartID', 'label' => 'Part', 'type' => 'fk', 'fk_table' => 'Part', 'fk_label' => 'PartNumber', 'required' => true, 'part_of_pk' => true],
@@ -314,7 +314,7 @@ $TABLES = [
 
     // ================= USER & ROLES =================
     'UserAccount' => [
-        'label' => 'User Accounts', 'group' => 'Users & Roles', 'pk' => 'UserID', 'order_by' => 'Username',
+        'label' => 'User Accounts', 'group' => 'Users & Roles', 'pk' => 'UserID', 'order_by' => 'Username', 'alias' => 'ua',
         'columns' => [
             ['name' => 'Username', 'label' => 'Username', 'type' => 'text', 'required' => true],
             ['name' => 'PasswordHash', 'label' => 'Password Hash', 'type' => 'text', 'required' => true, 'list' => false],
@@ -325,13 +325,13 @@ $TABLES = [
         ],
     ],
     'Role' => [
-        'label' => 'Roles', 'group' => 'Users & Roles', 'pk' => 'RoleID', 'order_by' => 'RoleName',
+        'label' => 'Roles', 'group' => 'Users & Roles', 'pk' => 'RoleID', 'order_by' => 'RoleName', 'alias' => 'r',
         'columns' => [
             ['name' => 'RoleName', 'label' => 'Role Name', 'type' => 'text', 'required' => true],
         ],
     ],
     'Permission' => [
-        'label' => 'Permissions', 'group' => 'Users & Roles', 'pk' => 'PermissionID', 'order_by' => 'TableName',
+        'label' => 'Permissions', 'group' => 'Users & Roles', 'pk' => 'PermissionID', 'order_by' => 'TableName', 'alias' => 'perm',
         'columns' => [
             ['name' => 'TableName', 'label' => 'Table Name', 'type' => 'text', 'required' => true],
             ['name' => 'Action', 'label' => 'Action', 'type' => 'select', 'required' => true,
@@ -339,7 +339,7 @@ $TABLES = [
         ],
     ],
     'UserRole' => [
-        'label' => 'User ↔ Roles', 'group' => 'Users & Roles', 'pk' => 'UserID,RoleID', 'order_by' => 'UserID',
+        'label' => 'User ↔ Roles', 'group' => 'Users & Roles', 'pk' => 'UserID,RoleID', 'order_by' => 'UserID', 'alias' => 'ur',
         'composite' => true,
         'columns' => [
             ['name' => 'UserID', 'label' => 'User', 'type' => 'fk', 'fk_table' => 'UserAccount', 'fk_label' => 'Username', 'required' => true, 'part_of_pk' => true],
@@ -348,7 +348,7 @@ $TABLES = [
         ],
     ],
     'RolePermission' => [
-        'label' => 'Role ↔ Permissions', 'group' => 'Users & Roles', 'pk' => 'RoleID,PermissionID', 'order_by' => 'RoleID',
+        'label' => 'Role ↔ Permissions', 'group' => 'Users & Roles', 'pk' => 'RoleID,PermissionID', 'order_by' => 'RoleID', 'alias' => 'rp',
         'composite' => true,
         'columns' => [
             ['name' => 'RoleID', 'label' => 'Role', 'type' => 'fk', 'fk_table' => 'Role', 'fk_label' => 'RoleName', 'required' => true, 'part_of_pk' => true],

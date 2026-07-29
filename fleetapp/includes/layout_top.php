@@ -1,6 +1,7 @@
 <?php
 // Expects: $pageTitle (string), $TABLES, $TABLE_GROUPS available
-$currentTable = $_GET['table'] ?? null;
+$currentAlias = $_GET['t'] ?? null;
+$currentTable = $TABLE_ALIASES_REVERSE[$currentAlias] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,8 +25,8 @@ $currentTable = $_GET['table'] ?? null;
       <a class="nav-home <?= $currentTable === null && basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? 'active' : '' ?>" href="index.php">📊 Dashboard</a>
       <?php foreach ($TABLE_GROUPS as $group): ?>
         <div class="nav-group"><?= e($group) ?></div>
-        <?php foreach ($TABLES as $tName => $navMeta): if ($navMeta['group'] !== $group) continue; ?>
-          <a class="<?= $currentTable === $tName ? 'active' : '' ?>" href="list.php?table=<?= urlencode($tName) ?>">
+        <?php foreach ($TABLES as $tName => $navMeta): if (($navMeta['group'] ?? '') !== $group || !isset($navMeta['alias'])) continue; ?>
+          <a class="<?= $currentTable === $tName ? 'active' : '' ?>" href="list.php?t=<?= urlencode($navMeta['alias']) ?>">
             <?= e($navMeta['label']) ?>
           </a>
         <?php endforeach; ?>

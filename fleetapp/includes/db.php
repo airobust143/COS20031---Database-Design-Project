@@ -28,3 +28,25 @@ try {
 } catch (PDOException $e) {
     die('Database connection failed: ' . htmlspecialchars($e->getMessage()));
 }
+
+// --- Application Bootstrap ---
+
+// Load core application files
+require_once __DIR__ . '/tables.php';
+require_once __DIR__ . '/functions.php';
+
+// Build a reverse map from alias to table name for URL shortening.
+// This ensures table names are not exposed in URLs.
+$TABLE_ALIASES_REVERSE = [];
+foreach ($TABLES as $tableName => $meta) {
+    if (isset($meta['alias'])) {
+        if (isset($TABLE_ALIASES_REVERSE[$meta['alias']])) {
+            // This is a developer error, a duplicate alias.
+            die("FATAL: Duplicate table alias '{$meta['alias']}' defined in tables.php.");
+        }
+        $TABLE_ALIASES_REVERSE[$meta['alias']] = $tableName;
+    } else {
+        // For robust security, we require all tables to have an alias.
+        die("FATAL: Table '{$tableName}' is missing an 'alias' key in includes/tables.php.");
+    }
+}

@@ -1,12 +1,11 @@
 <?php
 require __DIR__ . '/includes/db.php';
-require __DIR__ . '/includes/tables.php';
-require __DIR__ . '/includes/functions.php';
 
-$table = $_GET['table'] ?? $_POST['table'] ?? '';
-if (!isset($TABLES[$table])) {
+$alias = $_GET['t'] ?? $_POST['t'] ?? '';
+$table = $TABLE_ALIASES_REVERSE[$alias] ?? null;
+if ($table === null || !isset($TABLES[$table])) {
     http_response_code(404);
-    die('Unknown table.');
+    die('Unknown resource.');
 }
 $meta = $TABLES[$table];
 $pkCols = explode(',', $meta['pk']);
@@ -79,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Skip UPDATE query if table contains only primary key columns
                 if (empty($setParts)) {
-                    header('Location: list.php?table=' . urlencode($table) . '&saved=1');
+                    header('Location: list.php?t=' . urlencode($alias) . '&saved=1');
                     exit;
                 }
 
@@ -100,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($bind);
             }
-            header('Location: list.php?table=' . urlencode($table) . '&saved=1');
+            header('Location: list.php?t=' . urlencode($alias) . '&saved=1');
             exit;
         } catch (PDOException $e) {
             $errors[] = 'Could not save: ' . $e->getMessage();
@@ -135,7 +134,7 @@ require __DIR__ . '/includes/layout_top.php';
 ?>
 
 <h1><?= $isEdit ? 'Edit' : 'Add new' ?> — <?= e($meta['label']) ?></h1>
-<p class="page-sub"><a href="list.php?table=<?= urlencode($table) ?>">&larr; Back to <?= e($meta['label']) ?></a></p>
+<p class="page-sub"><a href="list.php?t=<?= urlencode($alias) ?>">&larr; Back to <?= e($meta['label']) ?></a></p>
 
 <?php if ($errors): ?>
   <div class="alert alert-error">
@@ -145,7 +144,7 @@ require __DIR__ . '/includes/layout_top.php';
 
 <div class="card">
 <form method="post" action="form.php">
-  <input type="hidden" name="table" value="<?= e($table) ?>">
+  <input type="hidden" name="t" value="<?= e($alias) ?>">
   <?php if ($isComposite): ?>
     <input type="hidden" name="__is_edit" value="<?= $isEdit ? '1' : '0' ?>">
     <?php foreach ($pkValues as $c => $v): ?>
@@ -212,7 +211,7 @@ require __DIR__ . '/includes/layout_top.php';
 
   <div class="form-actions">
     <button class="btn btn-amber" type="submit"><?= $isEdit ? 'Save changes' : 'Add record' ?></button>
-    <a class="btn btn-outline" href="list.php?table=<?= urlencode($table) ?>">Cancel</a>
+    <a class="btn btn-outline" href="list.php?t=<?= urlencode($alias) ?>">Cancel</a>
   </div>
 </form>
 </div>
