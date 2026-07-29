@@ -14,6 +14,7 @@
 USE `smart_fleet_management`;
 
 -- Table for logging database activities
+DROP TABLE IF EXISTS `AuditLog`;
 
 CREATE TABLE `AuditLog` (
     `LogID`        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -66,46 +67,54 @@ INSERT INTO `Role` (`RoleName`) VALUES
 -- 2. Permissions ------------------------------------------------------
 INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     -- core fleet
-    ('Vehicles','SELECT'), ('Vehicles','UPDATE'),
-    ('VehiclesCategory','SELECT'),
-    ('VehiclesDepotHistory','SELECT'),
-    ('VehicleAssignments','SELECT'), ('VehicleAssignments','INSERT'), ('VehicleAssignments','UPDATE'),
-    ('Depots','SELECT'),
+    ('Depots','SELECT'), ('Depots','INSERT'), ('Depots','UPDATE'), ('Depots','DELETE'),
+    ('VehiclesCategory','SELECT'), ('VehiclesCategory','INSERT'), ('VehiclesCategory','UPDATE'), ('VehiclesCategory','DELETE'),
+    ('Vehicles','SELECT'), ('Vehicles','INSERT'), ('Vehicles','UPDATE'), ('Vehicles','DELETE'),
+    ('VehiclesDepotHistory','SELECT'), ('VehiclesDepotHistory','INSERT'), ('VehiclesDepotHistory','UPDATE'), ('VehiclesDepotHistory','DELETE'),
+    ('VehicleAssignments','SELECT'), ('VehicleAssignments','INSERT'), ('VehicleAssignments','UPDATE'), ('VehicleAssignments','DELETE'),
     -- drivers & safety
-    ('Drivers','SELECT'), ('Drivers','UPDATE'),
-    ('DriverCertifications','SELECT'), ('DriverCertifications','INSERT'), ('DriverCertifications','UPDATE'),
-    ('CertificationType','SELECT'),
-    ('VehicleCertRequirement','SELECT'),
-    ('SafetyEvents','SELECT'), ('SafetyEvents','INSERT'), ('SafetyEvents','UPDATE'),
-    ('SafetyEventsType','SELECT'),
-    ('CoachingRecord','SELECT'), ('CoachingRecord','INSERT'), ('CoachingRecord','UPDATE'),
-    ('DriverSafetyScore','SELECT'), ('DriverSafetyScore','UPDATE'),
+    ('CertificationType','SELECT'), ('CertificationType','INSERT'), ('CertificationType','UPDATE'), ('CertificationType','DELETE'),
+    ('SafetyEventsType','SELECT'), ('SafetyEventsType','INSERT'), ('SafetyEventsType','UPDATE'), ('SafetyEventsType','DELETE'),
+    ('EventPenalty','SELECT'), ('EventPenalty','INSERT'), ('EventPenalty','UPDATE'), ('EventPenalty','DELETE'),
+    ('Drivers','SELECT'), ('Drivers','INSERT'), ('Drivers','UPDATE'), ('Drivers','DELETE'),
+    ('DriverCertifications','SELECT'), ('DriverCertifications','INSERT'), ('DriverCertifications','UPDATE'), ('DriverCertifications','DELETE'),
+    ('VehicleCertRequirement','SELECT'), ('VehicleCertRequirement','INSERT'), ('VehicleCertRequirement','UPDATE'), ('VehicleCertRequirement','DELETE'),
+    ('DriverSafetyScore','SELECT'), ('DriverSafetyScore','INSERT'), ('DriverSafetyScore','UPDATE'), ('DriverSafetyScore','DELETE'),
+    ('SafetyEvents','SELECT'), ('SafetyEvents','INSERT'), ('SafetyEvents','UPDATE'), ('SafetyEvents','DELETE'),
+    ('CoachingRecord','SELECT'), ('CoachingRecord','INSERT'), ('CoachingRecord','UPDATE'), ('CoachingRecord','DELETE'),
     -- maintenance
-    ('PredictiveAlert','SELECT'), ('PredictiveAlert','UPDATE'),
+    ('ActivityType','SELECT'), ('ActivityType','INSERT'), ('ActivityType','UPDATE'), ('ActivityType','DELETE'),
+    ('PredictiveAlert','SELECT'), ('PredictiveAlert','INSERT'), ('PredictiveAlert','UPDATE'), ('PredictiveAlert','DELETE'),
     ('MaintenanceJobs','SELECT'), ('MaintenanceJobs','INSERT'), ('MaintenanceJobs','UPDATE'), ('MaintenanceJobs','DELETE'),
     ('MaintenanceActivity','SELECT'), ('MaintenanceActivity','INSERT'), ('MaintenanceActivity','UPDATE'), ('MaintenanceActivity','DELETE'),
-    ('ActivityType','SELECT'),
     ('ActivityMechanic','SELECT'), ('ActivityMechanic','INSERT'), ('ActivityMechanic','UPDATE'), ('ActivityMechanic','DELETE'),
     ('ActivityPart','SELECT'), ('ActivityPart','INSERT'), ('ActivityPart','UPDATE'), ('ActivityPart','DELETE'),
     -- workshops & people
-    ('Workshop','SELECT'),
-    ('Mechanic','SELECT'), ('Mechanic','INSERT'), ('Mechanic','UPDATE'),
-    ('MechanicCertification','SELECT'), ('MechanicCertification','INSERT'), ('MechanicCertification','UPDATE'),
-    ('MechanicCertType','SELECT'),
+    ('Workshop','SELECT'), ('Workshop','INSERT'), ('Workshop','UPDATE'), ('Workshop','DELETE'),
+    ('MechanicCertType','SELECT'), ('MechanicCertType','INSERT'), ('MechanicCertType','UPDATE'), ('MechanicCertType','DELETE'),
+    ('Mechanic','SELECT'), ('Mechanic','INSERT'), ('Mechanic','UPDATE'), ('Mechanic','DELETE'),
+    ('MechanicCertification','SELECT'), ('MechanicCertification','INSERT'), ('MechanicCertification','UPDATE'), ('MechanicCertification','DELETE'),
     -- parts & suppliers
     ('Part','SELECT'), ('Part','INSERT'), ('Part','UPDATE'), ('Part','DELETE'),
     ('Supplier','SELECT'), ('Supplier','INSERT'), ('Supplier','UPDATE'), ('Supplier','DELETE'),
     ('SupplyPart','SELECT'), ('SupplyPart','INSERT'), ('SupplyPart','UPDATE'), ('SupplyPart','DELETE'),
     ('WarrantyClaim','SELECT'), ('WarrantyClaim','INSERT'), ('WarrantyClaim','UPDATE'), ('WarrantyClaim','DELETE'),
-    ('WarrantyClaimParts','SELECT'), ('WarrantyClaimParts','INSERT'), ('WarrantyClaimParts','UPDATE'), ('WarrantyClaimParts','DELETE'),
-    ('UserAccount','SELECT'), ('UserAccount','INSERT'), ('UserAccount','UPDATE'), ('UserAccount','DELETE');
+    ('WarrantyClaimPart','SELECT'), ('WarrantyClaimPart','INSERT'), ('WarrantyClaimPart','UPDATE'), ('WarrantyClaimPart','DELETE'),
+    -- user role (RBAC itself)
+    ('Role','SELECT'), ('Role','INSERT'), ('Role','UPDATE'), ('Role','DELETE'),
+    ('Permission','SELECT'), ('Permission','INSERT'), ('Permission','UPDATE'), ('Permission','DELETE'),
+    ('UserAccount','SELECT'), ('UserAccount','INSERT'), ('UserAccount','UPDATE'), ('UserAccount','DELETE'), -- FIXED: changed semicolon to comma
+    ('UserRole','SELECT'), ('UserRole','INSERT'), ('UserRole','UPDATE'), ('UserRole','DELETE'),
+    ('RolePermission','SELECT'), ('RolePermission','INSERT'), ('RolePermission','UPDATE'), ('RolePermission','DELETE'),
+    -- audit log
+    ('AuditLog','SELECT'), ('AuditLog','INSERT'), ('AuditLog','UPDATE'), ('AuditLog','DELETE');
 
 -- 3. Role -> Permission mappings --------------------------------------
 
 -- fleet_admin: everything
 INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
 SELECT r.RoleID, p.PermissionID
-FROM `Role` r CROSS JOIN `Permission` p
+FROM `Role` r, `Permission` p
 WHERE r.RoleName = 'fleet_admin';
 
 -- safety_ops
@@ -113,16 +122,14 @@ INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
 SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'safety_ops'
-  AND (
-        (p.TableName IN ('Vehicles','VehiclesCategory','VehiclesDepotHistory',
-                         'VehicleAssignments','Depots','DriverCertifications',
-                         'CertificationType','VehicleCertRequirement',
-                         'SafetyEventsType')
-                                              AND p.Action = 'SELECT') OR
-        (p.TableName = 'Drivers'              AND p.Action IN ('SELECT','UPDATE')) OR
-        (p.TableName = 'SafetyEvents'         AND p.Action IN ('SELECT','INSERT','UPDATE')) OR
-        (p.TableName = 'CoachingRecord'       AND p.Action IN ('SELECT','INSERT','UPDATE')) OR
-        (p.TableName = 'DriverSafetyScore'    AND p.Action IN ('SELECT','UPDATE'))
+  AND (p.TableName IN ('Depots', 'Vehicles', 'VehiclesCategory', 'VehiclesDepotHistory',
+                         'VehicleAssignments', 'CertificationType', 'SafetyEventsType',
+                         'EventPenalty', 'DriverCertifications', 'VehicleCertRequirement')
+                                              AND p.Action = 'SELECT'
+       OR p.TableName = 'Drivers'             AND p.Action IN ('SELECT','UPDATE')
+       OR p.TableName = 'SafetyEvents'        AND p.Action IN ('SELECT','INSERT','UPDATE')
+       OR p.TableName = 'CoachingRecord'      AND p.Action IN ('SELECT','INSERT','UPDATE')
+       OR p.TableName = 'DriverSafetyScore'   AND p.Action IN ('SELECT','UPDATE')
       );
 
 -- workshop_mgr
@@ -130,18 +137,17 @@ INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
 SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'workshop_mgr'
-  AND (
-        (p.TableName IN ('Depots','Drivers','VehiclesCategory','Workshop',
-                         'ActivityType','MechanicCertType')
-                                              AND p.Action = 'SELECT') OR
-        (p.TableName = 'Vehicles'             AND p.Action IN ('SELECT','UPDATE')) OR
-        (p.TableName = 'PredictiveAlert'      AND p.Action IN ('SELECT','UPDATE')) OR
-        (p.TableName IN ('MaintenanceJobs','MaintenanceActivity','ActivityMechanic',
-                         'ActivityPart','Part','Supplier','SupplyPart')
-                                              AND p.Action IN ('SELECT','INSERT','UPDATE','DELETE')) OR
-        (p.TableName IN ('WarrantyClaim','Mechanic', 'WarrantyClaimParts',
+  AND (p.TableName IN ('Depots', 'Drivers', 'VehiclesCategory', 'Workshop',
+                         'ActivityType', 'MechanicCertType', 'EventPenalty')
+                                              AND p.Action = 'SELECT'
+       OR p.TableName = 'Vehicles'            AND p.Action IN ('SELECT','UPDATE')
+       OR p.TableName = 'PredictiveAlert'     AND p.Action IN ('SELECT','UPDATE')
+       OR p.TableName IN ('MaintenanceJobs', 'MaintenanceActivity', 'ActivityMechanic',
+                         'ActivityPart', 'Part', 'Supplier', 'SupplyPart')
+                                              AND p.Action IN ('SELECT','INSERT','UPDATE','DELETE')
+       OR p.TableName IN ('WarrantyClaim', 'Mechanic', 'WarrantyClaimPart',
                          'MechanicCertification')
-                                              AND p.Action IN ('SELECT','INSERT','UPDATE'))
+                                              AND p.Action IN ('SELECT','INSERT','UPDATE')
       );
 
 -- mechanic (broad reads; write scope narrowed to own rows by Part C views)
@@ -149,21 +155,22 @@ INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
 SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'mechanic'
-  AND (
-        (p.TableName IN ('Vehicles','MaintenanceJobs','ActivityType',
-                         'ActivityPart','Part','Workshop')
-                                              AND p.Action = 'SELECT') OR
-        (p.TableName = 'MaintenanceActivity'  AND p.Action IN ('SELECT','UPDATE')) OR
-        (p.TableName = 'ActivityMechanic'     AND p.Action IN ('SELECT','UPDATE'))
+  AND (p.TableName IN ('Vehicles', 'MaintenanceJobs', 'ActivityType',
+                         'ActivityPart', 'Part', 'Workshop', 'EventPenalty')
+                                              AND p.Action = 'SELECT'
+       OR p.TableName = 'MaintenanceActivity' AND p.Action IN ('SELECT','UPDATE')
+       OR p.TableName = 'ActivityMechanic'    AND p.Action IN ('SELECT','UPDATE')
       );
 
 -- driver (own data only — enforced by app / Part C views)
 INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
 SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
-WHERE r.RoleName = 'driver'
-  AND p.TableName IN ('SafetyEvents','DriverSafetyScore','DriverCertifications')
-  AND p.Action = 'SELECT';
+WHERE r.RoleName = 'driver' AND p.Action = 'SELECT'
+  AND p.TableName IN ('SafetyEvents', 'DriverSafetyScore', 'DriverCertifications',
+                      'Vehicles', 'VehiclesCategory', 'VehiclesDepotHistory',
+                      'VehicleAssignments', 'Depots', 'CertificationType',
+                      'SafetyEventsType', 'EventPenalty', 'Drivers');
 
 -- App-level REVOKE example:
 -- DELETE rp FROM `RolePermission` rp
