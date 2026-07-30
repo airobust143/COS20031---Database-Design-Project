@@ -21,12 +21,6 @@ $currentTable = $TABLE_ALIASES_REVERSE[$currentAlias] ?? null;
         <div class="brand-sub">Management Console</div>
       </div>
     </a>
-    <div class="user-panel">
-      <div class="user-info">
-        Logged in as: <strong><?= e($_SESSION['username'] ?? 'N/A') ?></strong>
-      </div>
-      <a href="logout.php" class="logout-link">Logout &rarr;</a>
-    </div>
     <nav>
       <a class="nav-home <?= $currentTable === null && basename($_SERVER['SCRIPT_NAME']) === 'index.php' ? 'active' : '' ?>" href="index.php">📊 Dashboard</a>
       <?php if (hasPermission('UserAccount', 'INSERT') && hasPermission('UserRole', 'INSERT')): ?>
@@ -44,5 +38,12 @@ $currentTable = $TABLE_ALIASES_REVERSE[$currentAlias] ?? null;
         <?php endforeach; ?>
       <?php endforeach; ?>
     </nav>
+    <div class="user-panel">
+      <div class="user-info">
+        <span class="user-info-label">Logged in as</span>
+        <span class="user-info-name"><?= e($_SESSION['username'] ?? 'N/A') ?></span>
+      </div>
+      <a href="logout.php" class="logout-link">Logout &rarr;</a>
+    </div>
   </aside>
   <main class="content">
