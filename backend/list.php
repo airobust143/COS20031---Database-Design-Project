@@ -71,7 +71,7 @@ require __DIR__ . '/includes/layout_top.php';
       <input type="text" name="q" placeholder="Search…" value="<?= e($q) ?>" style="width:200px;">
       <button class="btn btn-outline" type="submit">Search</button>
     </form>
-    <?php if (hasPermission($table, 'INSERT')): ?>
+    <?php if ($table !== 'UserAccount' && hasPermission($table, 'INSERT')): ?>
       <a class="btn btn-amber" href="form.php?t=<?= urlencode($alias) ?>">+ Add new</a>
     <?php endif; ?>
   </div>
@@ -81,7 +81,11 @@ require __DIR__ . '/includes/layout_top.php';
   <div class="empty-state card">
     <div class="big">🗂️</div>
     <p><?= $q !== '' ? 'No records match your search.' : 'No records yet.' ?></p>
-    <?php if (hasPermission($table, 'INSERT')): ?>
+    <?php if ($table === 'UserAccount'): ?>
+      <?php if (hasPermission('UserAccount', 'INSERT') && hasPermission('UserRole', 'INSERT')): ?>
+        <a class="btn btn-amber" href="create_account.php">+ Create the first account</a>
+      <?php endif; ?>
+    <?php elseif (hasPermission($table, 'INSERT')): ?>
       <a class="btn btn-amber" href="form.php?t=<?= urlencode($alias) ?>">+ Add the first record</a>
     <?php endif; ?>
   </div>
