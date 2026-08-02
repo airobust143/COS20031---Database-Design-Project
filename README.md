@@ -24,7 +24,7 @@
 ## Prerequisites
 
 - **MySQL 8.0+** running on localhost
-- **Node.js 18+** (for `run_all.js`)
+- **Node.js 20.19+** (required by the frontend's Vite 8; `run_all.js` also works on this version)
 - **PHP 8.0+** with `pdo_mysql` (for the backend app)
 
 ---
@@ -52,12 +52,28 @@ node run_all.js root ha431 192.168.1.10   # custom host
 
 ## Running the Backend (PHP)
 
+With XAMPP Apache (recommended), start XAMPP; the Vite development proxy
+automatically derives the backend URL from the repository's location below
+the Apache document root, including any intermediate subfolders.
+
 ```bash
-cd backend
-php -S localhost:8000
+sudo /opt/lampp/lampp start
 ```
 
-Open **http://localhost:8000/index.php** in your browser.
+The PHP admin app is then available at the repository's Apache path, for
+example **http://localhost/web/COS20031---Database-Design-Project/backend/**.
+
+To use PHP's development server instead, use XAMPP's PHP binary so the
+`pdo_mysql` driver is available, then point the Vite proxy at port 8000:
+
+```bash
+cd backend
+/opt/lampp/bin/php -S localhost:8000
+
+# In a second terminal:
+cd frontend
+VITE_API_PROXY_TARGET=http://localhost:8000 VITE_API_PROXY_PATH=/api npm run dev
+```
 
 Requires PHP 8+ with the `pdo_mysql` extension enabled.
 

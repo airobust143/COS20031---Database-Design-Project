@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Smart Fleet Management — SEED DATA (MariaDB 10.4 / XAMPP)
--- Run AFTER smartfleet_schema.sql and smartfleet_rbac_mariadb.sql
+-- Run after table creation (01–05) and before 06_procedures_triggers.sql.
 --
 -- Data is drawn from the project brief: the four depots, the vehicle
 -- certification matrix, the example driver certifications, the example
@@ -9,6 +9,11 @@
 --
 -- Explicit IDs are used so foreign keys are predictable and the script
 -- is re-runnable after a DELETE. Run as root (or anna_admin).
+--
+-- In addition to the hand-written demonstration rows, this script creates
+-- 500 deterministic synthetic rows in the scalable business tables.
+-- Depots, their one-to-one Workshops, lookups, user-account and RBAC tables
+-- intentionally remain small.
 -- =====================================================================
 
 USE `smart_fleet_management`;
@@ -16,11 +21,16 @@ USE `smart_fleet_management`;
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM `UserRole`;
 DELETE FROM `UserAccount`;
+DELETE FROM `WarrantyClaimParts`;
+DELETE FROM `WarrantyClaim`;
 DELETE FROM `ActivityMechanic`;
 DELETE FROM `ActivityPart`;
 DELETE FROM `MaintenanceActivity`;
 DELETE FROM `MaintenanceJobs`;
 DELETE FROM `PredictiveAlert`;
+DELETE FROM `SupplyPart`;
+DELETE FROM `Part`;
+DELETE FROM `Supplier`;
 DELETE FROM `MechanicCertification`;
 DELETE FROM `Mechanic`;
 DELETE FROM `Workshop`;
@@ -35,6 +45,7 @@ DELETE FROM `Vehicles`;
 DELETE FROM `Drivers`;
 DELETE FROM `ActivityType`;
 DELETE FROM `MechanicCertType`;
+DELETE FROM `EventPenalty`;
 DELETE FROM `SafetyEventsType`;
 DELETE FROM `CertificationType`;
 DELETE FROM `VehiclesCategory`;
@@ -83,6 +94,12 @@ INSERT INTO `SafetyEventsType` (`EventsTypeID`,`Name`,`DefaultSeverity`) VALUES
  (6,'Fatigue Warning','High'),
  (7,'Seatbelt Violation','Medium'),
  (8,'Phone Distraction Alert','High');
+
+INSERT INTO `EventPenalty` (`Severity`,`PointsDeducted`,`Description`) VALUES
+ ('Low',      -2,'Minor event'),
+ ('Medium',   -5,'Moderate event'),
+ ('High',    -10,'Serious event requiring review'),
+ ('Critical',-20,'Critical event requiring immediate intervention');
 
 INSERT INTO `MechanicCertType` (`MecCertTypeID`,`Name`,`Expire`) VALUES
  (1,'Standard Vehicle Mechanic Licence',TRUE),
@@ -254,6 +271,238 @@ INSERT INTO `ActivityMechanic` (`ActivityID`,`MechanicID`,`LabourHours`) VALUES
 
 
 -- =====================================================================
+-- DETERMINISTIC BULK DATA
+-- 500 additional rows are generated for each scalable business table.
+-- Synthetic records are distributed across the four real depots and their
+-- one-to-one workshops instead of generating artificial locations.
+-- IDs start at 1001 (or 10001 for high-volume event/job entities) so the
+-- project-brief examples above keep their original, easy-to-demo IDs.
+-- =====================================================================
+
+DROP TEMPORARY TABLE IF EXISTS `_seed_numbers`;
+CREATE TEMPORARY TABLE `_seed_numbers` (
+    `n` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`n`)
+) ENGINE=MEMORY;
+
+INSERT INTO `_seed_numbers` (`n`)
+SELECT hundreds.d * 100 + tens.d * 10 + ones.d + 1
+FROM
+    (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) ones
+CROSS JOIN
+    (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) tens
+CROSS JOIN
+    (SELECT 0 d UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) hundreds;
+
+-- Fleet vehicles --------------------------------------------------------------
+INSERT INTO `Vehicles`
+ (`VehicleID`,`RegistrationNumber`,`CategoryID`,`Model`,`Manufacturer`,
+  `YearOfManufacture`,`CurrentOdometerReading`,`DepotID`,`OperationalStatus`)
+SELECT 1000+n,
+       CONCAT('SF-', LPAD(n,6,'0')),
+       1,
+       CONCAT('FleetVan-', 1 + MOD(n,20)),
+       ELT(1 + MOD(n-1,5),'Ford','Toyota','Hyundai','Mercedes-Benz','Isuzu'),
+       2018 + MOD(n,8),
+       10000 + n * 125,
+       1+MOD(n-1,4),
+       IF(MOD(n,2)=0,'Available','Active')
+FROM `_seed_numbers`;
+
+INSERT INTO `VehiclesDepotHistory`
+ (`HistoryID`,`VehicleID`,`DepotID`,`MovedFrom`,`MovedTo`)
+SELECT 10000+n, 1000+n, 1+MOD(n-1,4),
+       DATE_ADD('2020-01-01 08:00:00', INTERVAL MOD(n,1460) DAY),
+       NULL
+FROM `_seed_numbers`;
+
+-- Drivers, credentials, assignments and safety -------------------------------
+INSERT INTO `Drivers`
+ (`DriverID`,`FirstName`,`LastName`,`ContactInformation`,`DepotID`,
+  `LicenceType`,`LicenceExpiryDate`,`EmploymentStatus`,`EmergencyContactDetails`)
+SELECT 1000+n,
+       CONCAT('Driver', LPAD(n,3,'0')),
+       CONCAT('Synthetic', LPAD(n,3,'0')),
+       CONCAT('driver', LPAD(n,3,'0'), '@fleet.example / 08', LPAD(n,8,'0')),
+       1+MOD(n-1,4),
+       'B2',
+       '2035-12-31',
+       'Active',
+       CONCAT('Emergency contact 07', LPAD(n,8,'0'))
+FROM `_seed_numbers`;
+
+INSERT INTO `DriverCertifications`
+ (`DriverCertID`,`DriverID`,`CertTypeID`,`IssueDate`,`ExpireDate`)
+SELECT 10000+n, 1000+n, 1, '2024-01-01', '2035-12-31'
+FROM `_seed_numbers`;
+
+INSERT INTO `VehicleAssignments`
+ (`AssignmentID`,`VehicleID`,`DriverID`,`StartDate`,`EndDate`,`IsPermanent`,`DepotID`)
+SELECT 10000+n, 1000+n, 1000+n,
+       DATE_ADD('2024-01-01', INTERVAL MOD(n,365) DAY),
+       NULL,
+       MOD(n,2),
+       1+MOD(n-1,4)
+FROM `_seed_numbers`;
+
+INSERT INTO `DriverSafetyScore`
+ (`ScoreID`,`DriverID`,`ScorePeriod`,`BaseScore`,`DeductedPoints`,`FinalScore`,
+  `CoachingRequired`,`Suspended`,`LowCount`,`MediumCount`,`HighCount`,`CriticalCount`)
+SELECT 10000+n,
+       1000+n,
+       '2024-01',
+       100,
+       MOD(n*7,45),
+       100-MOD(n*7,45),
+       (100-MOD(n*7,45) <= 75),
+       FALSE,
+       MOD(n,5), MOD(n,4), MOD(n,3), 0
+FROM `_seed_numbers`;
+
+INSERT INTO `SafetyEvents`
+ (`EventID`,`Timestamp`,`VehicleID`,`DriverID`,`EventsTypeID`,`Severity`,
+  `DepotID`,`Odometer`,`ReviewRequired`,`ReviewStatus`)
+SELECT 10000+n,
+       DATE_ADD(DATE_ADD('2025-01-01 06:00:00', INTERVAL MOD(n,365) DAY),
+                INTERVAL MOD(n,16) HOUR),
+       1000+n,
+       1000+n,
+       1+MOD(n-1,8),
+       ELT(1+MOD(n-1,4),'Low','Medium','High','Critical'),
+       1+MOD(n-1,4),
+       10000+n*125,
+       (MOD(n-1,4) >= 2),
+       IF(MOD(n-1,4) >= 2,'Pending','Not Required')
+FROM `_seed_numbers`;
+
+INSERT INTO `CoachingRecord`
+ (`CoachingID`,`DriverID`,`Reason`,`ScheduledDate`,`CompleteDate`,`Outcome`,
+  `RecordType`,`EventID`,`ScoreID`)
+SELECT 10000+n,
+       1000+n,
+       CONCAT('Synthetic coaching review for safety event ', 10000+n),
+       DATE_ADD('2025-01-08', INTERVAL MOD(n,365) DAY),
+       IF(MOD(n,3)=0, DATE_ADD('2025-01-15', INTERVAL MOD(n,365) DAY), NULL),
+       IF(MOD(n,3)=0,'Passed','Pending'),
+       IF(MOD(n,4)=0,'Critical Event','Other'),
+       10000+n,
+       NULL
+FROM `_seed_numbers`;
+
+-- Workshops and mechanics -----------------------------------------------------
+INSERT INTO `Mechanic`
+ (`MechanicID`,`FirstName`,`LastName`,`WorkshopID`,`EmploymentStatus`)
+SELECT 1000+n,
+       CONCAT('Mechanic', LPAD(n,3,'0')),
+       CONCAT('Synthetic', LPAD(n,3,'0')),
+       1+MOD(n-1,4),
+       'Active'
+FROM `_seed_numbers`;
+
+INSERT INTO `MechanicCertification`
+ (`MecCertID`,`MechanicID`,`MecCertTypeID`,`IssueDate`,`ExpireDate`)
+SELECT 10000+n, 1000+n, 1, '2024-01-01', '2035-12-31'
+FROM `_seed_numbers`;
+
+-- Alerts, jobs and workshop activity -----------------------------------------
+INSERT INTO `PredictiveAlert`
+ (`AlertID`,`VehicleID`,`AlertType`,`Severity`,`GeneratedAt`,`Status`,`ResolvedAt`)
+SELECT 10000+n,
+       1000+n,
+       ELT(1+MOD(n-1,7),
+           'Brake Wear Warning','Engine Overheating Risk','Battery Degradation',
+           'Oil Quality Deterioration','Transmission Fault Warning',
+           'Cooling System Anomaly','Tyre Pressure Irregularity'),
+       ELT(1+MOD(n-1,4),'Low','Medium','High','Critical'),
+       DATE_ADD('2025-02-01 07:00:00', INTERVAL MOD(n,300) DAY),
+       ELT(1+MOD(n-1,4),'New','Acknowledged','Scheduled','Resolved'),
+       IF(MOD(n-1,4)=3,
+          DATE_ADD('2025-02-03 12:00:00', INTERVAL MOD(n,300) DAY),
+          NULL)
+FROM `_seed_numbers`;
+
+INSERT INTO `MaintenanceJobs`
+ (`JobID`,`VehicleID`,`WorkshopID`,`DateOpened`,`DateClosed`,
+  `OverallDowntime`,`TotalCost`,`AlertID`)
+SELECT 10000+n,
+       1000+n,
+       1+MOD(n-1,4),
+       DATE_ADD('2025-02-02 08:00:00', INTERVAL MOD(n,300) DAY),
+       DATE_ADD(DATE_ADD('2025-02-02 08:00:00', INTERVAL MOD(n,300) DAY),
+                INTERVAL (2+MOD(n,12)) HOUR),
+       2+MOD(n,12),
+       500000+MOD(n*137000,9500000),
+       10000+n
+FROM `_seed_numbers`;
+
+INSERT INTO `MaintenanceActivity`
+ (`ActivityID`,`JobID`,`ActivityTypeID`,`DiagnosticResult`,`IsRepeatFault`,
+  `StartedAt`,`CompleteAt`)
+SELECT 10000+n,
+       10000+n,
+       1,
+       CONCAT('Synthetic inspection result ', LPAD(n,3,'0')),
+       (MOD(n,10)=0),
+       DATE_ADD('2025-02-02 09:00:00', INTERVAL MOD(n,300) DAY),
+       DATE_ADD('2025-02-02 11:00:00', INTERVAL MOD(n,300) DAY)
+FROM `_seed_numbers`;
+
+INSERT INTO `ActivityMechanic` (`ActivityID`,`MechanicID`,`LabourHours`)
+SELECT 10000+n, 1000+n, 2+MOD(n,8)/2
+FROM `_seed_numbers`;
+
+-- Parts, suppliers, usage and warranties -------------------------------------
+INSERT INTO `Part`
+ (`PartID`,`PartNumber`,`Description`,`UnitPrice`,`QuantityInStock`,`ReorderThreshold`)
+SELECT 1000+n,
+       CONCAT('SFP-', LPAD(n,6,'0')),
+       CONCAT('Synthetic fleet service part ', LPAD(n,3,'0')),
+       50000+MOD(n*17000,2000000),
+       25+MOD(n,176),
+       10+MOD(n,20)
+FROM `_seed_numbers`;
+
+INSERT INTO `Supplier` (`SupplierID`,`Name`,`ContactInfo`,`LeadTimeDays`)
+SELECT 1000+n,
+       CONCAT('Synthetic Parts Supplier ', LPAD(n,3,'0')),
+       CONCAT('supplier', LPAD(n,3,'0'), '@parts.example / 06', LPAD(n,8,'0')),
+       1+MOD(n,30)
+FROM `_seed_numbers`;
+
+INSERT INTO `SupplyPart` (`PartID`,`SupplierID`,`UnitCost`,`IsPrimary`)
+SELECT 1000+n,
+       1000+n,
+       40000+MOD(n*13000,1500000),
+       TRUE
+FROM `_seed_numbers`;
+
+INSERT INTO `ActivityPart`
+ (`ActivityID`,`PartID`,`QuantityUsed`,`UnitPriceAtTime`)
+SELECT 10000+n,
+       1000+n,
+       1+MOD(n,5),
+       50000+MOD(n*17000,2000000)
+FROM `_seed_numbers`;
+
+INSERT INTO `WarrantyClaim`
+ (`ClaimID`,`ActivityID`,`WarrantyType`,`Status`,`ClaimDate`)
+SELECT 10000+n,
+       10000+n,
+       IF(MOD(n,2)=0,'Manufacturer','Supplier'),
+       ELT(1+MOD(n-1,4),'Submitted','Approved','Rejected','Completed'),
+       DATE_ADD('2025-02-03', INTERVAL MOD(n,300) DAY)
+FROM `_seed_numbers`;
+
+INSERT INTO `WarrantyClaimParts` (`ClaimID`,`PartID`)
+SELECT 10000+n, 1000+n
+FROM `_seed_numbers`;
+
+DROP TEMPORARY TABLE `_seed_numbers`;
+
+
+-- =====================================================================
 -- USER ACCOUNTS  (link database logins to people)
 -- =====================================================================
 -- PasswordHash values are placeholders. A real application stores a
@@ -337,7 +586,7 @@ WHERE ua.Username = SUBSTRING_INDEX(USER(), '@', 1);
 -- As mike_mech  (MechanicID 12, on activities 1 and 2):
 --   SELECT * FROM v_my_activities;   -> 2 rows (ActivityID 1, 2)
 --   SELECT * FROM v_my_labour;       -> 2 rows (2.50 and 1.00 hours)
---   SELECT * FROM MaintenanceJobs;   -> 2 rows (broad read allowed)
+--   SELECT * FROM MaintenanceJobs;   -> 502 rows (broad read allowed)
 --   UPDATE MaintenanceActivity ...   -> ERROR 1142 (denied)
 --
 -- As dan_driver (DriverID 1):

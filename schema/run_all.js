@@ -90,7 +90,10 @@ for (const file of files) {
     try {
         // For seed file, use mysql CLI directly (handles complex multi-line INSERTs better)
         if (file === 'smartfleet_seed_quick_data.sql') {
-            const args = ['-u', user, '-h', host];
+            // Match mysql2's TCP connection. The mysql CLI otherwise treats
+            // "localhost" as a request for the system Unix socket, which is
+            // not the socket used by XAMPP/MariaDB on many Linux installs.
+            const args = ['--protocol=TCP', '-u', user, '-h', host];
             if (password) args.push(`-p${password}`);
             execFileSync(mysqlPath, args, {
                 input: readFileSync(filePath, 'utf8'),

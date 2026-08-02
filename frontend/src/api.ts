@@ -1,17 +1,27 @@
 // ============================================================
 // SmartFleet — API client
-// All fetch calls go to the PHP backend over CORS.
-// Base URL is detected from the current host so this works
-// both with XAMPP (port 80) and any other PHP dev server.
+// All fetch calls go to the PHP backend through a same-origin API base.
+// In development, /api is handled by the Vite proxy in vite.config.js.
+// The proxy derives the Apache path from the repository's real location,
+// so the project can live in any subfolder below the document root.
+// Production builds infer the project root from the /frontend/ URL segment.
 // ============================================================
 
 const API_BASE = (() => {
-  // When running under Vite (port 5173/5174), target XAMPP on port 80.
-  // Adjust if your PHP server is on a different port.
-  if (location.port === '5173' || location.port === '5174' || location.port === '4173') {
-    return 'http://localhost/COS20031---Database-Design-Project/backend/api';
+  const configured = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (configured) return configured.replace(/\/+$/, '');
+
+  if (import.meta.env.DEV) {
+    return '/api';
   }
-  // Running from the backend directly (PHP serves the frontend too)
+
+  const marker = '/frontend/';
+  const markerIndex = location.pathname.indexOf(marker);
+  if (markerIndex >= 0) {
+    return `${location.pathname.slice(0, markerIndex)}/backend/api`;
+  }
+
+  // Fallback for deployments that expose the API at the origin root.
   return '/api';
 })();
 
