@@ -110,7 +110,7 @@ function renderLoginScreen(root: HTMLElement, errorMsg = ''): void {
     <!-- Left panel: plain, functional context — not a marketing hero -->
     <div class="login-brand">
       <div class="login-brand-inner">
-        <span class="login-brand-word">SmartFleet</span>
+        <img src="/smartfleet.svg" alt="SmartFleet" class="login-brand-logo" style="width:360px;height:auto;margin-bottom:16px">
         <h1 class="login-brand-tagline">Transform complex fleet data into actionable insights.</h1>
         <p class="login-brand-sub">
           Our intuitive, role-based platform aligns your vehicles, drivers,
