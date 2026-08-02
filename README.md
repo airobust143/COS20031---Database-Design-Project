@@ -5,7 +5,7 @@
 ```
 .
 ├── backend/               PHP admin CRUD app
-├── frontend/              React + Vite frontend
+├── frontend/              Vite + TypeScript frontend
 ├── schema/                SQL schema, seed data, and setup scripts
 │   ├── 01_core_fleet_schema.sql
 │   ├── 02_driver_safety_schema.sql
@@ -15,7 +15,7 @@
 │   ├── 06_seed_reference_data.sql
 │   ├── smartfleet_rbac.sql
 │   └── run_all.js         ← recommended (Node.js)
-│   
+│
 └── smartfleet_sample_csv/ Sample CSV data
 ```
 
@@ -24,7 +24,7 @@
 ## Prerequisites
 
 - **MySQL 8.0+** running on localhost
-- **Node.js 18+** (for `run_all.js`)
+- **Node.js 20.19+ or 22.12+** (required by Vite 8.x for the frontend)
 - **PHP 8.0+** with `pdo_mysql` (for the backend app)
 
 ---
@@ -43,12 +43,12 @@ node run_all.js <user> <password>
 ```
 
 **Examples:**
+
 ```bash
 node run_all.js root ha431
 node run_all.js root                      # no password
 node run_all.js root ha431 192.168.1.10   # custom host
 ```
-
 
 ## Running the Backend (PHP)
 
@@ -63,7 +63,7 @@ Requires PHP 8+ with the `pdo_mysql` extension enabled.
 
 ---
 
-## Running the Frontend (React)
+## Running the Frontend (Vite/TypeScript)
 
 ```bash
 cd frontend
