@@ -1,12 +1,29 @@
 // ============================================================
 // Mechanic Dashboard — live data from /api/mechanic.php
 // Row-scoped: only own assigned activities
+// Navigation structure:
+//   - my-activities: Activities list only
+//   - log-activity: Log form only
 // ============================================================
 
 import { Mechanic } from '../api.ts';
 import { icon, KPI_ICONS } from '../icons.ts';
 
-export async function renderMechanic(_navId: string): Promise<string> {
+export async function renderMechanic(navId: string): Promise<string> {
+  switch (navId) {
+    case 'my-activities':
+      return renderMyActivities();
+    case 'log-activity':
+      return renderLogActivity();
+    default:
+      return renderMyActivities();
+  }
+}
+
+// ============================================================
+// My Activities — List only (no log form)
+// ============================================================
+async function renderMyActivities(): Promise<string> {
   const [kpis, activities] = await Promise.all([
     Mechanic.kpis(),
     Mechanic.myActivities(),
@@ -61,11 +78,11 @@ ${Number(kpis.repeatFaults) > 0 ? `
       <thead><tr>
         <th>Job</th><th>Vehicle</th><th>Activity Type</th>
         <th>Started</th><th>Completed</th><th>Labour Hrs</th>
-        <th>Repeat Fault</th><th>Diagnostic Result</th><th>Actions</th>
+        <th>Repeat Fault</th><th>Diagnostic Result</th>
       </tr></thead>
       <tbody>
         ${activities.length === 0
-          ? `<tr><td colspan="9"><div class="empty-state"><p>No activities assigned to you.</p></div></td></tr>`
+          ? `<tr><td colspan="8"><div class="empty-state"><p>No activities assigned to you.</p></div></td></tr>`
           : activities.map(a => `
         <tr>
           <td><strong>JOB-${String(a.JobID).padStart(4,'0')}</strong></td>
@@ -82,26 +99,38 @@ ${Number(kpis.repeatFaults) > 0 ? `
           <td>${a.DiagnosticResult
               ? `<span title="${a.DiagnosticResult}" style="max-width:150px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.DiagnosticResult}</span>`
               : '<span class="text-muted">—</span>'}</td>
-          <td>
-            <button class="btn btn-primary btn-sm"
-                    onclick="document.getElementById('mechanic-log-form').scrollIntoView({behavior:'smooth'});document.getElementById('sel-activity').value='${a.ActivityID}'">
-              ${icon('log',13)} Log
-            </button>
-          </td>
         </tr>`).join('')}
       </tbody>
     </table>
   </div>
-</div>
+  <div class="card-footer" style="text-align:center">
+    <p class="text-muted" style="margin:0;font-size:13px">
+      Go to <strong>Log Activity</strong> in the menu to update activity details
+    </p>
+  </div>
+</div>`;
+}
 
-<div class="card" id="mechanic-log-form">
+// ============================================================
+// Log Activity — Form only (no activities list)
+// ============================================================
+async function renderLogActivity(): Promise<string> {
+  const activities = await Mechanic.myActivities();
+
+  return `
+<div class="card">
   <div class="card-header">
     <div>
       <h2>${icon('log',16)} Log Activity Details</h2>
-      <p>Update your own assigned activity — diagnostic result, labour hours, repeat fault flag</p>
+      <p>Update your assigned activity: diagnostic result, labour hours, repeat fault flag</p>
     </div>
   </div>
   <div class="card-body">
+    ${activities.length === 0 ? `
+    <div class="empty-state">
+      <p><strong>No activities assigned to you.</strong></p>
+      <p class="text-muted">Check <strong>My Activities</strong> to see your assigned work.</p>
+    </div>` : `
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label">Activity</label>
@@ -131,7 +160,7 @@ ${Number(kpis.repeatFaults) > 0 ? `
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Diagnostic Result</label>
-        <textarea id="inp-diag" class="form-control"
+        <textarea id="inp-diag" class="form-control" rows="5"
                   placeholder="Describe findings and recommended actions…"></textarea>
       </div>
     </div>
@@ -148,50 +177,93 @@ ${Number(kpis.repeatFaults) > 0 ? `
       <button class="btn btn-secondary" id="btn-clear-mech">Clear</button>
       <button class="btn btn-primary" id="btn-save-mech">${icon('check',14)} Save Activity</button>
     </div>
+    `}
   </div>
 </div>
+
+${activities.length > 0 ? `
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2>Quick Reference: My Activities</h2>
+      <p>Select an activity from the dropdown above to log details</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Job</th><th>Vehicle</th><th>Activity Type</th>
+        <th>Labour Hrs</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        ${activities.map(a => `
+        <tr>
+          <td><strong>JOB-${String(a.JobID).padStart(4,'0')}</strong></td>
+          <td>${a.RegistrationNumber} <span class="text-muted text-xs">${a.VehicleModel}</span></td>
+          <td><span class="badge badge-blue">${a.ActivityType}</span></td>
+          <td>${Number(a.LabourHours) > 0
+              ? `<span style="font-weight:600">${a.LabourHours} h</span>`
+              : `<span class="text-muted">Not logged</span>`}</td>
+          <td>${a.CompleteAt 
+              ? '<span class="badge badge-green">Completed</span>'
+              : a.StartedAt
+              ? '<span class="badge badge-orange">In Progress</span>'
+              : '<span class="badge badge-gray">Not Started</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>` : ''}
 
 <script type="module">
 import { Mechanic } from '/src/api.ts';
 
-document.getElementById('btn-save-mech')?.addEventListener('click', async () => {
-  const actId   = Number(document.getElementById('sel-activity').value);
-  const hours   = parseFloat(document.getElementById('inp-hours').value);
-  const diag    = document.getElementById('inp-diag').value.trim();
-  const repeat  = document.getElementById('chk-repeat').checked;
-  const started = document.getElementById('inp-started').value || null;
-  const complete= document.getElementById('inp-complete').value || null;
-  const status  = document.getElementById('mechanic-form-status');
+const saveBtn = document.getElementById('btn-save-mech');
+if (saveBtn) {
+  saveBtn.addEventListener('click', async () => {
+    const actId   = Number(document.getElementById('sel-activity').value);
+    const hours   = parseFloat(document.getElementById('inp-hours').value);
+    const diag    = document.getElementById('inp-diag').value.trim();
+    const repeat  = document.getElementById('chk-repeat').checked;
+    const started = document.getElementById('inp-started').value || null;
+    const complete= document.getElementById('inp-complete').value || null;
+    const status  = document.getElementById('mechanic-form-status');
 
-  if (!actId) {
-    status.innerHTML = '<span class="badge badge-red">Select an activity first.</span>';
-    return;
-  }
-
-  try {
-    await Mechanic.updateActivity(actId, {
-      DiagnosticResult: diag || null,
-      IsRepeatFault: repeat,
-      StartedAt: started,
-      CompleteAt: complete,
-    });
-    if (!isNaN(hours) && hours >= 0) {
-      await Mechanic.updateLabour(actId, hours);
+    if (!actId) {
+      status.innerHTML = '<span class="badge badge-red">Select an activity first.</span>';
+      return;
     }
-    status.innerHTML = '<span class="badge badge-green">✓ Saved successfully.</span>';
-    setTimeout(() => location.reload(), 1200);
-  } catch (err) {
-    status.innerHTML = '<span class="badge badge-red">✗ ' + err.message + '</span>';
-  }
-});
 
-document.getElementById('btn-clear-mech')?.addEventListener('click', () => {
-  ['sel-activity','inp-hours','inp-started','inp-complete','inp-diag'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+    try {
+      await Mechanic.updateActivity(actId, {
+        DiagnosticResult: diag || null,
+        IsRepeatFault: repeat,
+        StartedAt: started,
+        CompleteAt: complete,
+      });
+      if (!isNaN(hours) && hours >= 0) {
+        await Mechanic.updateLabour(actId, hours);
+      }
+      status.innerHTML = '<span class="badge badge-green">✓ Saved successfully.</span>';
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = '<span class="badge badge-red">✗ ' + err.message + '</span>';
+    }
   });
-  document.getElementById('chk-repeat').checked = false;
-  document.getElementById('mechanic-form-status').innerHTML = '';
-});
+}
+
+const clearBtn = document.getElementById('btn-clear-mech');
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    ['sel-activity','inp-hours','inp-started','inp-complete','inp-diag'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    const chk = document.getElementById('chk-repeat');
+    if (chk) chk.checked = false;
+    const status = document.getElementById('mechanic-form-status');
+    if (status) status.innerHTML = '';
+  });
+}
 </script>`;
 }
