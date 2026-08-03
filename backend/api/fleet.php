@@ -370,6 +370,7 @@ if ($resource === 'users') {
         }
         if ($password === '') jsonErr('Password is required.');
         if (strlen($password) < 8) jsonErr('Password must be at least 8 characters.');
+        if (strlen($password) > 72) jsonErr('Password must be 72 characters or fewer (bcrypt limit).');
         if (!$roleId) jsonErr('Role is required.');
         
         $dup = $pdo->prepare('SELECT 1 FROM UserAccount WHERE Username = :u');

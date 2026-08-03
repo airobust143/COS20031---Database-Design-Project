@@ -384,13 +384,13 @@ async function renderUsers(): Promise<string> {
         </div>
         <div>
           <label for="new_password">Password *</label>
-          <input type="password" id="new_password" name="Password" required minlength="8"
+          <input type="password" id="new_password" name="Password" required minlength="8" maxlength="72"
             autocomplete="new-password" />
-          <small class="text-muted">Minimum 8 characters</small>
+          <small class="text-muted">8–72 characters</small>
         </div>
         <div>
           <label for="new_confirm">Confirm Password *</label>
-          <input type="password" id="new_confirm" name="ConfirmPassword" required minlength="8"
+          <input type="password" id="new_confirm" name="ConfirmPassword" required minlength="8" maxlength="72"
             autocomplete="new-password" />
         </div>
         <div>
