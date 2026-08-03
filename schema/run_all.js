@@ -21,6 +21,8 @@ const files = [
     '05_user_role_schema.sql',
     'smartfleet_seed_quick_data.sql',
     '06_procedures_triggers.sql',
+    '07_login_attempts.sql',
+    '08_indexes.sql',
     'smartfleet_rbac.sql',
 ];
 

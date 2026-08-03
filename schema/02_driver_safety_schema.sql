@@ -93,9 +93,6 @@ CREATE TABLE `Drivers` (
                                             NOT NULL DEFAULT 'Active',
     `EmergencyContactDetails` VARCHAR(255) NULL,
     PRIMARY KEY (`DriverID`),
-    KEY `idx_drivers_depot` (`DepotID`),
-    KEY `idx_drivers_status` (`EmploymentStatus`),
-    KEY `idx_drivers_licexp` (`LicenceExpiryDate`),
     CONSTRAINT `fk_drivers_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -112,9 +109,6 @@ CREATE TABLE `DriverCertifications` (
     `IssueDate`    DATE         NOT NULL,
     `ExpireDate`   DATE         NULL,
     PRIMARY KEY (`DriverCertID`),
-    KEY `idx_dc_driver` (`DriverID`),
-    KEY `idx_dc_certtype` (`CertTypeID`),
-    KEY `idx_dc_expire` (`ExpireDate`),
     CONSTRAINT `chk_dc_dates` CHECK (`ExpireDate` IS NULL OR `ExpireDate` >= `IssueDate`),
     CONSTRAINT `fk_dc_driver`
         FOREIGN KEY (`DriverID`) REFERENCES `Drivers` (`DriverID`)
@@ -182,12 +176,6 @@ CREATE TABLE `SafetyEvents` (
     `ReviewStatus`    ENUM('Not Required','Pending','In Review','Completed')
                                     NOT NULL DEFAULT 'Not Required',
     PRIMARY KEY (`EventID`),
-    KEY `idx_se_driver` (`DriverID`),
-    KEY `idx_se_vehicle` (`VehicleID`),
-    KEY `idx_se_depot` (`DepotID`),
-    KEY `idx_se_eventstype` (`EventsTypeID`),
-    KEY `idx_se_severity` (`Severity`),
-    KEY `idx_se_timestamp` (`Timestamp`),
     CONSTRAINT `fk_se_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -217,9 +205,6 @@ CREATE TABLE `CoachingRecord` (
     `EventID`      INT UNSIGNED NULL,
     `ScoreID`      INT UNSIGNED NULL,
     PRIMARY KEY (`CoachingID`),
-    KEY `idx_cr_driver` (`DriverID`),
-    KEY `idx_cr_event` (`EventID`),
-    KEY `idx_cr_score` (`ScoreID`),
     CONSTRAINT `chk_cr_dates` CHECK (`CompleteDate` IS NULL OR `CompleteDate` >= `ScheduledDate`),
     CONSTRAINT `fk_cr_driver`
         FOREIGN KEY (`DriverID`) REFERENCES `Drivers` (`DriverID`)

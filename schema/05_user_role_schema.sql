@@ -58,9 +58,6 @@ CREATE TABLE `UserAccount` (
     `DepotID`    INT UNSIGNED NULL,
     PRIMARY KEY (`UserID`),
     UNIQUE KEY `uq_useraccount_username` (`Username`),
-    KEY `idx_ua_driver` (`DriverID`),
-    KEY `idx_ua_mechanic` (`MechanicID`),
-    KEY `idx_ua_depot` (`DepotID`),
     CONSTRAINT `fk_ua_driver`
         FOREIGN KEY (`DriverID`) REFERENCES `Drivers` (`DriverID`)
         ON DELETE SET NULL ON UPDATE CASCADE,
@@ -80,7 +77,6 @@ CREATE TABLE `UserRole` (
     `RoleID`      INT UNSIGNED NOT NULL,
     `GrantedDate` DATE NOT NULL DEFAULT (CURRENT_DATE),
     PRIMARY KEY (`UserID`, `RoleID`),
-    KEY `idx_ur_role` (`RoleID`),
     CONSTRAINT `fk_ur_user`
         FOREIGN KEY (`UserID`) REFERENCES `UserAccount` (`UserID`)
         ON DELETE CASCADE ON UPDATE CASCADE,
@@ -96,7 +92,6 @@ CREATE TABLE `RolePermission` (
     `RoleID`       INT UNSIGNED NOT NULL,
     `PermissionID` INT UNSIGNED NOT NULL,
     PRIMARY KEY (`RoleID`, `PermissionID`),
-    KEY `idx_rp_permission` (`PermissionID`),
     CONSTRAINT `fk_rp_role`
         FOREIGN KEY (`RoleID`) REFERENCES `Role` (`RoleID`)
         ON DELETE CASCADE ON UPDATE CASCADE,

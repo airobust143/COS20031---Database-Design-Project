@@ -78,7 +78,6 @@ CREATE TABLE `Vehicles` (
                                              NOT NULL DEFAULT 'Available',
     PRIMARY KEY (`VehicleID`),
     UNIQUE KEY `uq_vehicles_regnumber` (`RegistrationNumber`),
-    KEY `idx_vehicles_status` (`OperationalStatus`),
     CONSTRAINT `fk_vehicles_category`
         FOREIGN KEY (`CategoryID`) REFERENCES `VehiclesCategory` (`CategoryID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -99,8 +98,6 @@ CREATE TABLE `VehiclesDepotHistory` (
     `MovedFrom` DATETIME     NOT NULL,
     `MovedTo`   DATETIME     NULL,
     PRIMARY KEY (`HistoryID`),
-    KEY `idx_vdh_vehicle` (`VehicleID`),
-    KEY `idx_vdh_depot` (`DepotID`),
     CONSTRAINT `chk_vdh_dates` CHECK (`MovedTo` IS NULL OR `MovedTo` >= `MovedFrom`),
     CONSTRAINT `fk_vdh_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
@@ -122,9 +119,6 @@ CREATE TABLE `VehicleAssignments` (
     `IsPermanent`  BOOLEAN      NOT NULL DEFAULT FALSE,
     `DepotID`      INT UNSIGNED NOT NULL,
     PRIMARY KEY (`AssignmentID`),
-    KEY `idx_va_vehicle` (`VehicleID`),
-    KEY `idx_va_driver` (`DriverID`),
-    KEY `idx_va_depot` (`DepotID`),
     CONSTRAINT `chk_va_dates` CHECK (`EndDate` IS NULL OR `EndDate` >= `StartDate`),
     CONSTRAINT `fk_va_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)

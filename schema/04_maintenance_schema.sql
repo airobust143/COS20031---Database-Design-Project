@@ -72,8 +72,6 @@ CREATE TABLE `PredictiveAlert` (
                                 NOT NULL DEFAULT 'New',
     `ResolvedAt`  DATETIME NULL,
     PRIMARY KEY (`AlertID`),
-    KEY `idx_pa_vehicle` (`VehicleID`),
-    KEY `idx_pa_status` (`Status`),
     CONSTRAINT `fk_pa_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -93,8 +91,6 @@ CREATE TABLE `MaintenanceJobs` (
     `AlertID`         INT UNSIGNED NULL,
     PRIMARY KEY (`JobID`),
     UNIQUE KEY `uq_mj_alert` (`AlertID`),
-    KEY `idx_mj_vehicle` (`VehicleID`),
-    KEY `idx_mj_workshop` (`WorkshopID`),
     CONSTRAINT `chk_mj_dates` CHECK (`DateClosed` IS NULL OR `DateClosed` >= `DateOpened`),
     CONSTRAINT `fk_mj_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
@@ -119,8 +115,6 @@ CREATE TABLE `MaintenanceActivity` (
     `StartedAt`       DATETIME NULL,
     `CompleteAt`      DATETIME NULL,
     PRIMARY KEY (`ActivityID`),
-    KEY `idx_ma_job` (`JobID`),
-    KEY `idx_ma_activitytype` (`ActivityTypeID`),
     CONSTRAINT `chk_ma_dates` CHECK (`CompleteAt` IS NULL OR `StartedAt` IS NULL OR `CompleteAt` >= `StartedAt`),
     CONSTRAINT `fk_ma_job`
         FOREIGN KEY (`JobID`) REFERENCES `MaintenanceJobs` (`JobID`)
@@ -139,7 +133,6 @@ CREATE TABLE `ActivityMechanic` (
     `MechanicID`  INT UNSIGNED NOT NULL,
     `LabourHours` DECIMAL(5,2) NOT NULL,
     PRIMARY KEY (`ActivityID`, `MechanicID`),
-    KEY `idx_am_mechanic` (`MechanicID`),
     CONSTRAINT `fk_am_activity`
         FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -159,8 +152,7 @@ CREATE TABLE `Part` (
     `QuantityInStock`  INT UNSIGNED NOT NULL DEFAULT 0,
     `ReorderThreshold` INT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (`PartID`),
-    UNIQUE KEY `uq_part_number` (`PartNumber`),
-    KEY `idx_part_stock` (`QuantityInStock`)
+    UNIQUE KEY `uq_part_number` (`PartNumber`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
@@ -184,7 +176,6 @@ CREATE TABLE `SupplyPart` (
     `UnitCost`   DECIMAL(12,2) NOT NULL COMMENT 'VND, this supplier''s price for this part',
     `IsPrimary`  BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (`PartID`, `SupplierID`),
-    KEY `idx_sp_supplier` (`SupplierID`),
     CONSTRAINT `fk_sp_part`
         FOREIGN KEY (`PartID`) REFERENCES `Part` (`PartID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -204,7 +195,6 @@ CREATE TABLE `ActivityPart` (
     `QuantityUsed`     INT UNSIGNED NOT NULL DEFAULT 1,
     `UnitPriceAtTime`  DECIMAL(12,2) NOT NULL COMMENT 'VND, snapshot at time of use',
     PRIMARY KEY (`ActivityID`, `PartID`),
-    KEY `idx_ap_part` (`PartID`),
     CONSTRAINT `fk_ap_activity`
         FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -223,7 +213,6 @@ CREATE TABLE `WarrantyClaim` (
     `Status`      ENUM('Submitted','Approved','Rejected','Completed') NOT NULL DEFAULT 'Submitted',
     `ClaimDate`   DATE NOT NULL,
     PRIMARY KEY (`ClaimID`),
-    KEY `idx_wc_activity` (`ActivityID`),
     CONSTRAINT `fk_wc_activity`
         FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -236,7 +225,6 @@ CREATE TABLE `WarrantyClaimParts` (
     `ClaimID` INT UNSIGNED NOT NULL,
     `PartID`  INT UNSIGNED NOT NULL,
     PRIMARY KEY (`ClaimID`, `PartID`),
-    KEY `idx_wcp_part` (`PartID`),
     CONSTRAINT `fk_wcp_claim`
         FOREIGN KEY (`ClaimID`) REFERENCES `WarrantyClaim` (`ClaimID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,

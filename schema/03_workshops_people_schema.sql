@@ -48,7 +48,6 @@ CREATE TABLE `Mechanic` (
     `EmploymentStatus` ENUM('Active','Inactive','Suspended','Terminated')
                                      NOT NULL DEFAULT 'Active',
     PRIMARY KEY (`MechanicID`),
-    KEY `idx_mechanic_workshop` (`WorkshopID`),
     CONSTRAINT `fk_mechanic_workshop`
         FOREIGN KEY (`WorkshopID`) REFERENCES `Workshop` (`WorkshopID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
@@ -64,8 +63,6 @@ CREATE TABLE `MechanicCertification` (
     `IssueDate`     DATE         NOT NULL,
     `ExpireDate`    DATE         NULL,
     PRIMARY KEY (`MecCertID`),
-    KEY `idx_mc_mechanic` (`MechanicID`),
-    KEY `idx_mc_certtype` (`MecCertTypeID`),
     CONSTRAINT `chk_mc_dates` CHECK (`ExpireDate` IS NULL OR `ExpireDate` >= `IssueDate`),
     CONSTRAINT `fk_mc_mechanic`
         FOREIGN KEY (`MechanicID`) REFERENCES `Mechanic` (`MechanicID`)
