@@ -228,10 +228,10 @@ BEGIN
     DECLARE v_additional_deduction INT DEFAULT 0;
 
     SELECT
-        COALESCE(SUM(`Severity` = 'Low'), 0),
-        COALESCE(SUM(`Severity` = 'Medium'), 0),
-        COALESCE(SUM(`Severity` = 'High'), 0),
-        COALESCE(SUM(`Severity` = 'Critical'), 0)
+        SUM(CASE WHEN `Severity` = 'Low' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN `Severity` = 'Medium' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN `Severity` = 'High' THEN 1 ELSE 0 END),
+        SUM(CASE WHEN `Severity` = 'Critical' THEN 1 ELSE 0 END)
       INTO v_low, v_medium, v_high, v_critical
     FROM `SafetyEvents`
     WHERE `DriverID` = p_driver_id
@@ -643,6 +643,10 @@ CREATE PROCEDURE `sp_vehicle_assignment_history` (
     IN p_limit INT
 )
 BEGIN
+    IF p_limit IS NULL OR p_limit <= 0 THEN
+        SET p_limit = 50;
+    END IF;
+    
     SELECT 
         va.AssignmentID,
         v.RegistrationNumber,
@@ -656,7 +660,7 @@ BEGIN
             WHEN va.EndDate IS NULL OR va.EndDate >= CURDATE() THEN 'Active'
             ELSE 'Completed'
         END AS Status,
-        DATEDIFF(COALESCE(va.EndDate, CURDATE()), va.StartDate) AS DurationDays
+        DATEDIFF(IF(va.EndDate IS NULL, CURDATE(), va.EndDate), va.StartDate) AS DurationDays
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
     JOIN Drivers dr ON dr.DriverID = va.DriverID
@@ -665,7 +669,7 @@ BEGIN
         (p_vehicle_id IS NULL OR va.VehicleID = p_vehicle_id)
         AND (p_driver_id IS NULL OR va.DriverID = p_driver_id)
     ORDER BY va.StartDate DESC
-    LIMIT COALESCE(p_limit, 50);
+    LIMIT 999999;
 END$$
 DELIMITER ;
 
@@ -1028,7 +1032,7 @@ BEGIN
     SELECT 
         se.EventID,
         se.Timestamp,
-        set.Name AS EventType,
+        sevt.Name AS EventType,
         se.Severity,
         v.RegistrationNumber AS Vehicle,
         dep.Name AS DepotName,
@@ -1036,7 +1040,7 @@ BEGIN
         se.ReviewRequired,
         se.ReviewStatus
     FROM SafetyEvents se
-    JOIN SafetyEventsType set ON set.EventsTypeID = se.EventsTypeID
+    JOIN SafetyEventsType sevt ON sevt.EventsTypeID = se.EventsTypeID
     JOIN Vehicles v ON v.VehicleID = se.VehicleID
     JOIN Depots dep ON dep.DepotID = se.DepotID
     WHERE se.DriverID = p_driver_id
@@ -1154,11 +1158,11 @@ BEGIN
         SELECT 
             se.DriverID,
             MAX(se.Timestamp) AS LastCriticalEvent,
-            set.Name AS CriticalEventType
+            sevt.Name AS CriticalEventType
         FROM SafetyEvents se
-        JOIN SafetyEventsType set ON set.EventsTypeID = se.EventsTypeID
+        JOIN SafetyEventsType sevt ON sevt.EventsTypeID = se.EventsTypeID
         WHERE se.Severity = 'Critical'
-        GROUP BY se.DriverID, set.Name
+        GROUP BY se.DriverID, sevt.Name
     ) latest_critical ON latest_critical.DriverID = dr.DriverID
     LEFT JOIN (
         SELECT 
@@ -2284,7 +2288,7 @@ BEGIN
     SELECT 
         se.EventID,
         se.Timestamp,
-        set.Name AS EventType,
+        sevt.Name AS EventType,
         se.Severity,
         v.RegistrationNumber AS Vehicle,
         dep.Name AS Location,
@@ -2293,7 +2297,7 @@ BEGIN
         se.ReviewStatus,
         DATEDIFF(CURDATE(), DATE(se.Timestamp)) AS DaysAgo
     FROM SafetyEvents se
-    JOIN SafetyEventsType set ON set.EventsTypeID = se.EventsTypeID
+    JOIN SafetyEventsType sevt ON sevt.EventsTypeID = se.EventsTypeID
     JOIN Vehicles v ON v.VehicleID = se.VehicleID
     JOIN Depots dep ON dep.DepotID = se.DepotID
     WHERE se.DriverID = p_driver_id
