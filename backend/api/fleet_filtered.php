@@ -90,7 +90,6 @@ if ($resource === 'vehicles') {
         foreach ($params as $k => $v) {
             $stmt->bindValue($k, $v);
         }
-        $stmt->execute();
         $rows = $stmt->fetchAll();
         jsonOk($rows);
     }

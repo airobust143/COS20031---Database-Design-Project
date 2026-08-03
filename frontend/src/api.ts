@@ -160,7 +160,14 @@ export const Fleet = {
     id ? put<{ updated: number }>(`/fleet.php?resource=mechanics&id=${id}`, data)
        : post<{ id: number }>('/fleet.php?resource=mechanics', data),
   deleteMechanic:(id: number) => del<{ deleted: number }>(`/fleet.php?resource=mechanics&id=${id}`),
+  
+  createUser:    (data: Record<string, unknown>) => post<{ id: number }>('/fleet.php?resource=users', data),
   deleteUser:    (id: number) => del<{ deleted: number }>(`/fleet.php?resource=users&id=${id}`),
+  
+  lookupRoles:        () => get<{ RoleID: number; RoleName: string }[]>('/fleet.php?resource=lookup&type=roles'),
+  lookupDriversList:  () => get<{ DriverID: number; DriverName: string }[]>('/fleet.php?resource=lookup&type=drivers_list'),
+  lookupMechanicsList:() => get<{ MechanicID: number; MechanicName: string }[]>('/fleet.php?resource=lookup&type=mechanics_list'),
+  lookupDepotsList:   () => get<{ DepotID: number; Name: string }[]>('/fleet.php?resource=lookup&type=depots_list'),
 };
 
 // ── Safety Ops ───────────────────────────────────────────────────────

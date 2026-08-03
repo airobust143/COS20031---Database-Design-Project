@@ -5,9 +5,9 @@
 // ============================================================
 
 import type { AuthUser } from './api.ts';
-import { Auth, ApiError, Safety, Workshop } from './api.ts';
+import { Auth, ApiError, Fleet, Safety, Workshop } from './api.ts';
 import { icon, NAV_ICONS } from './icons.ts';
-import { renderFleetAdmin }      from './views/fleetAdmin.ts';
+import { renderFleetAdmin, wireVehicleFilters, wireDriverFilters }      from './views/fleetAdmin.ts';
 import { renderSafetyOps }       from './views/safetyOps.ts';
 import { renderWorkshopManager } from './views/workshopManager.ts';
 import { renderMechanic }        from './views/mechanic.ts';
@@ -340,6 +340,13 @@ function renderAppShell(root: HTMLElement): void {
         ${html}`;
       wireTabSwitchers(mainContent);
       wireActions(mainContent, currentUser!.role);
+      // Wire vehicle filters if on vehicles page
+      if (currentUser!.role === 'fleet_admin' && navId === 'vehicles') {
+        wireVehicleFilters(mainContent);
+      }
+      if (currentUser!.role === 'fleet_admin' && navId === 'drivers') {
+        wireDriverFilters(mainContent);
+      }
     } catch (err) {
       const msg = err instanceof ApiError
         ? `Error ${err.status}: ${err.message}`
@@ -410,6 +417,64 @@ function wireActions(container: HTMLElement, role: string): void {
     if (!btn) return;
     void handleAction(btn.dataset['action'] ?? '', btn.dataset['id'] ? Number(btn.dataset['id']) : undefined, role);
   });
+  
+  // Handle create user form submission
+  const createUserForm = container.querySelector('#createUserForm') as HTMLFormElement;
+  if (createUserForm) {
+    createUserForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorDiv = document.getElementById('createUserError');
+      if (errorDiv) errorDiv.style.display = 'none';
+      
+      const formData = new FormData(createUserForm);
+      const password = formData.get('Password') as string;
+      const confirmPassword = formData.get('ConfirmPassword') as string;
+      
+      // Client-side validation
+      if (password !== confirmPassword) {
+        if (errorDiv) {
+          errorDiv.textContent = 'Password and confirmation do not match.';
+          errorDiv.style.display = 'block';
+        }
+        return;
+      }
+      
+      // Build payload
+      const payload: Record<string, unknown> = {
+        Username: formData.get('Username'),
+        Password: password,
+        RoleID: formData.get('RoleID'),
+        IsActive: formData.get('IsActive') ? 1 : 0,
+      };
+      
+      const driverId = formData.get('DriverID');
+      const mechanicId = formData.get('MechanicID');
+      const depotId = formData.get('DepotID');
+      
+      if (driverId) payload.DriverID = driverId;
+      if (mechanicId) payload.MechanicID = mechanicId;
+      if (depotId) payload.DepotID = depotId;
+      
+      try {
+        await Fleet.createUser(payload);
+        showToast('User account created successfully.');
+        
+        // Close modal
+        const modal = document.getElementById('createUserModal');
+        if (modal) modal.style.display = 'none';
+        createUserForm.reset();
+        
+        // Reload the current page by clicking the active nav item
+        const activeNav = document.querySelector<HTMLElement>('.nav-item.active[data-nav]');
+        if (activeNav) activeNav.click();
+      } catch (err) {
+        if (errorDiv) {
+          errorDiv.textContent = err instanceof ApiError ? err.message : String(err);
+          errorDiv.style.display = 'block';
+        }
+      }
+    });
+  }
 }
 
 async function handleAction(action: string, id: number | undefined, _role: string): Promise<void> {
@@ -421,6 +486,76 @@ async function handleAction(action: string, id: number | undefined, _role: strin
     if (action === 'ack-alert'         && id) { await Workshop.updateAlertStatus(id, 'Acknowledged'); showToast('Alert acknowledged.'); }
     if (action === 'escalate-alert'    && id) { await Workshop.updateAlertStatus(id, 'Escalated');    showToast('Alert escalated.'); }
     if (action === 'resolve-alert'     && id) { await Workshop.updateAlertStatus(id, 'Resolved');     showToast('Alert resolved.'); }
+    
+    // User deletion
+    if (action === 'delete-user' && id) {
+      if (!confirm('Delete this user account? This cannot be undone.')) return;
+      await Fleet.deleteUser(id);
+      showToast('User account deleted.');
+      // Reload the current page by clicking the active nav item
+      const activeNav = document.querySelector<HTMLElement>('.nav-item.active[data-nav]');
+      if (activeNav) activeNav.click();
+    }
+    
+    // User management actions
+    if (action === 'show-create-user-modal') {
+      const modal = document.getElementById('createUserModal');
+      if (modal) {
+        // Load dropdown data
+        const [roles, drivers, mechanics, depots] = await Promise.all([
+          Fleet.lookupRoles(),
+          Fleet.lookupDriversList(),
+          Fleet.lookupMechanicsList(),
+          Fleet.lookupDepotsList(),
+        ]);
+        
+        // Populate role dropdown
+        const roleSelect = document.getElementById('new_role') as HTMLSelectElement;
+        if (roleSelect) {
+          roleSelect.innerHTML = '<option value="">— Select role —</option>' +
+            roles.map(r => `<option value="${r.RoleID}">${r.RoleName}</option>`).join('');
+        }
+        
+        // Populate driver dropdown
+        const driverSelect = document.getElementById('new_driver') as HTMLSelectElement;
+        if (driverSelect) {
+          driverSelect.innerHTML = '<option value="">— None —</option>' +
+            drivers.map(d => `<option value="${d.DriverID}">${d.DriverName}</option>`).join('');
+        }
+        
+        // Populate mechanic dropdown
+        const mechanicSelect = document.getElementById('new_mechanic') as HTMLSelectElement;
+        if (mechanicSelect) {
+          mechanicSelect.innerHTML = '<option value="">— None —</option>' +
+            mechanics.map(m => `<option value="${m.MechanicID}">${m.MechanicName}</option>`).join('');
+        }
+        
+        // Populate depot dropdown
+        const depotSelect = document.getElementById('new_depot') as HTMLSelectElement;
+        if (depotSelect) {
+          depotSelect.innerHTML = '<option value="">— None —</option>' +
+            depots.map(d => `<option value="${d.DepotID}">${d.Name}</option>`).join('');
+        }
+        
+        modal.style.display = 'flex';
+        
+        // Focus username field
+        setTimeout(() => document.getElementById('new_username')?.focus(), 100);
+      }
+    }
+    
+    if (action === 'close-create-user-modal') {
+      const modal = document.getElementById('createUserModal');
+      if (modal) {
+        modal.style.display = 'none';
+        // Reset form
+        const form = document.getElementById('createUserForm') as HTMLFormElement;
+        if (form) form.reset();
+        // Hide error
+        const error = document.getElementById('createUserError');
+        if (error) error.style.display = 'none';
+      }
+    }
   } catch (err) {
     showToast(err instanceof ApiError ? err.message : String(err), true);
   }
