@@ -22,27 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 session_start();
 
 // ── DB connection ─────────────────────────────────────────────────────
-$dbHost    = 'localhost';
-$dbName    = 'smart_fleet_management';
-$dbUser    = 'root';
-$dbPass    = '';
-$dbCharset = 'utf8mb4';
-
-try {
-    $pdo = new PDO(
-        "mysql:host=$dbHost;dbname=$dbName;charset=$dbCharset",
-        $dbUser, $dbPass,
-        [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]
-    );
-} catch (PDOException $e) {
-    http_response_code(503);
-    echo json_encode(['ok' => false, 'error' => 'Database unavailable: ' . $e->getMessage()]);
-    exit;
-}
+require_once __DIR__ . '/../config/database.php';
 
 // ── Auth guard ────────────────────────────────────────────────────────
 if (!isset($_SESSION['user_id'])) {
