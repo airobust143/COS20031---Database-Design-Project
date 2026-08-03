@@ -89,7 +89,7 @@ export interface FleetKpis {
   totalDepots: number; openJobs: number; activeAssignments: number;
 }
 export interface ApiVehicle {
-  VehicleID: number; RegistrationNumber: string; Model: string;
+  VehicleID: number; CategoryID: number; DepotID: number; RegistrationNumber: string; Model: string;
   Manufacturer: string; YearOfManufacture: number;
   CurrentOdometerReading: number; OperationalStatus: string;
   CategoryName: string; DepotName: string;
@@ -100,17 +100,18 @@ export interface ApiDepot {
   VehicleCount: number; DriverCount: number;
 }
 export interface ApiAssignment {
-  AssignmentID: number; RegistrationNumber: string; VehicleModel: string;
+  AssignmentID: number; VehicleID: number; DriverID: number; DepotID: number; RegistrationNumber: string; VehicleModel: string;
   DriverName: string; DepotName: string;
   StartDate: string; EndDate: string | null; IsPermanent: number;
 }
 export interface ApiDriver {
   DriverID: number; FirstName: string; LastName: string;
   DepotName: string; LicenceType: string; LicenceExpiryDate: string;
+  DepotID: number; ContactInformation: string | null; EmergencyContactDetails: string | null;
   EmploymentStatus: string; SafetyScore: number;
 }
 export interface ApiMechanic {
-  MechanicID: number; FirstName: string; LastName: string;
+  MechanicID: number; FirstName: string; LastName: string; WorkshopID: number;
   WorkshopName: string; EmploymentStatus: string; CertList: string[];
 }
 export interface ApiUser {
@@ -168,6 +169,9 @@ export const Fleet = {
   lookupDriversList:  () => get<{ DriverID: number; DriverName: string }[]>('/fleet.php?resource=lookup&type=drivers_list'),
   lookupMechanicsList:() => get<{ MechanicID: number; MechanicName: string }[]>('/fleet.php?resource=lookup&type=mechanics_list'),
   lookupDepotsList:   () => get<{ DepotID: number; Name: string }[]>('/fleet.php?resource=lookup&type=depots_list'),
+  lookupVehicleCategories: () => get<{ CategoryID: number; CategoryName: string }[]>('/fleet.php?resource=lookup&type=vehicle_categories'),
+  lookupWorkshopsList: () => get<{ WorkshopID: number; Name: string }[]>('/fleet.php?resource=lookup&type=workshops_list'),
+  lookupVehiclesList:  () => get<{ VehicleID: number; RegistrationNumber: string }[]>('/fleet.php?resource=lookup&type=vehicles_list'),
 };
 
 // ── Safety Ops ───────────────────────────────────────────────────────

@@ -74,7 +74,7 @@ if ($resource === 'vehicles') {
         }
         
         $sql = "
-            SELECT v.VehicleID, v.RegistrationNumber, v.Model, v.Manufacturer,
+            SELECT v.VehicleID, v.RegistrationNumber, v.CategoryID, v.DepotID, v.Model, v.Manufacturer,
                    v.YearOfManufacture, v.CurrentOdometerReading, v.OperationalStatus,
                    vc.CategoryName, d.Name AS DepotName
             FROM Vehicles v
@@ -181,7 +181,7 @@ if ($resource === 'assignments') {
     requirePermission('VehicleAssignments', 'SELECT');
     if ($method === 'GET') {
         $rows = $pdo->query("
-            SELECT va.AssignmentID, v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
+            SELECT va.AssignmentID, va.VehicleID, va.DriverID, va.DepotID, v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
                    CONCAT(dr.FirstName,' ',dr.LastName) AS DriverName,
                    dep.Name AS DepotName, va.StartDate, va.EndDate, va.IsPermanent
             FROM VehicleAssignments va
@@ -284,7 +284,7 @@ if ($resource === 'mechanics') {
     requirePermission('Mechanic', 'SELECT');
     if ($method === 'GET') {
         $rows = $pdo->query("
-            SELECT m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus,
+            SELECT m.MechanicID, m.FirstName, m.LastName, m.WorkshopID, m.EmploymentStatus,
                    w.Name AS WorkshopName,
                    GROUP_CONCAT(mct.Name ORDER BY mct.Name SEPARATOR '||') AS Certifications
             FROM Mechanic m
@@ -292,7 +292,7 @@ if ($resource === 'mechanics') {
             LEFT JOIN MechanicCertification mc ON mc.MechanicID=m.MechanicID
                 AND (mc.ExpireDate IS NULL OR mc.ExpireDate >= CURDATE())
             LEFT JOIN MechanicCertType mct ON mct.MecCertTypeID=mc.MecCertTypeID
-            GROUP BY m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus, w.Name
+            GROUP BY m.MechanicID, m.FirstName, m.LastName, m.WorkshopID, m.EmploymentStatus, w.Name
             ORDER BY m.LastName
         ")->fetchAll();
         foreach ($rows as &$r) {
@@ -478,6 +478,21 @@ if ($resource === 'lookup') {
     if ($type === 'depots_list') {
         requirePermission('Depots', 'SELECT');
         $rows = $pdo->query("SELECT DepotID, Name FROM Depots ORDER BY Name")->fetchAll();
+        jsonOk($rows);
+    }
+    if ($type === 'vehicle_categories') {
+        requirePermission('Vehicles', 'SELECT');
+        $rows = $pdo->query("SELECT CategoryID, CategoryName FROM VehiclesCategory ORDER BY CategoryName")->fetchAll();
+        jsonOk($rows);
+    }
+    if ($type === 'workshops_list') {
+        requirePermission('Mechanic', 'SELECT');
+        $rows = $pdo->query("SELECT WorkshopID, Name FROM Workshop ORDER BY Name")->fetchAll();
+        jsonOk($rows);
+    }
+    if ($type === 'vehicles_list') {
+        requirePermission('Vehicles', 'SELECT');
+        $rows = $pdo->query("SELECT VehicleID, RegistrationNumber FROM Vehicles ORDER BY RegistrationNumber")->fetchAll();
         jsonOk($rows);
     }
     jsonErr("Unknown lookup type: $type");

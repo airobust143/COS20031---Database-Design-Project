@@ -82,7 +82,6 @@ export const NAV_ICONS: Record<string, string> = {
   'my-activities': 'activity',
   'log-activity':  'log',
   // driver
-  dashboard:       'dashboard', // for driver's dashboard
   'my-score':      'score',
   'my-events':     'alert',
   'my-certs':      'certificate',

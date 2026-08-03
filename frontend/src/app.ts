@@ -487,14 +487,31 @@ async function handleAction(action: string, id: number | undefined, _role: strin
     if (action === 'escalate-alert'    && id) { await Workshop.updateAlertStatus(id, 'Escalated');    showToast('Alert escalated.'); }
     if (action === 'resolve-alert'     && id) { await Workshop.updateAlertStatus(id, 'Resolved');     showToast('Alert resolved.'); }
     
-    // User deletion
-    if (action === 'delete-user' && id) {
-      if (!confirm('Delete this user account? This cannot be undone.')) return;
-      await Fleet.deleteUser(id);
-      showToast('User account deleted.');
-      // Reload the current page by clicking the active nav item
-      const activeNav = document.querySelector<HTMLElement>('.nav-item.active[data-nav]');
-      if (activeNav) activeNav.click();
+    const deleteActions: Record<string, { remove: (recordId: number) => Promise<unknown>; label: string }> = {
+      'delete-vehicle':    { remove: Fleet.deleteVehicle,    label: 'vehicle' },
+      'delete-depot':      { remove: Fleet.deleteDepot,      label: 'depot' },
+      'delete-assignment': { remove: Fleet.deleteAssignment, label: 'assignment' },
+      'delete-driver':     { remove: Fleet.deleteDriver,     label: 'driver' },
+      'delete-mechanic':   { remove: Fleet.deleteMechanic,   label: 'mechanic' },
+      'delete-user':       { remove: Fleet.deleteUser,       label: 'user account' },
+    };
+    if (id && deleteActions[action]) {
+      const { remove, label } = deleteActions[action];
+      if (!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+      await remove(id);
+      showToast(`${label[0].toUpperCase()}${label.slice(1)} deleted.`);
+      return;
+    }
+
+    const editType = action.replace('edit-', '');
+    if (id && ['vehicle', 'depot', 'assignment', 'driver', 'mechanic'].includes(editType)) {
+      await openRecordEditor(editType as EditableRecordType, id);
+      return;
+    }
+    const createType = action.replace('create-', '');
+    if (['vehicle', 'depot', 'assignment', 'driver', 'mechanic'].includes(createType)) {
+      await openRecordEditor(createType as EditableRecordType);
+      return;
     }
     
     // User management actions
@@ -562,6 +579,143 @@ async function handleAction(action: string, id: number | undefined, _role: strin
 }
 
 // ── Toast notification ────────────────────────────────────────────────
+type EditableRecordType = 'vehicle' | 'depot' | 'assignment' | 'driver' | 'mechanic';
+
+async function openRecordEditor(type: EditableRecordType, id?: number): Promise<void> {
+  const [vehicles, depots, drivers, mechanics, categories, workshops] = await Promise.all([
+    Fleet.vehicles(), Fleet.depots(), Fleet.drivers(), Fleet.mechanics(),
+    Fleet.lookupVehicleCategories(), Fleet.lookupWorkshopsList(),
+  ]);
+  const select = (name: string, label: string, options: { value: string | number; label: string }[], value: string | number) => `
+    <div><label for="edit_${name}">${label}</label>
+      <select id="edit_${name}" name="${name}" required>${options.map(option =>
+        `<option value="${option.value}" ${String(option.value) === String(value) ? 'selected' : ''}>${escapeHtml(option.label)}</option>`
+      ).join('')}</select>
+    </div>`;
+  const input = (name: string, label: string, value: string | number | null, type = 'text', required = true, extra = '') => `
+    <div><label for="edit_${name}">${label}${required ? ' *' : ''}</label>
+      <input id="edit_${name}" name="${name}" type="${type}" value="${escapeHtml(String(value ?? ''))}" ${required ? 'required' : ''} ${extra}></div>`;
+  const statusOptions = ['Active', 'Available', 'Under Maintenance', 'Awaiting Inspection', 'Out of Service', 'Retired'];
+  const employmentOptions = ['Active', 'Inactive', 'Suspended', 'Terminated'];
+  const depotOptions = depots.map(d => ({ value: d.DepotID, label: d.Name }));
+  let title = '';
+  let fields = '';
+  let save: (form: FormData) => Promise<unknown>;
+
+  if (type === 'vehicle') {
+    const record = id ? vehicles.find(v => v.VehicleID === id) : {
+      RegistrationNumber: '', CategoryID: categories[0]?.CategoryID ?? 0, Manufacturer: '', Model: '',
+      YearOfManufacture: new Date().getFullYear(), CurrentOdometerReading: 0, DepotID: depots[0]?.DepotID ?? 0,
+      OperationalStatus: 'Available',
+    };
+    if (!record || !record.CategoryID || !record.DepotID) throw new Error('Create a depot and vehicle category before adding a vehicle.');
+    title = id ? 'Edit Vehicle' : 'Add Vehicle';
+    fields = input('RegistrationNumber', 'Registration number', record.RegistrationNumber) +
+      select('CategoryID', 'Category', categories.map(c => ({ value: c.CategoryID, label: c.CategoryName })), record.CategoryID) +
+      input('Manufacturer', 'Manufacturer', record.Manufacturer) + input('Model', 'Model', record.Model) +
+      input('YearOfManufacture', 'Year of manufacture', record.YearOfManufacture, 'number', true, 'min="1886" max="9999"') +
+      input('CurrentOdometerReading', 'Odometer reading', record.CurrentOdometerReading, 'number', true, 'min="0"') +
+      select('DepotID', 'Depot', depotOptions, record.DepotID) +
+      select('OperationalStatus', 'Operational status', statusOptions.map(s => ({ value: s, label: s })), record.OperationalStatus);
+    save = async form => Fleet.saveVehicle({
+      RegistrationNumber: formValue(form, 'RegistrationNumber'), CategoryID: formNumber(form, 'CategoryID'),
+      Manufacturer: formValue(form, 'Manufacturer'), Model: formValue(form, 'Model'),
+      YearOfManufacture: formNumber(form, 'YearOfManufacture'), CurrentOdometerReading: formNumber(form, 'CurrentOdometerReading'),
+      DepotID: formNumber(form, 'DepotID'), OperationalStatus: formValue(form, 'OperationalStatus'),
+    }, id);
+  } else if (type === 'depot') {
+    const record = id ? depots.find(d => d.DepotID === id) : { Name: '', City: '', Address: '', ContactPhone: '' };
+    if (!record) throw new Error('Depot not found.');
+    title = id ? 'Edit Depot' : 'Add Depot';
+    fields = input('Name', 'Depot name', record.Name) + input('City', 'City', record.City) +
+      input('Address', 'Address', record.Address) + input('ContactPhone', 'Contact phone', record.ContactPhone, 'tel', false);
+    save = async form => Fleet.saveDepot({ Name: formValue(form, 'Name'), City: formValue(form, 'City'), Address: formValue(form, 'Address'), ContactPhone: formValue(form, 'ContactPhone') || null }, id);
+  } else if (type === 'driver') {
+    const record = id ? drivers.find(d => d.DriverID === id) : {
+      FirstName: '', LastName: '', ContactInformation: '', DepotID: depots[0]?.DepotID ?? 0,
+      LicenceType: '', LicenceExpiryDate: '', EmploymentStatus: 'Active', EmergencyContactDetails: '',
+    };
+    if (!record || !record.DepotID) throw new Error('Create a depot before adding a driver.');
+    title = id ? 'Edit Driver' : 'Add Driver';
+    fields = input('FirstName', 'First name', record.FirstName) + input('LastName', 'Last name', record.LastName) +
+      input('ContactInformation', 'Contact information', record.ContactInformation, 'text', false) +
+      select('DepotID', 'Depot', depotOptions, record.DepotID) + input('LicenceType', 'Licence type', record.LicenceType) +
+      input('LicenceExpiryDate', 'Licence expiry date', record.LicenceExpiryDate, 'date') +
+      select('EmploymentStatus', 'Employment status', employmentOptions.map(s => ({ value: s, label: s })), record.EmploymentStatus) +
+      input('EmergencyContactDetails', 'Emergency contact details', record.EmergencyContactDetails, 'text', false);
+    save = async form => Fleet.saveDriver({
+      FirstName: formValue(form, 'FirstName'), LastName: formValue(form, 'LastName'),
+      ContactInformation: formValue(form, 'ContactInformation') || null, DepotID: formNumber(form, 'DepotID'),
+      LicenceType: formValue(form, 'LicenceType'), LicenceExpiryDate: formValue(form, 'LicenceExpiryDate'),
+      EmploymentStatus: formValue(form, 'EmploymentStatus'), EmergencyContactDetails: formValue(form, 'EmergencyContactDetails') || null,
+    }, id);
+  } else if (type === 'mechanic') {
+    const record = id ? mechanics.find(m => m.MechanicID === id) : {
+      FirstName: '', LastName: '', WorkshopID: workshops[0]?.WorkshopID ?? 0, EmploymentStatus: 'Active',
+    };
+    if (!record || !record.WorkshopID) throw new Error('Create a workshop before adding a mechanic.');
+    title = id ? 'Edit Mechanic' : 'Add Mechanic';
+    fields = input('FirstName', 'First name', record.FirstName) + input('LastName', 'Last name', record.LastName) +
+      select('WorkshopID', 'Workshop', workshops.map(w => ({ value: w.WorkshopID, label: w.Name })), record.WorkshopID) +
+      select('EmploymentStatus', 'Employment status', employmentOptions.map(s => ({ value: s, label: s })), record.EmploymentStatus);
+    save = async form => Fleet.saveMechanic({ FirstName: formValue(form, 'FirstName'), LastName: formValue(form, 'LastName'), WorkshopID: formNumber(form, 'WorkshopID'), EmploymentStatus: formValue(form, 'EmploymentStatus') }, id);
+  } else {
+    const assignments = id ? await Fleet.assignments() : [];
+    const record = id ? assignments.find(a => a.AssignmentID === id) : {
+      VehicleID: vehicles[0]?.VehicleID ?? 0, DriverID: drivers[0]?.DriverID ?? 0,
+      DepotID: depots[0]?.DepotID ?? 0, StartDate: new Date().toISOString().slice(0, 10), EndDate: null, IsPermanent: 0,
+    };
+    if (!record || !record.VehicleID || !record.DriverID || !record.DepotID) throw new Error('Create a vehicle, driver, and depot before adding an assignment.');
+    title = id ? 'Edit Vehicle Assignment' : 'New Vehicle Assignment';
+    fields = select('VehicleID', 'Vehicle', vehicles.map(v => ({ value: v.VehicleID, label: v.RegistrationNumber })), record.VehicleID) +
+      select('DriverID', 'Driver', drivers.map(d => ({ value: d.DriverID, label: `${d.FirstName} ${d.LastName}` })), record.DriverID) +
+      select('DepotID', 'Depot', depotOptions, record.DepotID) + input('StartDate', 'Start date', record.StartDate, 'date') +
+      input('EndDate', 'End date', record.EndDate, 'date', false) +
+      `<div><label><input name="IsPermanent" type="checkbox" ${Number(record.IsPermanent) ? 'checked' : ''}> Permanent assignment</label></div>`;
+    save = async form => Fleet.saveAssignment({
+      VehicleID: formNumber(form, 'VehicleID'), DriverID: formNumber(form, 'DriverID'), DepotID: formNumber(form, 'DepotID'),
+      StartDate: formValue(form, 'StartDate'), EndDate: formValue(form, 'EndDate') || null, IsPermanent: form.has('IsPermanent') ? 1 : 0,
+    }, id);
+  }
+
+  document.getElementById('editRecordModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'editRecordModal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:720px">
+    <div class="modal-header"><h2>${title}</h2><button type="button" class="modal-close" aria-label="Close">${icon('x', 20)}</button></div>
+    <form id="editRecordForm"><div class="form-grid">${fields}</div>
+      <div id="editRecordError" class="alert alert-error" style="display:none;margin-top:16px"></div>
+      <div class="form-actions" style="margin-top:24px"><button type="button" class="btn btn-outline">Cancel</button><button type="submit" class="btn btn-primary">${id ? 'Save changes' : 'Add record'}</button></div>
+    </form></div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll<HTMLButtonElement>('.modal-close, .btn-outline').forEach(button => button.addEventListener('click', () => modal.remove()));
+  modal.querySelector<HTMLFormElement>('#editRecordForm')!.addEventListener('submit', event => {
+    event.preventDefault();
+    void save(new FormData(event.currentTarget as HTMLFormElement)).then(() => {
+      modal.remove();
+      showToast(id ? `${title.replace('Edit ', '')} updated.` : `${title.replace(/Add |New /, '')} added.`);
+    }).catch(error => {
+      const errorBox = modal.querySelector<HTMLElement>('#editRecordError')!;
+      errorBox.textContent = error instanceof ApiError ? error.message : String(error);
+      errorBox.style.display = 'block';
+    });
+  });
+}
+
+function formValue(form: FormData, name: string): string {
+  return String(form.get(name) ?? '').trim();
+}
+
+function formNumber(form: FormData, name: string): number {
+  return Number(formValue(form, name));
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+}
+
 function showToast(msg: string, isError = false): void {
   const el = document.createElement('div');
   el.className = `toast ${isError ? 'toast-error' : 'toast-success'}`;

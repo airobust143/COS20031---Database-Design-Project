@@ -96,7 +96,7 @@ async function renderVehicles(): Promise<string> {
       </div>
       <div class="action-row-right">
         <button id="export-vehicles" class="btn btn-secondary btn-sm">${icon('export',14)} Export</button>
-        <button id="add-vehicle" class="btn btn-primary btn-sm">${icon('plus',14)} Add Vehicle</button>
+        <button class="btn btn-primary btn-sm" data-action="create-vehicle">${icon('plus',14)} Add Vehicle</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -118,7 +118,7 @@ async function renderVehicles(): Promise<string> {
             <td>${vehicleStatusBadge(v.OperationalStatus as never)}</td>
             <td>
               <div class="flex gap-8">
-                <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-vehicle" data-id="${v.VehicleID}">${icon('edit',14)}</button>
                 <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                         data-action="delete-vehicle" data-id="${v.VehicleID}">${icon('trash',14)}</button>
               </div>
@@ -143,7 +143,7 @@ async function renderDepots(): Promise<string> {
       <h2>Depots</h2>
       <p>Manage depot locations</p>
     </div>
-    <button id="add-depot" class="btn btn-primary btn-sm">${icon('plus',14)} Add Depot</button>
+    <button class="btn btn-primary btn-sm" data-action="create-depot">${icon('plus',14)} Add Depot</button>
   </div>
   <div class="card-body">
     <div class="three-col">
@@ -157,7 +157,8 @@ async function renderDepots(): Promise<string> {
               <div class="text-muted text-sm">${d.City}</div>
             </div>
             <div class="flex gap-8" style="margin-left:auto">
-              <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+              <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-depot" data-id="${d.DepotID}">${icon('edit',14)}</button>
+              <button class="btn btn-danger btn-sm btn-icon" title="Delete" data-action="delete-depot" data-id="${d.DepotID}">${icon('trash',14)}</button>
             </div>
           </div>
           <div class="text-sm text-muted" style="margin-bottom:6px">${d.Address}</div>
@@ -185,7 +186,7 @@ async function renderAssignments(): Promise<string> {
       <h2>Vehicle Assignments</h2>
       <p>Manage driver-vehicle assignments</p>
     </div>
-    <button id="new-assignment" class="btn btn-primary btn-sm">${icon('plus',14)} New Assignment</button>
+    <button class="btn btn-primary btn-sm" data-action="create-assignment">${icon('plus',14)} New Assignment</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">
@@ -207,7 +208,7 @@ async function renderAssignments(): Promise<string> {
             <td>${Number(a.IsPermanent) ? '<span class="badge badge-green">Permanent</span>' : '<span class="badge badge-blue">Temporary</span>'}</td>
             <td>
               <div class="flex gap-8">
-                <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-assignment" data-id="${a.AssignmentID}">${icon('edit',14)}</button>
                 <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                         data-action="delete-assignment" data-id="${a.AssignmentID}">${icon('trash',14)}</button>
               </div>
@@ -243,7 +244,7 @@ async function renderDrivers(): Promise<string> {
         </select>
       </div>
       <div class="action-row-right">
-        <button id="add-driver" class="btn btn-primary btn-sm">${icon('plus',14)} Add Driver</button>
+        <button class="btn btn-primary btn-sm" data-action="create-driver">${icon('plus',14)} Add Driver</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -270,7 +271,7 @@ async function renderDrivers(): Promise<string> {
             <td>${driverStatusBadge(d.EmploymentStatus as never)}</td>
             <td>
               <div class="flex gap-8">
-                <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-driver" data-id="${d.DriverID}">${icon('edit',14)}</button>
                 <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                         data-action="delete-driver" data-id="${d.DriverID}">${icon('trash',14)}</button>
               </div>
@@ -295,7 +296,7 @@ async function renderMechanics(): Promise<string> {
       <h2>Mechanics</h2>
       <p>Manage mechanic roster</p>
     </div>
-    <button id="add-mechanic" class="btn btn-primary btn-sm">${icon('plus',14)} Add Mechanic</button>
+    <button class="btn btn-primary btn-sm" data-action="create-mechanic">${icon('plus',14)} Add Mechanic</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">
@@ -310,7 +311,7 @@ async function renderMechanics(): Promise<string> {
             <td>${driverStatusBadge(m.EmploymentStatus as never)}</td>
             <td>
               <div class="flex gap-8">
-                <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+                <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-mechanic" data-id="${m.MechanicID}">${icon('edit',14)}</button>
                 <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                         data-action="delete-mechanic" data-id="${m.MechanicID}">${icon('trash',14)}</button>
               </div>
@@ -335,7 +336,7 @@ async function renderUsers(): Promise<string> {
       <h2>Users & Roles</h2>
       <p>Manage user accounts and role assignments</p>
     </div>
-    <button id="show-create-user-modal" class="btn btn-primary btn-sm">${icon('plus',14)} Create Account</button>
+    <button class="btn btn-primary btn-sm" data-action="show-create-user-modal">${icon('plus',14)} Create Account</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">
@@ -489,7 +490,7 @@ function renderVehicleTable(vehicles: ApiVehicle[]): void {
       <td>${vehicleStatusBadge(v.OperationalStatus as never)}</td>
       <td>
         <div class="flex gap-8">
-          <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+          <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-vehicle" data-id="${v.VehicleID}">${icon('edit',14)}</button>
           <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                   data-action="delete-vehicle" data-id="${v.VehicleID}">${icon('trash',14)}</button>
         </div>
@@ -556,7 +557,7 @@ function renderDriverTable(drivers: any[]): void {
       <td>${driverStatusBadge(d.EmploymentStatus as never)}</td>
       <td>
         <div class="flex gap-8">
-          <button class="btn btn-secondary btn-sm btn-icon" title="Edit">${icon('edit',14)}</button>
+          <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-driver" data-id="${d.DriverID}">${icon('edit',14)}</button>
           <button class="btn btn-danger btn-sm btn-icon" title="Delete"
                   data-action="delete-driver" data-id="${d.DriverID}">${icon('trash',14)}</button>
         </div>
