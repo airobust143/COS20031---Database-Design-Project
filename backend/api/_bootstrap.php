@@ -19,7 +19,8 @@ if (in_array($origin, $allowed, true)) {
 }
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-session_start();
+require_once __DIR__ . '/_session.php';
+startSmartFleetSession();
 
 // ── DB connection ─────────────────────────────────────────────────────
 require_once __DIR__ . '/../config/database.php';

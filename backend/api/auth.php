@@ -14,8 +14,9 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-// Bootstrap DB without the redirect guard
-session_start();
+// Start the shared app session without the protected-endpoint auth guard.
+require_once __DIR__ . '/_session.php';
+startSmartFleetSession();
 
 // Load shared database configuration
 require_once __DIR__ . '/../config/database.php';
