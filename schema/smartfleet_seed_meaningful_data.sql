@@ -1735,11 +1735,11 @@ INSERT INTO `UserAccount` (`UserID`, `Username`, `PasswordHash`, `IsActive`, `Dr
   (18, 'mechanic08', '$2y$10$demonstration.hash.value.for.user.18', TRUE, NULL, 8, 3),
   (19, 'mechanic09', '$2y$10$demonstration.hash.value.for.user.19', TRUE, NULL, 9, 4),
   (20, 'mechanic10', '$2y$10$demonstration.hash.value.for.user.20', TRUE, NULL, 10, 5),
-  (21, 'fleet_admin', '$2y$10$demonstration.hash.value.for.user.21', TRUE, NULL, NULL, NULL),
-  (22, 'safety_lead', '$2y$10$demonstration.hash.value.for.user.22', TRUE, NULL, NULL, 1),
-  (23, 'workshop_north', '$2y$10$demonstration.hash.value.for.user.23', TRUE, NULL, NULL, 2),
-  (24, 'workshop_south', '$2y$10$demonstration.hash.value.for.user.24', TRUE, NULL, NULL, 3),
-  (25, 'auditor', '$2y$10$demonstration.hash.value.for.user.25', FALSE, NULL, NULL, 4);
+  (21, 'fleet_admin', '$2y$10$aH970r2oKMzOtZDmZ/Zqf.x05qijadNgHqMSjseZUYQ72XsYWHXC.', TRUE, NULL, NULL, NULL),
+  (22, 'safety_lead', '$2y$10$39r.jxGaE/P9b4jdATOoLucWlMZJQdhtGgbV7IftIeJNWtCzEcmT6', TRUE, NULL, NULL, 1),
+  (23, 'workshop_north', '$2y$10$UfUkKb3Dz.5/Y.ThB.Y8Y.nbgv3bGPgS.2paq4rFD/OEDkmrxFpie', TRUE, NULL, NULL, 2),
+  (24, 'workshop_south', '$2y$10$jKC9MGG/sJjoApP8Ot29P.UHTYYlpyO1QAy7eoB04wRksz3H1B0fa', TRUE, NULL, NULL, 3),
+  (25, 'auditor', '$2y$10$RGL6TyP7ac3RFMsghAtleeeWg0JpQJfehD4soIiOUYWks5RcpyWSi', TRUE, NULL, NULL, 4);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`) VALUES
   (1, 5, '2025-01-01'),

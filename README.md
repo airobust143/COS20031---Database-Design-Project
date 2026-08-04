@@ -120,11 +120,11 @@ npm run dev
 Open **http://localhost:5173** in your browser.
 
 **Default users:**
-- `anna_admin` / `change_me_admin` - Fleet Admin (full access)
-- `sam_safety` / `change_me_safety` - Safety Operations
-- `wendy_wshop` / `change_me_wshop` - Workshop Manager
-- `mike_mech` / `change_me_mech` - Mechanic
-- `dan_driver` / `change_me_driver` - Driver
+- `fleet_admin` / `fleet_admin_pwd` - Fleet Admin (full access)
+- `safety_lead` / `safety_lead_pwd` - Safety Operations
+- `workshop_north` / `workshop_north_pwd` - Workshop Manager (Northern Branch)
+- `workshop_south` / `workshop_south_pwd` - Workshop Manager (Southern Branch)
+- `auditor` / `auditor_pwd` - Auditor
 
 ### Backend API (Auto-loaded by Frontend)
 

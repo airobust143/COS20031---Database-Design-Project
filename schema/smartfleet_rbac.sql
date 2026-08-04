@@ -184,27 +184,27 @@ WHERE r.RoleName = 'driver' AND p.Action = 'SELECT'
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
 FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'fleet_admin'
-WHERE ua.Username = 'anna_admin' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+WHERE ua.Username = 'fleet_admin' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
 FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'safety_ops'
-WHERE ua.Username = 'sam_safety' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+WHERE ua.Username = 'safety_lead' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
 FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'workshop_mgr'
-WHERE ua.Username = 'wendy_wshop' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+WHERE ua.Username = 'workshop_north' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
-FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'mechanic'
-WHERE ua.Username = 'mike_mech' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'workshop_mgr'
+WHERE ua.Username = 'workshop_south' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
-FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'driver'
-WHERE ua.Username = 'dan_driver' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'fleet_admin'
+WHERE ua.Username = 'auditor' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 -- =====================================================================
 -- PART B — DATABASE-LEVEL RBAC (MariaDB 10.4 syntax)
@@ -275,29 +275,35 @@ GRANT SELECT ON `smart_fleet_management`.`Part`                TO sf_mechanic;
 -- driver: no base-table access — Part C views only.
 
 -- 3. Login users ------------------------------------------------------
-CREATE USER IF NOT EXISTS 'anna_admin'@'localhost'  IDENTIFIED BY 'change_me_admin';
-CREATE USER IF NOT EXISTS 'sam_safety'@'localhost'  IDENTIFIED BY 'change_me_safety';
-CREATE USER IF NOT EXISTS 'wendy_wshop'@'localhost' IDENTIFIED BY 'change_me_wshop';
-CREATE USER IF NOT EXISTS 'mike_mech'@'localhost'   IDENTIFIED BY 'change_me_mech';
-CREATE USER IF NOT EXISTS 'dan_driver'@'localhost'  IDENTIFIED BY 'change_me_driver';
+CREATE USER IF NOT EXISTS 'fleet_admin'@'localhost'    IDENTIFIED BY 'fleet_admin_pwd';
+CREATE USER IF NOT EXISTS 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
+CREATE USER IF NOT EXISTS 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
+CREATE USER IF NOT EXISTS 'workshop_south'@'localhost' IDENTIFIED BY 'workshop_south_pwd';
+CREATE USER IF NOT EXISTS 'auditor'@'localhost'        IDENTIFIED BY 'auditor_pwd';
+
+ALTER USER 'fleet_admin'@'localhost'    IDENTIFIED BY 'fleet_admin_pwd';
+ALTER USER 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
+ALTER USER 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
+ALTER USER 'workshop_south'@'localhost' IDENTIFIED BY 'workshop_south_pwd';
+ALTER USER 'auditor'@'localhost'        IDENTIFIED BY 'auditor_pwd';
 
 -- 4. Assign roles to users -------------------------------------------
-GRANT sf_fleet_admin  TO 'anna_admin'@'localhost';
-GRANT sf_safety_ops   TO 'sam_safety'@'localhost';
-GRANT sf_workshop_mgr TO 'wendy_wshop'@'localhost';
-GRANT sf_mechanic     TO 'mike_mech'@'localhost';
-GRANT sf_driver       TO 'dan_driver'@'localhost';
+GRANT sf_fleet_admin  TO 'fleet_admin'@'localhost';
+GRANT sf_safety_ops   TO 'safety_lead'@'localhost';
+GRANT sf_workshop_mgr TO 'workshop_north'@'localhost';
+GRANT sf_workshop_mgr TO 'workshop_south'@'localhost';
+GRANT sf_fleet_admin  TO 'auditor'@'localhost';
 
 -- 5. Default roles (MariaDB: ONE role, ONE user per statement) --------
-SET DEFAULT ROLE sf_fleet_admin  FOR 'anna_admin'@'localhost';
-SET DEFAULT ROLE sf_safety_ops   FOR 'sam_safety'@'localhost';
-SET DEFAULT ROLE sf_workshop_mgr FOR 'wendy_wshop'@'localhost';
-SET DEFAULT ROLE sf_mechanic     FOR 'mike_mech'@'localhost';
-SET DEFAULT ROLE sf_driver       FOR 'dan_driver'@'localhost';
+SET DEFAULT ROLE sf_fleet_admin  FOR 'fleet_admin'@'localhost';
+SET DEFAULT ROLE sf_safety_ops   FOR 'safety_lead'@'localhost';
+SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_north'@'localhost';
+SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_south'@'localhost';
+SET DEFAULT ROLE sf_fleet_admin  FOR 'auditor'@'localhost';
 
 -- REVOKE examples:
 -- REVOKE DELETE ON `smart_fleet_management`.`Part` FROM sf_workshop_mgr;
--- REVOKE sf_mechanic FROM 'mike_mech'@'localhost';
+-- REVOKE sf_workshop_mgr FROM 'workshop_north'@'localhost';
 
 
 -- =====================================================================
@@ -371,6 +377,6 @@ GRANT SELECT, UPDATE (`DiagnosticResult`, `IsRepeatFault`, `StartedAt`, `Complet
 -- =====================================================================
 -- Verification:
 --   SHOW GRANTS FOR sf_safety_ops;
---   SHOW GRANTS FOR 'sam_safety'@'localhost';
+--   SHOW GRANTS FOR 'safety_lead'@'localhost';
 --   -- test as a user: SET ROLE sf_mechanic; then try a SELECT/UPDATE
 -- =====================================================================
