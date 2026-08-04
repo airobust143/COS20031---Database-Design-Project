@@ -19,7 +19,7 @@ const files = [
     '03_workshops_people_schema.sql',
     '04_maintenance_schema.sql',
     '05_user_role_schema.sql',
-    'smartfleet_seed_quick_data.sql',
+    'smartfleet_seed_meaningful_data.sql',
     '06_procedures_triggers.sql',
     '07_login_attempts.sql',
     '08_indexes.sql',
