@@ -38,6 +38,15 @@ $method   = $_SERVER['REQUEST_METHOD'];
 $resource = $_GET['resource'] ?? '';
 $id       = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
+function resolveVehicleModel(PDO $pdo, string $model, string $manufacturer): int {
+    $stmt = $pdo->prepare(
+        'INSERT INTO VehicleModel (ModelName, Manufacturer) VALUES (:model, :manufacturer) '
+        . 'ON DUPLICATE KEY UPDATE ModelID = LAST_INSERT_ID(ModelID)'
+    );
+    $stmt->execute([':model' => trim($model), ':manufacturer' => trim($manufacturer)]);
+    return (int) $pdo->lastInsertId();
+}
+
 // -- KPIs -- //
 if ($resource === 'kpis') {
     requirePermission('Vehicles', 'SELECT');
@@ -65,7 +74,7 @@ if ($resource === 'vehicles') {
         $where = [];
         $params = [];
         if ($filter) {
-            $where[] = "(v.RegistrationNumber LIKE :filter OR v.Model LIKE :filter OR v.Manufacturer LIKE :filter OR d.Name LIKE :filter)";
+            $where[] = "(v.RegistrationNumber LIKE :filter OR vm.ModelName LIKE :filter OR vm.Manufacturer LIKE :filter OR d.Name LIKE :filter)";
             $params[':filter'] = "%$filter%";
         }
         if ($status) {
@@ -74,11 +83,12 @@ if ($resource === 'vehicles') {
         }
         
         $sql = "
-            SELECT v.VehicleID, v.RegistrationNumber, v.Model, v.Manufacturer,
+            SELECT v.VehicleID, v.RegistrationNumber, v.ModelID, vm.ModelName AS Model, vm.Manufacturer,
                    v.YearOfManufacture, v.CurrentOdometerReading, v.OperationalStatus,
                    vc.CategoryName, d.Name AS DepotName
             FROM Vehicles v
             JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
+            JOIN VehicleModel vm ON vm.ModelID = v.ModelID
             JOIN Depots d ON d.DepotID = v.DepotID
         ";
         if ($where) {
@@ -96,13 +106,14 @@ if ($resource === 'vehicles') {
     if ($method === 'POST') {
         requirePermission('Vehicles', 'INSERT');
         $b = readBody();
+        $modelId = resolveVehicleModel($pdo, $b['Model'], $b['Manufacturer']);
         $stmt = $pdo->prepare("INSERT INTO Vehicles
-            (RegistrationNumber,CategoryID,Model,Manufacturer,YearOfManufacture,
+            (RegistrationNumber,CategoryID,ModelID,YearOfManufacture,
             CurrentOdometerReading,DepotID,OperationalStatus)
-            VALUES (:reg,:cat,:model,:mfr,:yr,:odo,:depot,:status)");
+            VALUES (:reg,:cat,:modelId,:yr,:odo,:depot,:status)");
         $stmt->execute([
             ':reg'=>$b['RegistrationNumber'],':cat'=>$b['CategoryID'],
-            ':model'=>$b['Model'],':mfr'=>$b['Manufacturer'],
+            ':modelId'=>$modelId,
             ':yr'=>$b['YearOfManufacture'],':odo'=>$b['CurrentOdometerReading']??0,
             ':depot'=>$b['DepotID'],':status'=>$b['OperationalStatus']??'Available',
         ]);
@@ -111,13 +122,14 @@ if ($resource === 'vehicles') {
     if ($method === 'PUT' && $id) {
         requirePermission('Vehicles', 'UPDATE');
         $b = readBody();
+        $modelId = resolveVehicleModel($pdo, $b['Model'], $b['Manufacturer']);
         $pdo->prepare("UPDATE Vehicles SET
-            RegistrationNumber=:reg, CategoryID=:cat, Model=:model, Manufacturer=:mfr,
+            RegistrationNumber=:reg, CategoryID=:cat, ModelID=:modelId,
             YearOfManufacture=:yr, CurrentOdometerReading=:odo, DepotID=:depot,
             OperationalStatus=:status
             WHERE VehicleID=:id")->execute([
             ':reg'=>$b['RegistrationNumber'],':cat'=>$b['CategoryID'],
-            ':model'=>$b['Model'],':mfr'=>$b['Manufacturer'],
+            ':modelId'=>$modelId,
             ':yr'=>$b['YearOfManufacture'],':odo'=>$b['CurrentOdometerReading']??0,
             ':depot'=>$b['DepotID'],':status'=>$b['OperationalStatus'],
             ':id'=>$id,
@@ -180,11 +192,12 @@ if ($resource === 'assignments') {
     requirePermission('VehicleAssignments', 'SELECT');
     if ($method === 'GET') {
         $rows = $pdo->query("
-            SELECT va.AssignmentID, v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
+            SELECT va.AssignmentID, v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
                    CONCAT(dr.FirstName,' ',dr.LastName) AS DriverName,
                    dep.Name AS DepotName, va.StartDate, va.EndDate, va.IsPermanent
             FROM VehicleAssignments va
             JOIN Vehicles v ON v.VehicleID=va.VehicleID
+            JOIN VehicleModel vm ON vm.ModelID=v.ModelID
             JOIN Drivers dr ON dr.DriverID=va.DriverID
             JOIN Depots dep ON dep.DepotID=va.DepotID
             ORDER BY va.StartDate DESC
@@ -421,7 +434,7 @@ if ($resource === 'users') {
 if ($resource === 'recent_jobs') {
     requirePermission('MaintenanceJobs', 'SELECT');
     $rows = $pdo->query("
-        SELECT mj.JobID, v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
+        SELECT mj.JobID, v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
                w.Name AS WorkshopName, mj.DateOpened, mj.DateClosed,
                mj.TotalCost, mj.AlertID,
                CASE WHEN mj.DateClosed IS NOT NULL THEN 'Closed'
@@ -430,6 +443,7 @@ if ($resource === 'recent_jobs') {
                END AS Status
         FROM MaintenanceJobs mj
         JOIN Vehicles v ON v.VehicleID=mj.VehicleID
+        JOIN VehicleModel vm ON vm.ModelID=v.ModelID
         JOIN Workshop w ON w.WorkshopID=mj.WorkshopID
         ORDER BY mj.DateOpened DESC LIMIT 10
     ")->fetchAll();

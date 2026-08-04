@@ -41,7 +41,7 @@ if ($resource === 'my_activities') {
     requirePermission('MaintenanceActivity', 'SELECT');
     $stmt = $pdo->prepare("
         SELECT ma.ActivityID, ma.JobID,
-               v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
+               v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
                at.Name AS ActivityType,
                ma.DiagnosticResult, ma.IsRepeatFault,
                ma.StartedAt, ma.CompleteAt,
@@ -50,6 +50,7 @@ if ($resource === 'my_activities') {
         JOIN ActivityMechanic am  ON am.ActivityID=ma.ActivityID AND am.MechanicID=:mid
         JOIN MaintenanceJobs mj   ON mj.JobID=ma.JobID
         JOIN Vehicles v           ON v.VehicleID=mj.VehicleID
+        JOIN VehicleModel vm      ON vm.ModelID=v.ModelID
         JOIN ActivityType at      ON at.ActivityTypeID=ma.ActivityTypeID
         ORDER BY ma.StartedAt DESC, ma.ActivityID DESC
     ");

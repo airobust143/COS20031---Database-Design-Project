@@ -60,7 +60,7 @@ if ($resource === 'jobs') {
         }
         $w = implode(' AND ', $where);
         $rows = $pdo->query("
-            SELECT mj.JobID, v.RegistrationNumber, CONCAT(v.Manufacturer,' ',v.Model) AS VehicleModel,
+            SELECT mj.JobID, v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
                    ws.Name AS WorkshopName, mj.DateOpened, mj.DateClosed,
                    mj.OverallDowntime, mj.TotalCost, mj.AlertID,
                    CASE WHEN mj.DateClosed IS NOT NULL THEN 'Closed'
@@ -68,6 +68,7 @@ if ($resource === 'jobs') {
                         ELSE 'Open' END AS Status
             FROM MaintenanceJobs mj
             JOIN Vehicles v ON v.VehicleID=mj.VehicleID
+            JOIN VehicleModel vm ON vm.ModelID=v.ModelID
             JOIN Workshop ws ON ws.WorkshopID=mj.WorkshopID
             WHERE $w
             ORDER BY mj.DateOpened DESC
