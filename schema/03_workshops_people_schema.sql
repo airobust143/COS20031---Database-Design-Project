@@ -1,7 +1,7 @@
--- =====================================================================
--- Smart Fleet Management Database — WORKSHOPS & PEOPLE DOMAIN
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 3 of 7. Requires 01_core_fleet_schema.sql (Depots) to have run.
+﻿-- =====================================================================
+-- Smart Fleet Management Database â€” WORKSHOPS & PEOPLE DOMAIN
+-- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
+-- File 3 of 8. Requires 01_core_fleet_schema.sql (Depots) to have run.
 -- =====================================================================
 -- Tables: Workshop, MechanicCertType, Mechanic, MechanicCertification
 -- =====================================================================
@@ -17,13 +17,13 @@ CREATE TABLE `Workshop` (
     `DepotID`    INT UNSIGNED NOT NULL,
     `Name`       VARCHAR(100) NOT NULL,
     `NumBays`    SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-    `Contacts`   VARCHAR(255) NULL,
+    `ContactEmail` VARCHAR(254) NULL,
     PRIMARY KEY (`WorkshopID`),
     UNIQUE KEY `uq_workshop_depot` (`DepotID`),
     CONSTRAINT `fk_workshop_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- MechanicCertType (lookup)
@@ -35,7 +35,7 @@ CREATE TABLE `MechanicCertType` (
         COMMENT 'Whether this certification type requires periodic renewal',
     PRIMARY KEY (`MecCertTypeID`),
     UNIQUE KEY `uq_mecCertType_name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- Mechanic
@@ -51,7 +51,7 @@ CREATE TABLE `Mechanic` (
     CONSTRAINT `fk_mechanic_workshop`
         FOREIGN KEY (`WorkshopID`) REFERENCES `Workshop` (`WorkshopID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- MechanicCertification (full renewal history retained)
@@ -70,10 +70,11 @@ CREATE TABLE `MechanicCertification` (
     CONSTRAINT `fk_mc_certtype`
         FOREIGN KEY (`MecCertTypeID`) REFERENCES `MechanicCertType` (`MecCertTypeID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
 -- End of 03_workshops_people_schema.sql
 -- =====================================================================
+

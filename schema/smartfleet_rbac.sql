@@ -75,7 +75,6 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     -- drivers & safety
     ('CertificationType','SELECT'), ('CertificationType','INSERT'), ('CertificationType','UPDATE'), ('CertificationType','DELETE'),
     ('SafetyEventsType','SELECT'), ('SafetyEventsType','INSERT'), ('SafetyEventsType','UPDATE'), ('SafetyEventsType','DELETE'),
-    ('EventPenalty','SELECT'), ('EventPenalty','INSERT'), ('EventPenalty','UPDATE'), ('EventPenalty','DELETE'),
     ('Drivers','SELECT'), ('Drivers','INSERT'), ('Drivers','UPDATE'), ('Drivers','DELETE'),
     ('DriverCertifications','SELECT'), ('DriverCertifications','INSERT'), ('DriverCertifications','UPDATE'), ('DriverCertifications','DELETE'),
     ('VehicleCertRequirement','SELECT'), ('VehicleCertRequirement','INSERT'), ('VehicleCertRequirement','UPDATE'), ('VehicleCertRequirement','DELETE'),
@@ -124,7 +123,7 @@ FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'safety_ops'
   AND (p.TableName IN ('Depots', 'Vehicles', 'VehiclesCategory', 'VehiclesDepotHistory',
                          'VehicleAssignments', 'CertificationType', 'SafetyEventsType',
-                         'EventPenalty', 'DriverCertifications', 'VehicleCertRequirement')
+                         'DriverCertifications', 'VehicleCertRequirement')
                                               AND p.Action = 'SELECT'
        OR p.TableName = 'Drivers'             AND p.Action IN ('SELECT','UPDATE')
        OR p.TableName = 'SafetyEvents'        AND p.Action IN ('SELECT','INSERT','UPDATE')
@@ -138,7 +137,7 @@ SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'workshop_mgr'
   AND (p.TableName IN ('Depots', 'Drivers', 'VehiclesCategory', 'Workshop',
-                         'ActivityType', 'MechanicCertType', 'EventPenalty')
+                         'ActivityType', 'MechanicCertType')
                                               AND p.Action = 'SELECT'
        OR p.TableName = 'Vehicles'            AND p.Action IN ('SELECT','UPDATE')
        OR p.TableName = 'PredictiveAlert'     AND p.Action IN ('SELECT','UPDATE')
@@ -156,7 +155,7 @@ SELECT r.RoleID, p.PermissionID
 FROM `Role` r CROSS JOIN `Permission` p
 WHERE r.RoleName = 'mechanic'
   AND (p.TableName IN ('Vehicles', 'MaintenanceJobs', 'ActivityType',
-                         'ActivityPart', 'Part', 'Workshop', 'EventPenalty')
+                         'ActivityPart', 'Part', 'Workshop')
                                               AND p.Action = 'SELECT'
        OR p.TableName = 'MaintenanceActivity' AND p.Action IN ('SELECT','UPDATE')
        OR p.TableName = 'ActivityMechanic'    AND p.Action IN ('SELECT','UPDATE')
@@ -170,7 +169,7 @@ WHERE r.RoleName = 'driver' AND p.Action = 'SELECT'
   AND p.TableName IN ('SafetyEvents', 'DriverSafetyScore', 'DriverCertifications',
                       'Vehicles', 'VehiclesCategory', 'VehiclesDepotHistory',
                       'VehicleAssignments', 'Depots', 'CertificationType',
-                      'SafetyEventsType', 'EventPenalty', 'Drivers');
+                      'SafetyEventsType', 'Drivers');
 
 -- App-level REVOKE example:
 -- DELETE rp FROM `RolePermission` rp
@@ -259,7 +258,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Part`         
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`Supplier`            TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE, DELETE ON `smart_fleet_management`.`SupplyPart`          TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaim`         TO sf_workshop_mgr;
-GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimParts`    TO sf_workshop_mgr;
+GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`WarrantyClaimPart`     TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`Mechanic`              TO sf_workshop_mgr;
 GRANT SELECT, INSERT, UPDATE ON `smart_fleet_management`.`MechanicCertification` TO sf_workshop_mgr;
 

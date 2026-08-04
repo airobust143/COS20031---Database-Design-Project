@@ -1,41 +1,32 @@
--- =====================================================================
--- Smart Fleet Management Database — DRIVER & SAFETY DOMAIN
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 2 of 7. Requires 01_core_fleet_schema.sql to have been run first
+﻿-- =====================================================================
+-- Smart Fleet Management Database â€” DRIVER & SAFETY DOMAIN
+-- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
+-- File 2 of 8. Requires 01_core_fleet_schema.sql to have been run first
 -- (Drivers.DepotID -> Depots, SafetyEvents.VehicleID -> Vehicles).
 -- =====================================================================
--- Tables: CertificationType, SafetyEventsType, EventPenalty (new),
---         Drivers, DriverCertifications, VehicleCertRequirement,
+-- Tables: CertificationType, SafetyEventsType, Drivers,
+--         DriverCertifications, VehicleCertRequirement,
 --         DriverSafetyScore, SafetyEvents, CoachingRecord
 --
--- NEW TABLE — EventPenalty:
---   The brief's "Event Penalties" table (Low/Medium/High/Critical ->
---   points deducted) was previously only an assumption baked into app
---   code. It is now a real lookup table so the point values are data,
---   not a hidden constant — consistent with "Historical Records must
---   remain available even when maintenance rules are updated" (if the
---   company changes penalty values later, past DriverSafetyScore rows
---   already store their own computed FinalScore and are unaffected).
---
--- TRIGGERS/PROCEDURES ADDED IN THIS FILE (business rules from the brief
+-- TRIGGERS/PROCEDURES DEFINED IN 06_procedures_triggers.sql (business rules from the brief
 -- that the original schema stored columns for but never enforced):
---   • SafetyEvents: High/Critical severity automatically sets
+--   â€¢ SafetyEvents: High/Critical severity automatically sets
 --     ReviewRequired/ReviewStatus ("High or Critical events will
 --     automatically trigger a review").
---   • SafetyEvents: inserting a Critical event automatically sets the
+--   â€¢ SafetyEvents: inserting a Critical event automatically sets the
 --     driver's EmploymentStatus to 'Inactive' ("If a critical event
 --     happens the driver will be made inactive and unable to be
 --     assigned... until the review has been completed or he completes
 --     the safety training") and logs a CoachingRecord.
---   • SafetyEvents: every insert recalculates that driver's monthly
+--   â€¢ SafetyEvents: every insert recalculates that driver's monthly
 --     DriverSafetyScore live via sp_recalc_driver_safety_score, so the
 --     score is always current rather than a manually-run batch job.
---   • DriverSafetyScore: FinalScore/CoachingRequired/Suspended are
+--   â€¢ DriverSafetyScore: FinalScore/CoachingRequired/Suspended are
 --     always derived (defensively) from BaseScore/DeductedPoints,
 --     enforcing the "<=75 coaching, <=50 suspended" thresholds even if
 --     a row is inserted/updated directly rather than through the
 --     procedure.
---   • DriverSafetyScore: CoachingRequired becoming true automatically
+--   â€¢ DriverSafetyScore: CoachingRequired becoming true automatically
 --     logs a CoachingRecord (once per ScoreID).
 -- =====================================================================
 
@@ -52,7 +43,7 @@ CREATE TABLE `CertificationType` (
         COMMENT 'Whether this certification type requires periodic renewal',
     PRIMARY KEY (`CertTypeID`),
     UNIQUE KEY `uq_certtype_name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- SafetyEventsType (lookup)
@@ -64,18 +55,7 @@ CREATE TABLE `SafetyEventsType` (
         COMMENT 'Typical/default severity for this event type; the actual Severity is still recorded per-event on SafetyEvents, since the brief''s example log shows the same event type occurring at different severities.',
     PRIMARY KEY (`EventsTypeID`),
     UNIQUE KEY `uq_safetyeventstype_name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ---------------------------------------------------------------------
--- EventPenalty (lookup) — NEW: implements the brief's "Event Penalties"
--- table as data rather than a hard-coded app constant.
--- ---------------------------------------------------------------------
-CREATE TABLE `EventPenalty` (
-    `Severity`       ENUM('Low','Medium','High','Critical') NOT NULL,
-    `PointsDeducted` SMALLINT NOT NULL COMMENT 'Stored as a negative number, matching the brief''s table',
-    `Description`    VARCHAR(255) NULL,
-    PRIMARY KEY (`Severity`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- Drivers
@@ -84,22 +64,22 @@ CREATE TABLE `Drivers` (
     `DriverID`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     `FirstName`              VARCHAR(100)  NOT NULL,
     `LastName`               VARCHAR(100)  NOT NULL,
-    `ContactInformation`     VARCHAR(255)  NULL,
+    `ContactPhoneNumber`     VARCHAR(20)   NULL,
     `DepotID`                INT UNSIGNED  NOT NULL,
     `LicenceType`            VARCHAR(50)   NOT NULL
         COMMENT 'Base government driving-licence class (separate from company certifications)',
     `LicenceExpiryDate`      DATE          NOT NULL,
     `EmploymentStatus`       ENUM('Active','Inactive','Suspended','Terminated')
                                             NOT NULL DEFAULT 'Active',
-    `EmergencyContactDetails` VARCHAR(255) NULL,
+    `EmergencyContactPhone`  VARCHAR(20)   NULL,
     PRIMARY KEY (`DriverID`),
     CONSTRAINT `fk_drivers_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
--- DriverCertifications (full history retained — multiple rows per
+-- DriverCertifications (full history retained â€” multiple rows per
 -- driver/cert type over time as renewals occur)
 -- ---------------------------------------------------------------------
 CREATE TABLE `DriverCertifications` (
@@ -116,11 +96,11 @@ CREATE TABLE `DriverCertifications` (
     CONSTRAINT `fk_dc_certtype`
         FOREIGN KEY (`CertTypeID`) REFERENCES `CertificationType` (`CertTypeID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- VehicleCertRequirement (which certification types a vehicle category
--- requires — implements the Vehicle Certification Matrix; a category
+-- requires â€” implements the Vehicle Certification Matrix; a category
 -- may need MULTIPLE cert types, all of which the driver must hold)
 -- ---------------------------------------------------------------------
 CREATE TABLE `VehicleCertRequirement` (
@@ -135,7 +115,7 @@ CREATE TABLE `VehicleCertRequirement` (
     CONSTRAINT `fk_vcr_certtype`
         FOREIGN KEY (`CertTypeID`) REFERENCES `CertificationType` (`CertTypeID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- DriverSafetyScore
@@ -155,10 +135,12 @@ CREATE TABLE `DriverSafetyScore` (
     `CriticalCount`   SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (`ScoreID`),
     UNIQUE KEY `uq_dss_driver_period` (`DriverID`, `ScorePeriod`),
+    CONSTRAINT `chk_dss_period` CHECK (`ScorePeriod` REGEXP '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+    CONSTRAINT `chk_dss_scores` CHECK (`BaseScore` >= 0 AND `DeductedPoints` >= 0 AND `FinalScore` >= 0),
     CONSTRAINT `fk_dss_driver`
         FOREIGN KEY (`DriverID`) REFERENCES `Drivers` (`DriverID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- SafetyEvents
@@ -176,6 +158,10 @@ CREATE TABLE `SafetyEvents` (
     `ReviewStatus`    ENUM('Not Required','Pending','In Review','Completed')
                                     NOT NULL DEFAULT 'Not Required',
     PRIMARY KEY (`EventID`),
+    CONSTRAINT `chk_se_review_state` CHECK (
+        (`ReviewRequired` = FALSE AND `ReviewStatus` = 'Not Required') OR
+        (`ReviewRequired` = TRUE AND `ReviewStatus` IN ('Pending','In Review','Completed'))
+    ),
     CONSTRAINT `fk_se_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -188,7 +174,7 @@ CREATE TABLE `SafetyEvents` (
     CONSTRAINT `fk_se_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- CoachingRecord
@@ -215,10 +201,11 @@ CREATE TABLE `CoachingRecord` (
     CONSTRAINT `fk_cr_score`
         FOREIGN KEY (`ScoreID`) REFERENCES `DriverSafetyScore` (`ScoreID`)
         ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
 -- End of 02_driver_safety_schema.sql
 -- =====================================================================
+

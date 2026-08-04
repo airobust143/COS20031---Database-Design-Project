@@ -1,44 +1,44 @@
--- =====================================================================
--- Smart Fleet Management Database — STORED PROCEDURES & TRIGGERS
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 6 of 7. Run after 01–05 (all tables must exist first).
+﻿-- =====================================================================
+-- Smart Fleet Management Database â€” STORED PROCEDURES & TRIGGERS
+-- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
+-- File 6. Run after 01â€“05 (all tables must exist first).
 -- =====================================================================
 -- Consolidated business-rule enforcement logic: procedures, triggers
 -- and computed columns that implement the brief's requirements:
 --
 -- FROM 01_core_fleet_schema.sql:
---   • sp_check_vehicle_assignment_eligibility
---   • trg_va_bi_eligibility, trg_va_bu_eligibility
+--   â€¢ sp_check_vehicle_assignment_eligibility
+--   â€¢ trg_va_bi_eligibility, trg_va_bu_eligibility
 --
 -- FROM 02_driver_safety_schema.sql:
---   • trg_dss_bi_flags, trg_dss_bu_flags
---   • trg_dss_ai_auto_coaching, trg_dss_au_auto_coaching
---   • sp_recalc_driver_safety_score
---   • trg_se_bi_review_flag
---   • trg_se_ai_recalc_and_critical
+--   â€¢ trg_dss_bi_flags, trg_dss_bu_flags
+--   â€¢ trg_dss_ai_auto_coaching, trg_dss_au_auto_coaching
+--   â€¢ sp_recalc_driver_safety_score
+--   â€¢ trg_se_bi_review_flag / trg_se_bu_review_flag
+--   â€¢ trg_se_ai_recalc_and_critical / trg_se_au_recalc / trg_se_ad_recalc
 --
 -- FROM 04_maintenance_schema.sql:
---   • sp_check_mechanic_certified
---   • trg_am_bi_mechanic_cert, trg_am_bu_mechanic_cert
---   • trg_ap_ai_stock
---   • trg_mj_ai_sync, trg_mj_au_sync
+--   â€¢ sp_check_mechanic_certified
+--   â€¢ trg_am_bi_mechanic_cert, trg_am_bu_mechanic_cert
+--   â€¢ trg_ap_bi_stock / trg_ap_bu_stock / trg_ap_ad_stock
+--   â€¢ trg_mj_ai_sync, trg_mj_au_sync
 -- =====================================================================
 
 USE `smart_fleet_management`;
 
 -- =====================================================================
--- CORE FLEET DOMAIN — vehicle assignment eligibility
+-- CORE FLEET DOMAIN â€” vehicle assignment eligibility
 -- =====================================================================
 -- Brief requirements enforced:
---   • "A vehicle that is currently under maintenance or marked out of
+--   â€¢ "A vehicle that is currently under maintenance or marked out of
 --      service cannot be assigned to a driver."
---   • "Drivers cannot be assigned to vehicles unless they hold the
+--   â€¢ "Drivers cannot be assigned to vehicles unless they hold the
 --      required certifications for that vehicle category."
---   • "A driver with expired certificates cannot be assigned to a
+--   â€¢ "A driver with expired certificates cannot be assigned to a
 --      vehicle."
---   • "A driver with a safety score of 50 or below cannot be assigned
+--   â€¢ "A driver with a safety score of 50 or below cannot be assigned
 --      to a vehicle until they complete safety training."
---   • (Implied) a driver whose employment/base licence is not currently
+--   â€¢ (Implied) a driver whose employment/base licence is not currently
 --      valid cannot be assigned either.
 -- =====================================================================
 
@@ -58,13 +58,20 @@ BEGIN
     DECLARE v_held_certs     INT UNSIGNED DEFAULT 0;
     DECLARE v_suspended      BOOLEAN DEFAULT FALSE;
 
+    IF NOT EXISTS (SELECT 1 FROM `Vehicles` WHERE `VehicleID` = p_vehicle_id) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vehicle does not exist.';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM `Drivers` WHERE `DriverID` = p_driver_id) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Driver does not exist.';
+    END IF;
+
     -- 1) Vehicle must not be under maintenance / out of service
     SELECT `OperationalStatus`, `CategoryID`
       INTO v_status, v_category_id
     FROM `Vehicles`
     WHERE `VehicleID` = p_vehicle_id;
 
-    IF v_status IN ('Under Maintenance', 'Out of Service') THEN
+    IF v_status NOT IN ('Active', 'Available') THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'Vehicle is under maintenance or out of service and cannot be assigned to a driver.';
     END IF;
@@ -129,6 +136,14 @@ BEFORE INSERT ON `VehicleAssignments`
 FOR EACH ROW
 BEGIN
     CALL `sp_check_vehicle_assignment_eligibility`(NEW.`VehicleID`, NEW.`DriverID`);
+    IF EXISTS (
+        SELECT 1 FROM `VehicleAssignments` va
+        WHERE (va.VehicleID = NEW.VehicleID OR va.DriverID = NEW.DriverID)
+          AND va.StartDate <= COALESCE(NEW.EndDate, '9999-12-31')
+          AND NEW.StartDate <= COALESCE(va.EndDate, '9999-12-31')
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vehicle or driver has an overlapping assignment.';
+    END IF;
 END$$
 
 CREATE TRIGGER `trg_va_bu_eligibility`
@@ -141,21 +156,64 @@ BEGIN
     IF NOT (NEW.`VehicleID` <=> OLD.`VehicleID`) OR NOT (NEW.`DriverID` <=> OLD.`DriverID`) THEN
         CALL `sp_check_vehicle_assignment_eligibility`(NEW.`VehicleID`, NEW.`DriverID`);
     END IF;
+    IF EXISTS (
+        SELECT 1 FROM `VehicleAssignments` va
+        WHERE va.AssignmentID <> OLD.AssignmentID
+          AND (va.VehicleID = NEW.VehicleID OR va.DriverID = NEW.DriverID)
+          AND va.StartDate <= COALESCE(NEW.EndDate, '9999-12-31')
+          AND NEW.StartDate <= COALESCE(va.EndDate, '9999-12-31')
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vehicle or driver has an overlapping assignment.';
+    END IF;
 END$$
 DELIMITER ;
 
 -- =====================================================================
--- DRIVER & SAFETY DOMAIN — safety score calculation & automation
+-- DRIVER & SAFETY DOMAIN  safety score calculation & automation
 -- =====================================================================
 -- Enforces:
---   • FinalScore = 100 - DeductedPoints, floored at 0
---   • CoachingRequired = FinalScore <= 75
---   • Suspended = FinalScore <= 50
---   • Auto-log CoachingRecord when CoachingRequired becomes true
---   • High/Critical events require review
---   • Critical events auto-inactivate driver and log coaching
---   • Every SafetyEvent insert recalculates live monthly score
+--   â€¢ FinalScore = 100 - DeductedPoints, floored at 0
+--   â€¢ CoachingRequired = FinalScore <= 75
+--   â€¢ Suspended = FinalScore <= 50
+--   â€¢ Auto-log CoachingRecord when CoachingRequired becomes true
+--   â€¢ High/Critical events require review
+--   â€¢ Critical events auto-inactivate driver and log coaching
+--   â€¢ Every SafetyEvent insert recalculates live monthly score
 -- =====================================================================
+
+DROP TRIGGER IF EXISTS `trg_vdh_bi_no_overlap`;
+DROP TRIGGER IF EXISTS `trg_vdh_bu_no_overlap`;
+
+DELIMITER $$
+CREATE TRIGGER `trg_vdh_bi_no_overlap`
+BEFORE INSERT ON `VehiclesDepotHistory`
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM `VehiclesDepotHistory` h
+        WHERE h.VehicleID = NEW.VehicleID
+          AND h.MovedFrom <= COALESCE(NEW.MovedTo, '9999-12-31 23:59:59')
+          AND NEW.MovedFrom <= COALESCE(h.MovedTo, '9999-12-31 23:59:59')
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vehicle depot-history periods cannot overlap.';
+    END IF;
+END$$
+
+CREATE TRIGGER `trg_vdh_bu_no_overlap`
+BEFORE UPDATE ON `VehiclesDepotHistory`
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM `VehiclesDepotHistory` h
+        WHERE h.HistoryID <> OLD.HistoryID
+          AND h.VehicleID = NEW.VehicleID
+          AND h.MovedFrom <= COALESCE(NEW.MovedTo, '9999-12-31 23:59:59')
+          AND NEW.MovedFrom <= COALESCE(h.MovedTo, '9999-12-31 23:59:59')
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Vehicle depot-history periods cannot overlap.';
+    END IF;
+END$$
+DELIMITER ;
 
 DROP TRIGGER IF EXISTS `trg_dss_bi_flags`;
 DROP TRIGGER IF EXISTS `trg_dss_bu_flags`;
@@ -228,34 +286,47 @@ BEGIN
     DECLARE v_additional_deduction INT DEFAULT 0;
 
     SELECT
-        SUM(CASE WHEN `Severity` = 'Low' THEN 1 ELSE 0 END),
-        SUM(CASE WHEN `Severity` = 'Medium' THEN 1 ELSE 0 END),
-        SUM(CASE WHEN `Severity` = 'High' THEN 1 ELSE 0 END),
-        SUM(CASE WHEN `Severity` = 'Critical' THEN 1 ELSE 0 END)
+        COALESCE(SUM(CASE WHEN `Severity` = 'Low' THEN 1 ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN `Severity` = 'Medium' THEN 1 ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN `Severity` = 'High' THEN 1 ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN `Severity` = 'Critical' THEN 1 ELSE 0 END), 0)
       INTO v_low, v_medium, v_high, v_critical
     FROM `SafetyEvents`
     WHERE `DriverID` = p_driver_id
-      AND DATE_FORMAT(`Timestamp`, '%Y-%m') = p_period;
+      AND `Timestamp` >= STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d')
+      AND `Timestamp` < DATE_ADD(
+          STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d'),
+          INTERVAL 1 MONTH
+      );
 
     SELECT COUNT(*) INTO v_speeding
     FROM `SafetyEvents` se
     JOIN `SafetyEventsType` t ON t.`EventsTypeID` = se.`EventsTypeID`
     WHERE se.`DriverID` = p_driver_id
-      AND DATE_FORMAT(se.`Timestamp`, '%Y-%m') = p_period
+      AND se.`Timestamp` >= STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d')
+      AND se.`Timestamp` < DATE_ADD(
+          STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d'),
+          INTERVAL 1 MONTH
+      )
       AND t.`Name` = 'Excessive Speeding';
 
     SELECT COUNT(*) INTO v_fatigue
     FROM `SafetyEvents` se
     JOIN `SafetyEventsType` t ON t.`EventsTypeID` = se.`EventsTypeID`
     WHERE se.`DriverID` = p_driver_id
-      AND DATE_FORMAT(se.`Timestamp`, '%Y-%m') = p_period
+      AND se.`Timestamp` >= STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d')
+      AND se.`Timestamp` < DATE_ADD(
+          STR_TO_DATE(CONCAT(p_period, '-01'), '%Y-%m-%d'),
+          INTERVAL 1 MONTH
+      )
       AND t.`Name` = 'Fatigue Warning';
 
+    -- ERD-defined severity penalties: Low=2, Medium=5, High=10, Critical=20.
     SET v_base_deduction =
-          v_low      * (SELECT ABS(`PointsDeducted`) FROM `EventPenalty` WHERE `Severity` = 'Low')
-        + v_medium   * (SELECT ABS(`PointsDeducted`) FROM `EventPenalty` WHERE `Severity` = 'Medium')
-        + v_high     * (SELECT ABS(`PointsDeducted`) FROM `EventPenalty` WHERE `Severity` = 'High')
-        + v_critical * (SELECT ABS(`PointsDeducted`) FROM `EventPenalty` WHERE `Severity` = 'Critical');
+          v_low      * 2
+        + v_medium   * 5
+        + v_high     * 10
+        + v_critical * 20;
 
     IF v_speeding > 3 THEN SET v_additional_deduction = v_additional_deduction + 10; END IF;
     IF v_fatigue  > 2 THEN SET v_additional_deduction = v_additional_deduction + 15; END IF;
@@ -277,6 +348,7 @@ END$$
 DELIMITER ;
 
 DROP TRIGGER IF EXISTS `trg_se_bi_review_flag`;
+DROP TRIGGER IF EXISTS `trg_se_bu_review_flag`;
 
 DELIMITER $$
 CREATE TRIGGER `trg_se_bi_review_flag`
@@ -294,6 +366,8 @@ END$$
 DELIMITER ;
 
 DROP TRIGGER IF EXISTS `trg_se_ai_recalc_and_critical`;
+DROP TRIGGER IF EXISTS `trg_se_au_recalc`;
+DROP TRIGGER IF EXISTS `trg_se_ad_recalc`;
 
 DELIMITER $$
 CREATE TRIGGER `trg_se_ai_recalc_and_critical`
@@ -314,17 +388,60 @@ BEGIN
                 CURDATE(), 'Critical Event', NEW.EventID);
     END IF;
 END$$
+
+CREATE TRIGGER `trg_se_au_recalc`
+AFTER UPDATE ON `SafetyEvents`
+FOR EACH ROW
+BEGIN
+    CALL `sp_recalc_driver_safety_score`(OLD.DriverID, DATE_FORMAT(OLD.`Timestamp`, '%Y-%m'));
+    IF NEW.DriverID <> OLD.DriverID OR DATE_FORMAT(NEW.`Timestamp`, '%Y-%m') <> DATE_FORMAT(OLD.`Timestamp`, '%Y-%m') THEN
+        CALL `sp_recalc_driver_safety_score`(NEW.DriverID, DATE_FORMAT(NEW.`Timestamp`, '%Y-%m'));
+    END IF;
+
+    IF NEW.Severity = 'Critical'
+       AND (OLD.Severity <> 'Critical' OR NEW.DriverID <> OLD.DriverID) THEN
+        UPDATE `Drivers`
+           SET `EmploymentStatus` = 'Inactive'
+         WHERE `DriverID` = NEW.DriverID
+           AND `EmploymentStatus` = 'Active';
+
+        INSERT INTO `CoachingRecord` (`DriverID`, `Reason`, `ScheduledDate`, `RecordType`, `EventID`)
+        VALUES (NEW.DriverID,
+                CONCAT('Automatic: safety event #', NEW.EventID, ' updated to Critical'),
+                CURDATE(), 'Critical Event', NEW.EventID);
+    END IF;
+END$$
+
+CREATE TRIGGER `trg_se_ad_recalc`
+AFTER DELETE ON `SafetyEvents`
+FOR EACH ROW
+BEGIN
+    CALL `sp_recalc_driver_safety_score`(OLD.DriverID, DATE_FORMAT(OLD.`Timestamp`, '%Y-%m'));
+END$$
+
+CREATE TRIGGER `trg_se_bu_review_flag`
+BEFORE UPDATE ON `SafetyEvents`
+FOR EACH ROW
+BEGIN
+    IF NEW.Severity IN ('High', 'Critical') THEN
+        SET NEW.ReviewRequired = TRUE;
+        IF NEW.ReviewStatus = 'Not Required' THEN SET NEW.ReviewStatus = 'Pending'; END IF;
+    ELSE
+        SET NEW.ReviewRequired = FALSE;
+        SET NEW.ReviewStatus = 'Not Required';
+    END IF;
+END$$
 DELIMITER ;
 
 -- =====================================================================
--- MAINTENANCE DOMAIN — mechanic certification & stock/status sync
+-- MAINTENANCE DOMAIN â€” mechanic certification & stock/status sync
 -- =====================================================================
 -- Enforces:
---   • Mechanic must hold valid cert for activity type
---   • Part consumption decrements stock
---   • Opening a job sets vehicle to 'Under Maintenance'
---   • Closing a job returns vehicle to 'Available'
---   • Linking an alert to a job updates alert status to 'Scheduled'
+--   â€¢ Mechanic must hold valid cert for activity type
+--   â€¢ Part consumption decrements stock
+--   â€¢ Opening a job sets vehicle to 'Under Maintenance'
+--   â€¢ Closing a job returns vehicle to 'Available'
+--   â€¢ Linking an alert to a job updates alert status to 'Scheduled'
 -- =====================================================================
 
 DROP PROCEDURE IF EXISTS `sp_check_mechanic_certified`;
@@ -378,16 +495,78 @@ BEGIN
 END$$
 DELIMITER ;
 
-DROP TRIGGER IF EXISTS `trg_ap_ai_stock`;
+DROP TRIGGER IF EXISTS `trg_sp_bi_one_primary`;
+DROP TRIGGER IF EXISTS `trg_sp_bu_one_primary`;
 
 DELIMITER $$
-CREATE TRIGGER `trg_ap_ai_stock`
-AFTER INSERT ON `ActivityPart`
+CREATE TRIGGER `trg_sp_bi_one_primary`
+BEFORE INSERT ON `SupplyPart`
 FOR EACH ROW
 BEGIN
+    IF NEW.IsPrimary = TRUE AND EXISTS (
+        SELECT 1 FROM `SupplyPart` sp
+        WHERE sp.PartID = NEW.PartID AND sp.IsPrimary = TRUE
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A part can have only one primary supplier.';
+    END IF;
+END$$
+
+CREATE TRIGGER `trg_sp_bu_one_primary`
+BEFORE UPDATE ON `SupplyPart`
+FOR EACH ROW
+BEGIN
+    IF NEW.IsPrimary = TRUE AND EXISTS (
+        SELECT 1 FROM `SupplyPart` sp
+        WHERE sp.PartID = NEW.PartID
+          AND NOT (sp.PartID = OLD.PartID AND sp.SupplierID = OLD.SupplierID)
+          AND sp.IsPrimary = TRUE
+    ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A part can have only one primary supplier.';
+    END IF;
+END$$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_ap_bi_stock`;
+DROP TRIGGER IF EXISTS `trg_ap_bu_stock`;
+DROP TRIGGER IF EXISTS `trg_ap_ad_stock`;
+
+DELIMITER $$
+CREATE TRIGGER `trg_ap_bi_stock`
+BEFORE INSERT ON `ActivityPart`
+FOR EACH ROW
+BEGIN
+    IF COALESCE((SELECT `QuantityInStock` FROM `Part` WHERE `PartID` = NEW.PartID), 0) < NEW.QuantityUsed THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient part stock.';
+    END IF;
     UPDATE `Part`
-       SET `QuantityInStock` = GREATEST(0, `QuantityInStock` - NEW.QuantityUsed)
+       SET `QuantityInStock` = `QuantityInStock` - NEW.QuantityUsed
      WHERE `PartID` = NEW.PartID;
+END$$
+
+CREATE TRIGGER `trg_ap_bu_stock`
+BEFORE UPDATE ON `ActivityPart`
+FOR EACH ROW
+BEGIN
+    IF NEW.PartID = OLD.PartID THEN
+        IF (SELECT `QuantityInStock` FROM `Part` WHERE `PartID` = NEW.PartID) + OLD.QuantityUsed < NEW.QuantityUsed THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient part stock.';
+        END IF;
+        UPDATE `Part` SET `QuantityInStock` = `QuantityInStock` + OLD.QuantityUsed - NEW.QuantityUsed
+        WHERE `PartID` = NEW.PartID;
+    ELSE
+        IF COALESCE((SELECT `QuantityInStock` FROM `Part` WHERE `PartID` = NEW.PartID), 0) < NEW.QuantityUsed THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient part stock.';
+        END IF;
+        UPDATE `Part` SET `QuantityInStock` = `QuantityInStock` + OLD.QuantityUsed WHERE `PartID` = OLD.PartID;
+        UPDATE `Part` SET `QuantityInStock` = `QuantityInStock` - NEW.QuantityUsed WHERE `PartID` = NEW.PartID;
+    END IF;
+END$$
+
+CREATE TRIGGER `trg_ap_ad_stock`
+AFTER DELETE ON `ActivityPart`
+FOR EACH ROW
+BEGIN
+    UPDATE `Part` SET `QuantityInStock` = `QuantityInStock` + OLD.QuantityUsed WHERE `PartID` = OLD.PartID;
 END$$
 DELIMITER ;
 
@@ -407,10 +586,15 @@ BEGIN
     END IF;
 
     IF NEW.AlertID IS NOT NULL THEN
-        UPDATE `PredictiveAlert`
-           SET `Status` = 'Scheduled'
-         WHERE `AlertID` = NEW.AlertID
-           AND `Status` IN ('New', 'Acknowledged');
+        IF NEW.DateClosed IS NULL THEN
+            UPDATE `PredictiveAlert`
+               SET `Status` = 'Scheduled', `ResolvedAt` = NULL
+             WHERE `AlertID` = NEW.AlertID;
+        ELSE
+            UPDATE `PredictiveAlert`
+               SET `Status` = 'Resolved', `ResolvedAt` = NEW.DateClosed
+             WHERE `AlertID` = NEW.AlertID;
+        END IF;
     END IF;
 END$$
 
@@ -418,29 +602,47 @@ CREATE TRIGGER `trg_mj_au_sync`
 AFTER UPDATE ON `MaintenanceJobs`
 FOR EACH ROW
 BEGIN
-    -- Job just closed: return the vehicle to Available, but only if
-    -- nothing else has since moved it to a different status.
-    IF OLD.DateClosed IS NULL AND NEW.DateClosed IS NOT NULL THEN
+    -- Release the old vehicle when an open job closes or moves to another vehicle.
+    IF OLD.DateClosed IS NULL
+       AND (NEW.DateClosed IS NOT NULL OR NEW.VehicleID <> OLD.VehicleID) THEN
         UPDATE `Vehicles`
            SET `OperationalStatus` = 'Available'
-         WHERE `VehicleID` = NEW.VehicleID
-           AND `OperationalStatus` = 'Under Maintenance';
+         WHERE `VehicleID` = OLD.VehicleID
+           AND `OperationalStatus` = 'Under Maintenance'
+           AND NOT EXISTS (
+               SELECT 1 FROM `MaintenanceJobs` mj
+               WHERE mj.VehicleID = OLD.VehicleID AND mj.DateClosed IS NULL AND mj.JobID <> NEW.JobID
+           );
     END IF;
 
-    -- Job just re-opened
-    IF OLD.DateClosed IS NOT NULL AND NEW.DateClosed IS NULL THEN
+    -- Mark the new vehicle when a job reopens or an open job changes vehicle.
+    IF NEW.DateClosed IS NULL
+       AND (OLD.DateClosed IS NOT NULL OR NEW.VehicleID <> OLD.VehicleID) THEN
         UPDATE `Vehicles`
            SET `OperationalStatus` = 'Under Maintenance'
          WHERE `VehicleID` = NEW.VehicleID
            AND `OperationalStatus` <> 'Retired';
     END IF;
 
-    -- Alert newly linked after the job was created
-    IF OLD.AlertID IS NULL AND NEW.AlertID IS NOT NULL THEN
+    -- Detaching or replacing an alert returns the previous alert to review.
+    IF OLD.AlertID IS NOT NULL AND NOT (OLD.AlertID <=> NEW.AlertID) THEN
         UPDATE `PredictiveAlert`
-           SET `Status` = 'Scheduled'
-         WHERE `AlertID` = NEW.AlertID
-           AND `Status` IN ('New', 'Acknowledged');
+           SET `Status` = 'Acknowledged', `ResolvedAt` = NULL
+         WHERE `AlertID` = OLD.AlertID;
+    END IF;
+
+    -- Keep the linked alert synchronized with the job's open/closed state.
+    IF NEW.AlertID IS NOT NULL
+       AND (NOT (OLD.AlertID <=> NEW.AlertID) OR NOT (OLD.DateClosed <=> NEW.DateClosed)) THEN
+        IF NEW.DateClosed IS NULL THEN
+            UPDATE `PredictiveAlert`
+               SET `Status` = 'Scheduled', `ResolvedAt` = NULL
+             WHERE `AlertID` = NEW.AlertID;
+        ELSE
+            UPDATE `PredictiveAlert`
+               SET `Status` = 'Resolved', `ResolvedAt` = NEW.DateClosed
+             WHERE `AlertID` = NEW.AlertID;
+        END IF;
     END IF;
 END$$
 DELIMITER ;
@@ -451,7 +653,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- QUERY HELPER PROCEDURES — for backend API use
+-- QUERY HELPER PROCEDURES â€” for backend API use
 -- =====================================================================
 -- These procedures encapsulate common query patterns used by the
 -- backend API, ensuring consistent query structure and taking advantage
@@ -481,8 +683,8 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        v.Model,
-        v.Manufacturer,
+        vm.ModelName AS Model,
+        vm.Manufacturer,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         v.OperationalStatus,
@@ -491,10 +693,11 @@ BEGIN
         CONCAT(dr.FirstName, ' ', dr.LastName) AS AssignedDriver,
         va.StartDate AS AssignedSince
     FROM Vehicles v
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots d ON d.DepotID = v.DepotID
     LEFT JOIN VehicleAssignments va ON va.VehicleID = v.VehicleID 
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     LEFT JOIN Drivers dr ON dr.DriverID = va.DriverID
     WHERE 
         (p_status IS NULL OR v.OperationalStatus = p_status)
@@ -502,8 +705,8 @@ BEGIN
         AND (p_depot_id IS NULL OR v.DepotID = p_depot_id)
         AND (p_search_term IS NULL OR 
              v.RegistrationNumber LIKE CONCAT('%', p_search_term, '%') OR
-             v.Model LIKE CONCAT('%', p_search_term, '%') OR
-             v.Manufacturer LIKE CONCAT('%', p_search_term, '%'))
+             vm.ModelName LIKE CONCAT('%', p_search_term, '%') OR
+             vm.Manufacturer LIKE CONCAT('%', p_search_term, '%'))
         AND (p_assigned_driver_id IS NULL OR va.DriverID = p_assigned_driver_id)
     ORDER BY v.RegistrationNumber;
 END$$
@@ -525,8 +728,8 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        v.Model,
-        v.Manufacturer,
+        vm.ModelName AS Model,
+        vm.Manufacturer,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         v.OperationalStatus,
@@ -535,8 +738,9 @@ BEGIN
         d.Name AS CurrentDepot,
         d.DepotID AS CurrentDepotID,
         d.City AS DepotCity,
-        d.Address AS DepotAddress
+        CONCAT_WS(', ', d.StreetAddress, d.District, d.City) AS DepotAddress
     FROM Vehicles v
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots d ON d.DepotID = v.DepotID
     WHERE v.VehicleID = p_vehicle_id;
@@ -555,7 +759,7 @@ BEGIN
     JOIN Drivers dr ON dr.DriverID = va.DriverID
     JOIN Depots dep ON dep.DepotID = va.DepotID
     WHERE va.VehicleID = p_vehicle_id
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     ORDER BY va.StartDate DESC
     LIMIT 1;
 
@@ -609,19 +813,20 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         vc.CategoryName,
         d.Name AS DepotName
     FROM Vehicles v
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots d ON d.DepotID = v.DepotID
     WHERE v.OperationalStatus IN ('Available', 'Active')
         AND NOT EXISTS (
             SELECT 1 FROM VehicleAssignments va
             WHERE va.VehicleID = v.VehicleID
-                AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+                AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
         )
         AND (p_depot_id IS NULL OR v.DepotID = p_depot_id)
         AND (p_category_id IS NULL OR v.CategoryID = p_category_id)
@@ -650,26 +855,27 @@ BEGIN
     SELECT 
         va.AssignmentID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         CONCAT(dr.FirstName, ' ', dr.LastName) AS DriverName,
         dep.Name AS DepotName,
         va.StartDate,
         va.EndDate,
         va.IsPermanent,
         CASE 
-            WHEN va.EndDate IS NULL OR va.EndDate >= CURDATE() THEN 'Active'
+            WHEN va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE()) THEN 'Active'
             ELSE 'Completed'
         END AS Status,
         DATEDIFF(IF(va.EndDate IS NULL, CURDATE(), va.EndDate), va.StartDate) AS DurationDays
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Drivers dr ON dr.DriverID = va.DriverID
     JOIN Depots dep ON dep.DepotID = va.DepotID
     WHERE 
         (p_vehicle_id IS NULL OR va.VehicleID = p_vehicle_id)
         AND (p_driver_id IS NULL OR va.DriverID = p_driver_id)
     ORDER BY va.StartDate DESC
-    LIMIT 999999;
+    LIMIT p_limit;
 END$$
 DELIMITER ;
 
@@ -689,7 +895,7 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.CurrentOdometerReading,
         v.OperationalStatus,
         vc.CategoryName,
@@ -707,6 +913,7 @@ BEGIN
             ELSE 'Due Soon'
         END AS MaintenanceReason
     FROM Vehicles v
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots d ON d.DepotID = v.DepotID
     LEFT JOIN (
@@ -776,7 +983,7 @@ BEGIN
         'Current' AS Category,
         COUNT(*) AS Count
     FROM VehicleAssignments va
-    WHERE va.EndDate IS NULL OR va.EndDate >= CURDATE()
+    WHERE va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     
     UNION ALL
     
@@ -904,7 +1111,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- SAFETY OPS PROCEDURES — for safety operations management
+-- SAFETY OPS PROCEDURES â€” for safety operations management
 -- =====================================================================
 -- ROLE: SAFETY OPS
 -- These procedures support driver safety monitoring, coaching,
@@ -931,7 +1138,7 @@ BEGIN
         dr.DriverID,
         dr.FirstName,
         dr.LastName,
-        dr.ContactInformation,
+        dr.ContactPhoneNumber,
         dr.LicenceType,
         dr.LicenceExpiryDate,
         dr.EmploymentStatus,
@@ -959,7 +1166,7 @@ BEGIN
         FROM DriverSafetyScore
     ) latest_score ON latest_score.DriverID = dr.DriverID AND latest_score.rn = 1
     LEFT JOIN VehicleAssignments va ON va.DriverID = dr.DriverID 
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     LEFT JOIN Vehicles v ON v.VehicleID = va.VehicleID
     WHERE 
         (p_search_term IS NULL OR 
@@ -993,11 +1200,11 @@ BEGIN
         dr.DriverID,
         dr.FirstName,
         dr.LastName,
-        dr.ContactInformation,
+        dr.ContactPhoneNumber,
         dr.LicenceType,
         dr.LicenceExpiryDate,
         dr.EmploymentStatus,
-        dr.EmergencyContactDetails,
+        dr.EmergencyContactPhone,
         dep.Name AS DepotName,
         dep.DepotID,
         dep.City AS DepotCity,
@@ -1083,7 +1290,7 @@ BEGIN
         va.AssignmentID,
         v.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         vc.CategoryName,
         va.StartDate,
         va.EndDate,
@@ -1092,10 +1299,11 @@ BEGIN
         DATEDIFF(COALESCE(va.EndDate, CURDATE()), va.StartDate) AS AssignmentDurationDays
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots dep ON dep.DepotID = va.DepotID
     WHERE va.DriverID = p_driver_id
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     ORDER BY va.StartDate DESC
     LIMIT 1;
 
@@ -1128,7 +1336,7 @@ BEGIN
         dr.DriverID,
         dr.FirstName,
         dr.LastName,
-        dr.ContactInformation,
+        dr.ContactPhoneNumber,
         dr.EmploymentStatus,
         dep.Name AS DepotName,
         COALESCE(latest_score.FinalScore, 100) AS CurrentSafetyScore,
@@ -1140,7 +1348,7 @@ BEGIN
         CASE 
             WHEN dr.EmploymentStatus = 'Suspended' THEN 'Suspended by Admin'
             WHEN dr.EmploymentStatus = 'Inactive' THEN 'Inactive (Critical Event)'
-            WHEN latest_score.Suspended = TRUE THEN 'Suspended (Safety Score ≤ 50)'
+            WHEN latest_score.Suspended = TRUE THEN 'Suspended (Safety Score â‰¤ 50)'
             ELSE 'Unknown'
         END AS SuspensionReason
     FROM Drivers dr
@@ -1200,7 +1408,7 @@ BEGIN
         pa.AlertID,
         pa.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.OperationalStatus AS VehicleStatus,
         dep.Name AS DepotName,
         pa.AlertType,
@@ -1220,6 +1428,7 @@ BEGIN
         DATEDIFF(CURDATE(), DATE(pa.GeneratedAt)) AS DaysOpen
     FROM PredictiveAlert pa
     JOIN Vehicles v ON v.VehicleID = pa.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Depots dep ON dep.DepotID = v.DepotID
     LEFT JOIN MaintenanceJobs mj ON mj.AlertID = pa.AlertID
     WHERE 
@@ -1303,7 +1512,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- WORKSHOP MANAGER PROCEDURES — for maintenance operations management
+-- WORKSHOP MANAGER PROCEDURES â€” for maintenance operations management
 -- =====================================================================
 -- ROLE: WORKSHOP MANAGER
 -- These procedures support maintenance job tracking, parts inventory
@@ -1331,7 +1540,7 @@ BEGIN
         mj.JobID,
         mj.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         mj.WorkshopID,
         w.Name AS WorkshopName,
         mj.DateOpened,
@@ -1354,6 +1563,7 @@ BEGIN
         DATEDIFF(COALESCE(mj.DateClosed, CURDATE()), mj.DateOpened) AS DaysOpen
     FROM MaintenanceJobs mj
     JOIN Vehicles v ON v.VehicleID = mj.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Workshop w ON w.WorkshopID = mj.WorkshopID
     LEFT JOIN PredictiveAlert pa ON pa.AlertID = mj.AlertID
     LEFT JOIN MaintenanceActivity ma ON ma.JobID = mj.JobID
@@ -1361,8 +1571,8 @@ BEGIN
     WHERE 
         (p_vehicle_id IS NULL OR mj.VehicleID = p_vehicle_id)
         AND (p_workshop_id IS NULL OR mj.WorkshopID = p_workshop_id)
-        AND (p_date_from IS NULL OR DATE(mj.DateOpened) >= p_date_from)
-        AND (p_date_to IS NULL OR DATE(mj.DateOpened) <= p_date_to)
+        AND (p_date_from IS NULL OR mj.DateOpened >= p_date_from)
+        AND (p_date_to IS NULL OR mj.DateOpened < DATE_ADD(p_date_to, INTERVAL 1 DAY))
         AND (p_mechanic_id IS NULL OR am.MechanicID = p_mechanic_id)
         AND (
             p_status IS NULL OR
@@ -1375,7 +1585,7 @@ BEGIN
             (p_status = 'Closed' AND mj.DateClosed IS NOT NULL)
         )
     GROUP BY 
-        mj.JobID, mj.VehicleID, v.RegistrationNumber, v.Manufacturer, v.Model,
+        mj.JobID, mj.VehicleID, v.RegistrationNumber, vm.Manufacturer, vm.ModelName,
         mj.WorkshopID, w.Name, mj.DateOpened, mj.DateClosed, mj.OverallDowntime,
         mj.TotalCost, mj.AlertID, pa.AlertType, pa.Severity
     ORDER BY 
@@ -1401,7 +1611,7 @@ BEGIN
         mj.JobID,
         mj.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         mj.WorkshopID,
@@ -1425,6 +1635,7 @@ BEGIN
         END AS JobStatus
     FROM MaintenanceJobs mj
     JOIN Vehicles v ON v.VehicleID = mj.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Workshop w ON w.WorkshopID = mj.WorkshopID
     JOIN Depots dep ON dep.DepotID = w.DepotID
     LEFT JOIN PredictiveAlert pa ON pa.AlertID = mj.AlertID
@@ -1495,7 +1706,7 @@ BEGIN
         GROUP_CONCAT(p.PartNumber ORDER BY p.PartNumber SEPARATOR ', ') AS ClaimedParts
     FROM MaintenanceActivity ma
     LEFT JOIN WarrantyClaim wc ON wc.ActivityID = ma.ActivityID
-    LEFT JOIN WarrantyClaimParts wcp ON wcp.ClaimID = wc.ClaimID
+    LEFT JOIN WarrantyClaimPart wcp ON wcp.ClaimID = wc.ClaimID
     LEFT JOIN Part p ON p.PartID = wcp.PartID
     WHERE ma.JobID = p_job_id
         AND wc.ClaimID IS NOT NULL
@@ -1519,7 +1730,7 @@ BEGIN
     SELECT 
         mj.JobID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         w.Name AS WorkshopName,
         mj.DateOpened,
         mj.TotalCost,
@@ -1532,8 +1743,8 @@ BEGIN
         pa.AlertType,
         pa.Severity AS AlertSeverity,
         COUNT(DISTINCT ma.ActivityID) AS TotalActivities,
-        SUM(CASE WHEN ma.CompleteAt IS NOT NULL THEN 1 ELSE 0 END) AS CompletedActivities,
-        SUM(CASE WHEN ma.StartedAt IS NOT NULL AND ma.CompleteAt IS NULL THEN 1 ELSE 0 END) AS InProgressActivities,
+        COUNT(DISTINCT CASE WHEN ma.CompleteAt IS NOT NULL THEN ma.ActivityID END) AS CompletedActivities,
+        COUNT(DISTINCT CASE WHEN ma.StartedAt IS NOT NULL AND ma.CompleteAt IS NULL THEN ma.ActivityID END) AS InProgressActivities,
         COUNT(DISTINCT am.MechanicID) AS AssignedMechanics,
         COALESCE(SUM(am.LabourHours), 0) AS TotalLabourHours,
         DATEDIFF(CURDATE(), mj.DateOpened) AS DaysOpen,
@@ -1544,6 +1755,7 @@ BEGIN
         END AS TimelinessStatus
     FROM MaintenanceJobs mj
     JOIN Vehicles v ON v.VehicleID = mj.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Workshop w ON w.WorkshopID = mj.WorkshopID
     LEFT JOIN PredictiveAlert pa ON pa.AlertID = mj.AlertID
     LEFT JOIN MaintenanceActivity ma ON ma.JobID = mj.JobID
@@ -1552,7 +1764,7 @@ BEGIN
         mj.DateClosed IS NULL
         AND (p_workshop_id IS NULL OR mj.WorkshopID = p_workshop_id)
     GROUP BY 
-        mj.JobID, v.RegistrationNumber, v.Manufacturer, v.Model,
+        mj.JobID, v.RegistrationNumber, vm.Manufacturer, vm.ModelName,
         w.Name, mj.DateOpened, mj.TotalCost, pa.AlertType, pa.Severity
     ORDER BY 
         TimelinessStatus DESC,
@@ -1580,7 +1792,7 @@ BEGIN
         (p.ReorderThreshold - p.QuantityInStock) AS QuantityNeeded,
         s.SupplierID AS PrimarySupplierID,
         s.Name AS PrimarySupplierName,
-        s.ContactInfo AS SupplierContact,
+        s.ContactEmail AS SupplierContact,
         s.LeadTimeDays,
         sp.UnitCost AS SupplierCost,
         ((p.ReorderThreshold - p.QuantityInStock) * sp.UnitCost) AS EstimatedOrderCost,
@@ -1675,7 +1887,7 @@ BEGIN
             am.MechanicID,
             COUNT(DISTINCT am.ActivityID) AS CompletedActivities,
             SUM(am.LabourHours) AS TotalHoursLast30Days,
-            SUM(ma.IsRepeatFault) AS RepeatFaults
+            COUNT(DISTINCT CASE WHEN ma.IsRepeatFault = TRUE THEN ma.ActivityID END) AS RepeatFaults
         FROM ActivityMechanic am
         JOIN MaintenanceActivity ma ON ma.ActivityID = am.ActivityID
         WHERE ma.CompleteAt >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
@@ -1721,30 +1933,34 @@ BEGIN
         w.Name AS WorkshopName,
         dep.Name AS DepotName,
         w.NumBays,
-        -- Job statistics
-        COUNT(DISTINCT mj.JobID) AS TotalJobs,
-        SUM(CASE WHEN mj.DateClosed IS NULL THEN 1 ELSE 0 END) AS OpenJobs,
-        SUM(CASE WHEN mj.DateClosed IS NOT NULL THEN 1 ELSE 0 END) AS ClosedJobs,
-        -- Financial
-        COALESCE(SUM(mj.TotalCost), 0) AS TotalRevenue,
-        COALESCE(AVG(mj.TotalCost), 0) AS AvgJobCost,
-        -- Time metrics
-        COALESCE(AVG(CASE WHEN mj.DateClosed IS NOT NULL 
-                     THEN DATEDIFF(mj.DateClosed, mj.DateOpened) END), 0) AS AvgDaysToComplete,
-        COALESCE(SUM(mj.OverallDowntime), 0) AS TotalDowntimeHours,
-        -- Workforce
-        COUNT(DISTINCT m.MechanicID) AS TotalMechanics,
-        SUM(CASE WHEN m.EmploymentStatus = 'Active' THEN 1 ELSE 0 END) AS ActiveMechanics,
-        -- Capacity utilization
-        ROUND((SUM(CASE WHEN mj.DateClosed IS NULL THEN 1 ELSE 0 END) / w.NumBays) * 100, 2) AS BayUtilizationPercent
+        COALESCE(js.TotalJobs, 0) AS TotalJobs,
+        COALESCE(js.OpenJobs, 0) AS OpenJobs,
+        COALESCE(js.ClosedJobs, 0) AS ClosedJobs,
+        COALESCE(js.TotalRevenue, 0) AS TotalRevenue,
+        COALESCE(js.AvgJobCost, 0) AS AvgJobCost,
+        COALESCE(js.AvgDaysToComplete, 0) AS AvgDaysToComplete,
+        COALESCE(js.TotalDowntimeHours, 0) AS TotalDowntimeHours,
+        COALESCE(ms.TotalMechanics, 0) AS TotalMechanics,
+        COALESCE(ms.ActiveMechanics, 0) AS ActiveMechanics,
+        ROUND((COALESCE(js.OpenJobs, 0) / NULLIF(w.NumBays, 0)) * 100, 2) AS BayUtilizationPercent
     FROM Workshop w
     JOIN Depots dep ON dep.DepotID = w.DepotID
-    LEFT JOIN MaintenanceJobs mj ON mj.WorkshopID = w.WorkshopID
-    LEFT JOIN Mechanic m ON m.WorkshopID = w.WorkshopID
+    LEFT JOIN (
+        SELECT WorkshopID, COUNT(*) AS TotalJobs,
+               SUM(DateClosed IS NULL) AS OpenJobs, SUM(DateClosed IS NOT NULL) AS ClosedJobs,
+               SUM(TotalCost) AS TotalRevenue, AVG(TotalCost) AS AvgJobCost,
+               AVG(CASE WHEN DateClosed IS NOT NULL THEN DATEDIFF(DateClosed, DateOpened) END) AS AvgDaysToComplete,
+               SUM(OverallDowntime) AS TotalDowntimeHours
+        FROM MaintenanceJobs GROUP BY WorkshopID
+    ) js ON js.WorkshopID = w.WorkshopID
+    LEFT JOIN (
+        SELECT WorkshopID, COUNT(*) AS TotalMechanics,
+               SUM(EmploymentStatus = 'Active') AS ActiveMechanics
+        FROM Mechanic GROUP BY WorkshopID
+    ) ms ON ms.WorkshopID = w.WorkshopID
     WHERE 
         (p_workshop_id IS NULL OR w.WorkshopID = p_workshop_id)
-    GROUP BY 
-        w.WorkshopID, w.Name, dep.Name, w.NumBays;
+    ;
 END$$
 DELIMITER ;
 
@@ -1754,7 +1970,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- MECHANIC PROCEDURES — for individual mechanic operations
+-- MECHANIC PROCEDURES â€” for individual mechanic operations
 -- =====================================================================
 -- ROLE: MECHANIC
 -- These procedures provide row-scoped access to jobs and activities
@@ -1778,7 +1994,7 @@ BEGIN
         mj.JobID,
         mj.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         w.Name AS WorkshopName,
@@ -1816,6 +2032,7 @@ BEGIN
     JOIN MaintenanceActivity ma ON ma.ActivityID = am.ActivityID
     JOIN MaintenanceJobs mj ON mj.JobID = ma.JobID
     JOIN Vehicles v ON v.VehicleID = mj.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Workshop w ON w.WorkshopID = mj.WorkshopID
     JOIN ActivityType at ON at.ActivityTypeID = ma.ActivityTypeID
     LEFT JOIN PredictiveAlert pa ON pa.AlertID = mj.AlertID
@@ -1828,7 +2045,7 @@ BEGIN
             OR (mj.DateClosed IS NULL AND ma.CompleteAt IS NULL)
         )
     GROUP BY 
-        mj.JobID, mj.VehicleID, v.RegistrationNumber, v.Manufacturer, v.Model,
+        mj.JobID, mj.VehicleID, v.RegistrationNumber, vm.Manufacturer, vm.ModelName,
         v.YearOfManufacture, v.CurrentOdometerReading, w.Name, mj.DateOpened, 
         mj.DateClosed, ma.ActivityID, at.Name, ma.DiagnosticResult, 
         ma.IsRepeatFault, ma.StartedAt, ma.CompleteAt, am.LabourHours,
@@ -1876,7 +2093,7 @@ BEGIN
         mj.JobID,
         mj.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         vc.CategoryName AS VehicleCategory,
@@ -1894,6 +2111,7 @@ BEGIN
         END AS JobStatus
     FROM MaintenanceJobs mj
     JOIN Vehicles v ON v.VehicleID = mj.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Workshop w ON w.WorkshopID = mj.WorkshopID
     JOIN Depots dep ON dep.DepotID = w.DepotID
@@ -2072,8 +2290,8 @@ BEGIN
         COUNT(DISTINCT am.ActivityID) AS ActiveActivities,
         COUNT(DISTINCT ma.JobID) AS ActiveJobs,
         SUM(am.LabourHours) AS TotalActiveHours,
-        SUM(CASE WHEN ma.StartedAt IS NOT NULL AND ma.CompleteAt IS NULL THEN 1 ELSE 0 END) AS InProgressActivities,
-        SUM(CASE WHEN ma.StartedAt IS NULL THEN 1 ELSE 0 END) AS NotStartedActivities
+        COUNT(DISTINCT CASE WHEN ma.StartedAt IS NOT NULL AND ma.CompleteAt IS NULL THEN ma.ActivityID END) AS InProgressActivities,
+        COUNT(DISTINCT CASE WHEN ma.StartedAt IS NULL THEN ma.ActivityID END) AS NotStartedActivities
     FROM ActivityMechanic am
     JOIN MaintenanceActivity ma ON ma.ActivityID = am.ActivityID
     JOIN MaintenanceJobs mj ON mj.JobID = ma.JobID
@@ -2086,7 +2304,7 @@ BEGIN
         COUNT(DISTINCT am.ActivityID) AS CompletedActivities,
         SUM(am.LabourHours) AS TotalHours,
         COUNT(DISTINCT ma.JobID) AS JobsWorkedOn,
-        SUM(ma.IsRepeatFault) AS RepeatFaults,
+        COUNT(DISTINCT CASE WHEN ma.IsRepeatFault = TRUE THEN ma.ActivityID END) AS RepeatFaults,
         AVG(TIMESTAMPDIFF(HOUR, ma.StartedAt, ma.CompleteAt)) AS AvgHoursPerActivity
     FROM ActivityMechanic am
     JOIN MaintenanceActivity ma ON ma.ActivityID = am.ActivityID
@@ -2122,7 +2340,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- DRIVER PROCEDURES — for individual driver self-service operations
+-- DRIVER PROCEDURES â€” for individual driver self-service operations
 -- =====================================================================
 -- ROLE: DRIVER
 -- These procedures provide row-scoped read-only access to the driver's
@@ -2144,15 +2362,15 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        v.Model,
-        v.Manufacturer,
+        vm.ModelName AS Model,
+        vm.Manufacturer,
         v.YearOfManufacture,
         v.CurrentOdometerReading,
         v.OperationalStatus,
         vc.CategoryName AS VehicleCategory,
         dep.Name AS DepotName,
         dep.City AS DepotCity,
-        dep.Address AS DepotAddress,
+        CONCAT_WS(', ', dep.StreetAddress, dep.District, dep.City) AS DepotAddress,
         va.AssignmentID,
         va.StartDate AS AssignedSince,
         va.EndDate AS AssignmentEndDate,
@@ -2166,6 +2384,7 @@ BEGIN
         open_job.HasOpenMaintenanceJob
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots dep ON dep.DepotID = va.DepotID
     LEFT JOIN VehicleCertRequirement vcr ON vcr.CategoryID = v.CategoryID
@@ -2190,11 +2409,11 @@ BEGIN
     ) open_job ON open_job.VehicleID = v.VehicleID
     WHERE 
         va.DriverID = p_driver_id
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     GROUP BY 
-        v.VehicleID, v.RegistrationNumber, v.Model, v.Manufacturer,
+        v.VehicleID, v.RegistrationNumber, vm.ModelName, vm.Manufacturer,
         v.YearOfManufacture, v.CurrentOdometerReading, v.OperationalStatus,
-        vc.CategoryName, dep.Name, dep.City, dep.Address,
+        vc.CategoryName, dep.Name, dep.StreetAddress, dep.District, dep.City,
         va.AssignmentID, va.StartDate, va.EndDate, va.IsPermanent,
         recent_maint.LastMaintenanceDate, recent_maint.LastMaintenanceType,
         open_job.HasOpenMaintenanceJob
@@ -2221,11 +2440,11 @@ BEGIN
         dr.DriverID,
         dr.FirstName,
         dr.LastName,
-        dr.ContactInformation,
+        dr.ContactPhoneNumber,
         dr.LicenceType,
         dr.LicenceExpiryDate,
         dr.EmploymentStatus,
-        dr.EmergencyContactDetails,
+        dr.EmergencyContactPhone,
         dep.Name AS DepotName,
         dep.City AS DepotCity,
         dep.ContactPhone AS DepotContact,
@@ -2243,7 +2462,7 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         vc.CategoryName AS VehicleCategory,
         v.CurrentOdometerReading,
         v.OperationalStatus,
@@ -2252,9 +2471,10 @@ BEGIN
         DATEDIFF(CURDATE(), va.StartDate) AS AssignmentDays
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     WHERE va.DriverID = p_driver_id
-        AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
     LIMIT 1;
 
     -- Current safety score
@@ -2372,18 +2592,19 @@ BEGIN
     SELECT 
         va.AssignmentID,
         v.RegistrationNumber,
-        CONCAT(v.Manufacturer, ' ', v.Model) AS VehicleModel,
+        CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         dep.Name AS DepotName,
         va.StartDate,
         va.EndDate,
         va.IsPermanent,
         DATEDIFF(COALESCE(va.EndDate, CURDATE()), va.StartDate) AS DurationDays,
         CASE 
-            WHEN va.EndDate IS NULL OR va.EndDate >= CURDATE() THEN 'Current'
+            WHEN va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE()) THEN 'Current'
             ELSE 'Past'
         END AS Status
     FROM VehicleAssignments va
     JOIN Vehicles v ON v.VehicleID = va.VehicleID
+    JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN Depots dep ON dep.DepotID = va.DepotID
     WHERE va.DriverID = p_driver_id
     ORDER BY va.StartDate DESC
@@ -2393,14 +2614,14 @@ BEGIN
     SELECT 
         'Summary' AS MetricType,
         COUNT(DISTINCT se.EventID) AS TotalSafetyEvents,
-        SUM(CASE WHEN se.Severity = 'Critical' THEN 1 ELSE 0 END) AS CriticalEvents,
-        SUM(CASE WHEN se.Severity = 'High' THEN 1 ELSE 0 END) AS HighEvents,
+        COUNT(DISTINCT CASE WHEN se.Severity = 'Critical' THEN se.EventID END) AS CriticalEvents,
+        COUNT(DISTINCT CASE WHEN se.Severity = 'High' THEN se.EventID END) AS HighEvents,
         COUNT(DISTINCT cr.CoachingID) AS TotalCoachingSessions,
-        SUM(CASE WHEN cr.Outcome = 'Pending' THEN 1 ELSE 0 END) AS PendingCoaching,
-        SUM(CASE WHEN cr.Outcome = 'Passed' THEN 1 ELSE 0 END) AS PassedCoaching,
+        COUNT(DISTINCT CASE WHEN cr.Outcome = 'Pending' THEN cr.CoachingID END) AS PendingCoaching,
+        COUNT(DISTINCT CASE WHEN cr.Outcome = 'Passed' THEN cr.CoachingID END) AS PassedCoaching,
         COUNT(DISTINCT va.AssignmentID) AS TotalAssignments,
         COUNT(DISTINCT dc.DriverCertID) AS TotalCertifications,
-        SUM(CASE WHEN dc.ExpireDate < CURDATE() THEN 1 ELSE 0 END) AS ExpiredCertifications
+        COUNT(DISTINCT CASE WHEN dc.ExpireDate < CURDATE() THEN dc.DriverCertID END) AS ExpiredCertifications
     FROM Drivers dr
     LEFT JOIN SafetyEvents se ON se.DriverID = dr.DriverID
     LEFT JOIN CoachingRecord cr ON cr.DriverID = dr.DriverID
@@ -2432,10 +2653,10 @@ BEGIN
         -- Event counts (last 3 months)
         COUNT(DISTINCT CASE WHEN se.Timestamp >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) 
                             THEN se.EventID END) AS EventsLast3Months,
-        SUM(CASE WHEN se.Severity = 'Critical' AND se.Timestamp >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) 
-                 THEN 1 ELSE 0 END) AS CriticalEventsLast3Months,
-        SUM(CASE WHEN se.Severity = 'High' AND se.Timestamp >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) 
-                 THEN 1 ELSE 0 END) AS HighEventsLast3Months,
+        COUNT(DISTINCT CASE WHEN se.Severity = 'Critical' AND se.Timestamp >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            THEN se.EventID END) AS CriticalEventsLast3Months,
+        COUNT(DISTINCT CASE WHEN se.Severity = 'High' AND se.Timestamp >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                            THEN se.EventID END) AS HighEventsLast3Months,
         
         -- Coaching status
         COUNT(DISTINCT CASE WHEN cr.Outcome = 'Pending' THEN cr.CoachingID END) AS PendingCoachingSessions,
@@ -2443,10 +2664,10 @@ BEGIN
         
         -- Certifications
         COUNT(DISTINCT dc.DriverCertID) AS TotalCertifications,
-        SUM(CASE WHEN dc.ExpireDate IS NOT NULL AND dc.ExpireDate < CURDATE() 
-                 THEN 1 ELSE 0 END) AS ExpiredCertifications,
-        SUM(CASE WHEN dc.ExpireDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY) 
-                 THEN 1 ELSE 0 END) AS CertificationsExpiringSoon,
+        COUNT(DISTINCT CASE WHEN dc.ExpireDate IS NOT NULL AND dc.ExpireDate < CURDATE()
+                            THEN dc.DriverCertID END) AS ExpiredCertifications,
+        COUNT(DISTINCT CASE WHEN dc.ExpireDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 60 DAY)
+                            THEN dc.DriverCertID END) AS CertificationsExpiringSoon,
         
         -- Performance level
         CASE 
@@ -2497,7 +2718,7 @@ DELIMITER ;
 
 
 -- =====================================================================
--- SYSTEM/AUTHENTICATION PROCEDURES — Already Implemented
+-- SYSTEM/AUTHENTICATION PROCEDURES 
 -- =====================================================================
 -- ROLE: System (Authentication/Authorization)
 -- 
@@ -2522,33 +2743,33 @@ DELIMITER ;
 --    - Uses indexes: idx_ur_role, idx_ua_driver, idx_ua_mechanic, idx_ua_depot
 --
 -- AUTHENTICATION IMPLEMENTATION (in backend/api/auth.php):
--- ┌─────────────────────────────────────────────────────────────────┐
--- │ POST /api/auth.php?action=login                                 │
--- │   - Authenticates user with username/password                   │
--- │   - Rate limiting (5 attempts per 15 minutes per IP)            │
--- │   - Uses login_attempts table for brute-force protection        │
--- │   - Stores user session with permissions in $_SESSION           │
--- │   - Calls sp_get_user_permissions to load permission set        │
--- │                                                                   │
--- │ POST /api/auth.php?action=logout                                │
--- │   - Destroys user session                                       │
--- │                                                                   │
--- │ GET /api/auth.php?action=me                                     │
--- │   - Returns current user info and permissions                   │
--- └─────────────────────────────────────────────────────────────────┘
+-- 
+--  POST /api/auth.php?action=login                                 
+--    - Authenticates user with username/password                   
+--    - Rate limiting (5 attempts per 15 minutes per IP)            
+--    - Uses login_attempts table for brute-force protection        
+--    - Stores user session with permissions in $_SESSION           
+--    - Calls sp_get_user_permissions to load permission set        
+--                                                                    
+--  POST /api/auth.php?action=logout                                
+--    - Destroys user session                                       
+--                                                                    
+--  GET /api/auth.php?action=me                                     
+--    - Returns current user info and permissions                   
+-- 
 --
 -- AUTHORIZATION MIDDLEWARE (in backend/api/_bootstrap.php):
--- ┌─────────────────────────────────────────────────────────────────┐
--- │ requirePermission($table, $action)                              │
--- │   - Called before each API operation                            │
--- │   - Checks $_SESSION['permissions'] against requested action    │
--- │   - Returns 403 Forbidden if permission denied                  │
--- │   - Uses cached permissions (no DB query per request)           │
--- │                                                                   │
--- │ hasPermission($table, $action)                                  │
--- │   - Helper function to check permission                         │
--- │   - Returns boolean                                             │
--- └─────────────────────────────────────────────────────────────────┘
+-- 
+-- â”‚ requirePermission($table, $action)                              â”‚
+-- â”‚   - Called before each API operation                            â”‚
+-- â”‚   - Checks $_SESSION['permissions'] against requested action    â”‚
+-- â”‚   - Returns 403 Forbidden if permission denied                  â”‚
+-- â”‚   - Uses cached permissions (no DB query per request)           â”‚
+-- â”‚                                                                   â”‚
+-- â”‚ hasPermission($table, $action)                                  â”‚
+-- â”‚   - Helper function to check permission                         â”‚
+-- â”‚   - Returns boolean                                             â”‚
+-- 
 --
 -- USAGE EXAMPLE:
 --   // In any API endpoint (fleet.php, workshop.php, etc.):
@@ -2558,14 +2779,14 @@ DELIMITER ;
 --   requirePermission('Vehicles', 'DELETE');  // Check delete permission
 --
 -- SECURITY FEATURES:
---   ✓ Bcrypt password hashing (PASSWORD_DEFAULT)
---   ✓ Automatic hash rehashing when algorithm improves
---   ✓ Timing-safe username enumeration protection
---   ✓ Rate limiting (5 attempts / 15 minutes / IP)
---   ✓ Session-based authentication
---   ✓ Permission caching in session (no DB query per request)
---   ✓ Role-based access control (RBAC)
---   ✓ Table.Action granular permissions
+--   âœ“ Bcrypt password hashing (PASSWORD_DEFAULT)
+--   âœ“ Automatic hash rehashing when algorithm improves
+--   âœ“ Timing-safe username enumeration protection
+--   âœ“ Rate limiting (5 attempts / 15 minutes / IP)
+--   âœ“ Session-based authentication
+--   âœ“ Permission caching in session (no DB query per request)
+--   âœ“ Role-based access control (RBAC)
+--   âœ“ Table.Action granular permissions
 --
 -- NOTES:
 --   - No additional authentication procedures needed
@@ -2573,3 +2794,4 @@ DELIMITER ;
 --   - Permissions are loaded once at login and cached in session
 --   - requirePermission() is called before every sensitive operation
 -- =====================================================================
+

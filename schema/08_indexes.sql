@@ -1,155 +1,63 @@
--- =====================================================================
--- Smart Fleet Management Database — PERFORMANCE INDEXES
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 8 of 8. Run after all tables have been created (01–07).
--- =====================================================================
--- This file contains all non-unique secondary indexes extracted from
--- the table definitions for better maintainability and performance
--- tuning. These indexes support:
---   • Foreign key lookups and JOIN operations
---   • Status/enum filtering queries
---   • Date range queries
---   • Aggregate operations (COUNT, GROUP BY, etc.)
---
--- NOTE: Primary keys and unique constraints remain in their respective
--- table definition files (01–05) as they are part of the logical schema.
--- Only performance-oriented secondary indexes are extracted here.
--- =====================================================================
+USE smart_fleet_management;
 
-USE `smart_fleet_management`;
+CREATE INDEX idx_vehicles_status
+ON Vehicles (OperationalStatus);
 
--- =====================================================================
--- CORE FLEET DOMAIN INDEXES
--- =====================================================================
+CREATE INDEX idx_vdh_vehicle_dates
+ON VehiclesDepotHistory (VehicleID, MovedFrom, MovedTo);
 
--- Vehicles
-ALTER TABLE `Vehicles`
-    ADD INDEX `idx_vehicles_status` (`OperationalStatus`);
+CREATE INDEX idx_va_vehicle_dates
+ON VehicleAssignments (VehicleID, StartDate, EndDate);
 
--- VehiclesDepotHistory
-ALTER TABLE `VehiclesDepotHistory`
-    ADD INDEX `idx_vdh_vehicle` (`VehicleID`),
-    ADD INDEX `idx_vdh_depot` (`DepotID`);
+CREATE INDEX idx_va_driver_dates
+ON VehicleAssignments (DriverID, StartDate, EndDate);
 
--- VehicleAssignments
-ALTER TABLE `VehicleAssignments`
-    ADD INDEX `idx_va_vehicle` (`VehicleID`),
-    ADD INDEX `idx_va_driver` (`DriverID`),
-    ADD INDEX `idx_va_depot` (`DepotID`);
+CREATE INDEX idx_drivers_status
+ON Drivers (EmploymentStatus);
 
--- =====================================================================
--- DRIVER & SAFETY DOMAIN INDEXES
--- =====================================================================
+CREATE INDEX idx_dc_driver_cert_dates
+ON DriverCertifications
+    (DriverID, CertTypeID, IssueDate, ExpireDate);
 
--- Drivers
-ALTER TABLE `Drivers`
-    ADD INDEX `idx_drivers_depot` (`DepotID`),
-    ADD INDEX `idx_drivers_status` (`EmploymentStatus`),
-    ADD INDEX `idx_drivers_licexp` (`LicenceExpiryDate`);
+CREATE INDEX idx_se_driver_time
+ON SafetyEvents (DriverID, Timestamp);
 
--- DriverCertifications
-ALTER TABLE `DriverCertifications`
-    ADD INDEX `idx_dc_driver` (`DriverID`),
-    ADD INDEX `idx_dc_certtype` (`CertTypeID`),
-    ADD INDEX `idx_dc_expire` (`ExpireDate`);
+CREATE INDEX idx_se_vehicle_time
+ON SafetyEvents (VehicleID, Timestamp);
 
--- SafetyEvents
-ALTER TABLE `SafetyEvents`
-    ADD INDEX `idx_se_driver` (`DriverID`),
-    ADD INDEX `idx_se_vehicle` (`VehicleID`),
-    ADD INDEX `idx_se_depot` (`DepotID`),
-    ADD INDEX `idx_se_eventstype` (`EventsTypeID`),
-    ADD INDEX `idx_se_severity` (`Severity`),
-    ADD INDEX `idx_se_timestamp` (`Timestamp`);
+CREATE INDEX idx_se_severity
+ON SafetyEvents (Severity);
 
--- CoachingRecord
-ALTER TABLE `CoachingRecord`
-    ADD INDEX `idx_cr_driver` (`DriverID`),
-    ADD INDEX `idx_cr_event` (`EventID`),
-    ADD INDEX `idx_cr_score` (`ScoreID`);
+CREATE INDEX idx_cr_driver_outcome_date
+ON CoachingRecord (DriverID, Outcome, ScheduledDate);
 
--- =====================================================================
--- WORKSHOPS & PEOPLE DOMAIN INDEXES
--- =====================================================================
+CREATE INDEX idx_mc_mechanic_cert_dates
+ON MechanicCertification
+    (MechanicID, MecCertTypeID, IssueDate, ExpireDate);
 
--- Mechanic
-ALTER TABLE `Mechanic`
-    ADD INDEX `idx_mechanic_workshop` (`WorkshopID`);
+CREATE INDEX idx_pa_status_generated
+ON PredictiveAlert (Status, GeneratedAt);
 
--- MechanicCertification
-ALTER TABLE `MechanicCertification`
-    ADD INDEX `idx_mc_mechanic` (`MechanicID`),
-    ADD INDEX `idx_mc_certtype` (`MecCertTypeID`);
+CREATE INDEX idx_mj_vehicle_closed
+ON MaintenanceJobs (VehicleID, DateClosed);
 
--- =====================================================================
--- MAINTENANCE DOMAIN INDEXES
--- =====================================================================
+CREATE INDEX idx_mj_workshop_closed
+ON MaintenanceJobs (WorkshopID, DateClosed);
 
--- PredictiveAlert
-ALTER TABLE `PredictiveAlert`
-    ADD INDEX `idx_pa_vehicle` (`VehicleID`),
-    ADD INDEX `idx_pa_status` (`Status`);
+CREATE INDEX idx_mj_workshop_opened_closed
+ON MaintenanceJobs (WorkshopID, DateOpened, DateClosed);
 
--- MaintenanceJobs
-ALTER TABLE `MaintenanceJobs`
-    ADD INDEX `idx_mj_vehicle` (`VehicleID`),
-    ADD INDEX `idx_mj_workshop` (`WorkshopID`);
+CREATE INDEX idx_ma_job_dates
+ON MaintenanceActivity (JobID, StartedAt, CompleteAt);
 
--- MaintenanceActivity
-ALTER TABLE `MaintenanceActivity`
-    ADD INDEX `idx_ma_job` (`JobID`),
-    ADD INDEX `idx_ma_activitytype` (`ActivityTypeID`);
+CREATE INDEX idx_ma_complete
+ON MaintenanceActivity (CompleteAt);
 
--- ActivityMechanic
-ALTER TABLE `ActivityMechanic`
-    ADD INDEX `idx_am_mechanic` (`MechanicID`);
+CREATE INDEX idx_part_stock
+ON Part (QuantityInStock);
 
--- Part
-ALTER TABLE `Part`
-    ADD INDEX `idx_part_stock` (`QuantityInStock`);
+CREATE INDEX idx_sp_part_primary
+ON SupplyPart (PartID, IsPrimary);
 
--- SupplyPart
-ALTER TABLE `SupplyPart`
-    ADD INDEX `idx_sp_supplier` (`SupplierID`);
-
--- ActivityPart
-ALTER TABLE `ActivityPart`
-    ADD INDEX `idx_ap_part` (`PartID`);
-
--- WarrantyClaim
-ALTER TABLE `WarrantyClaim`
-    ADD INDEX `idx_wc_activity` (`ActivityID`);
-
--- WarrantyClaimParts
-ALTER TABLE `WarrantyClaimParts`
-    ADD INDEX `idx_wcp_part` (`PartID`);
-
--- =====================================================================
--- USER ROLE DOMAIN INDEXES
--- =====================================================================
-
--- UserAccount
-ALTER TABLE `UserAccount`
-    ADD INDEX `idx_ua_driver` (`DriverID`),
-    ADD INDEX `idx_ua_mechanic` (`MechanicID`),
-    ADD INDEX `idx_ua_depot` (`DepotID`);
-
--- UserRole
-ALTER TABLE `UserRole`
-    ADD INDEX `idx_ur_role` (`RoleID`);
-
--- RolePermission
-ALTER TABLE `RolePermission`
-    ADD INDEX `idx_rp_permission` (`PermissionID`);
-
--- =====================================================================
--- LOGIN TRACKING INDEXES
--- =====================================================================
-
--- login_attempts
-ALTER TABLE `login_attempts`
-    ADD INDEX `idx_la_ip_time` (`ip`, `attempted_at`);
-
--- =====================================================================
--- End of 08_indexes.sql
--- =====================================================================
+CREATE INDEX idx_la_ip_time
+ON login_attempts (ip, attempted_at);

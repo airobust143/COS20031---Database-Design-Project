@@ -1,25 +1,24 @@
+﻿-- =====================================================================
+-- Smart Fleet Management Database â€” CORE FLEET DOMAIN
+-- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
+-- File 1. Run in numeric order.
 -- =====================================================================
--- Smart Fleet Management Database — CORE FLEET DOMAIN
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 1 of 7. Run in numeric order (00 → 07). See 00_run_all.sql.
--- =====================================================================
--- Tables: Depots, VehiclesCategory, Vehicles, VehiclesDepotHistory,
+-- Tables: Depots, VehiclesCategory, VehicleModel, Vehicles, VehiclesDepotHistory,
 --         VehicleAssignments
 --
 -- NOTE ON LOAD ORDER / CROSS-DOMAIN FOREIGN KEYS:
 --   VehicleAssignments.DriverID references Drivers, which is defined in
---   02_driver_safety_schema.sql (a *later* file). This is intentional —
---   it mirrors the ERD, which places VehicleAssignments in the Core
+--   02_driver_safety_schema.sql (a *later* file). This is intentional: it mirrors the ERD, which places VehicleAssignments in the Core
 --   Fleet domain. FOREIGN_KEY_CHECKS=0 lets MySQL/MariaDB create the
 --   constraint before the referenced table exists; this has been
 --   verified to work (tables created out of order, checks re-enabled,
 --   constraint still enforces correctly once all files have loaded).
---   Do not INSERT real data until all seven files have been run.
+--   Do not INSERT real data until all schema table files (01-05) have run.
 --
 -- NOTE ON THE ELIGIBILITY TRIGGER:
---   sp_check_vehicle_assignment_eligibility (below) queries Drivers,
+--   sp_check_vehicle_assignment_eligibility queries Drivers,
 --   DriverCertifications, VehicleCertRequirement and DriverSafetyScore
---   — all defined in 02_driver_safety_schema.sql. MySQL/MariaDB does
+--   â€” all defined in 02_driver_safety_schema.sql. MySQL/MariaDB does
 --   NOT validate table existence inside trigger/procedure bodies at
 --   CREATE time (only at CALL/execution time), so this is safe as long
 --   as file 02 has been loaded before any row is ever inserted into
@@ -42,14 +41,15 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Depots
 -- ---------------------------------------------------------------------
 CREATE TABLE `Depots` (
-    `DepotID`      INT UNSIGNED    NOT NULL AUTO_INCREMENT,
-    `City`         VARCHAR(100)    NOT NULL,
-    `Address`      VARCHAR(255)    NOT NULL,
-    `Name`         VARCHAR(100)    NOT NULL,
-    `ContactPhone` VARCHAR(20)     NULL,
+    `DepotID`       INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Name`          VARCHAR(100) NOT NULL,
+    `StreetAddress` VARCHAR(150) NOT NULL,
+    `District`      VARCHAR(100) NOT NULL,
+    `City`          VARCHAR(100) NOT NULL,
+    `ContactPhone`  VARCHAR(20)  NULL,
     PRIMARY KEY (`DepotID`),
     UNIQUE KEY `uq_depots_name` (`Name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- VehiclesCategory (lookup)
@@ -59,7 +59,18 @@ CREATE TABLE `VehiclesCategory` (
     `CategoryName` VARCHAR(50)     NOT NULL,
     PRIMARY KEY (`CategoryID`),
     UNIQUE KEY `uq_vehiclescategory_name` (`CategoryName`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
+-- VehicleModel
+-- ---------------------------------------------------------------------
+CREATE TABLE `VehicleModel` (
+    `ModelID`      INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `ModelName`    VARCHAR(100) NOT NULL,
+    `Manufacturer` VARCHAR(100) NOT NULL,
+    PRIMARY KEY (`ModelID`),
+    UNIQUE KEY `uq_vehiclemodel_manufacturer_name` (`Manufacturer`, `ModelName`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- Vehicles
@@ -68,8 +79,7 @@ CREATE TABLE `Vehicles` (
     `VehicleID`              INT UNSIGNED   NOT NULL AUTO_INCREMENT,
     `RegistrationNumber`     VARCHAR(20)    NOT NULL,
     `CategoryID`             INT UNSIGNED   NOT NULL,
-    `Model`                  VARCHAR(100)   NOT NULL,
-    `Manufacturer`           VARCHAR(100)   NOT NULL,
+    `ModelID`                INT UNSIGNED   NOT NULL,   -- replaces Model + Manufacturer
     `YearOfManufacture`      YEAR           NOT NULL,
     `CurrentOdometerReading` INT UNSIGNED   NOT NULL DEFAULT 0,
     `DepotID`                INT UNSIGNED   NOT NULL,
@@ -81,10 +91,14 @@ CREATE TABLE `Vehicles` (
     CONSTRAINT `fk_vehicles_category`
         FOREIGN KEY (`CategoryID`) REFERENCES `VehiclesCategory` (`CategoryID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_vehicles_model`
+        FOREIGN KEY (`ModelID`) REFERENCES `VehicleModel` (`ModelID`)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_vehicles_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ---------------------------------------------------------------------
 -- VehiclesDepotHistory
@@ -105,7 +119,7 @@ CREATE TABLE `VehiclesDepotHistory` (
     CONSTRAINT `fk_vdh_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- VehicleAssignments
@@ -119,7 +133,10 @@ CREATE TABLE `VehicleAssignments` (
     `IsPermanent`  BOOLEAN      NOT NULL DEFAULT FALSE,
     `DepotID`      INT UNSIGNED NOT NULL,
     PRIMARY KEY (`AssignmentID`),
-    CONSTRAINT `chk_va_dates` CHECK (`EndDate` IS NULL OR `EndDate` >= `StartDate`),
+    CONSTRAINT `chk_va_dates` CHECK (
+        (`EndDate` IS NULL OR `EndDate` >= `StartDate`)
+        AND (`IsPermanent` = FALSE OR `EndDate` IS NULL)
+    ),
     CONSTRAINT `fk_va_vehicle`
         FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`)
         ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -129,10 +146,11 @@ CREATE TABLE `VehicleAssignments` (
     CONSTRAINT `fk_va_depot`
         FOREIGN KEY (`DepotID`) REFERENCES `Depots` (`DepotID`)
         ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
 -- End of 01_core_fleet_schema.sql
 -- =====================================================================
+
