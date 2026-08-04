@@ -39,23 +39,11 @@ if ($resource === 'kpis') {
 // ── MY ACTIVITIES ─────────────────────────────────────────────────────
 if ($resource === 'my_activities') {
     requirePermission('MaintenanceActivity', 'SELECT');
-    $stmt = $pdo->prepare("
-        SELECT ma.ActivityID, ma.JobID,
-               v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
-               at.Name AS ActivityType,
-               ma.DiagnosticResult, ma.IsRepeatFault,
-               ma.StartedAt, ma.CompleteAt,
-               am.LabourHours
-        FROM MaintenanceActivity ma
-        JOIN ActivityMechanic am  ON am.ActivityID=ma.ActivityID AND am.MechanicID=:mid
-        JOIN MaintenanceJobs mj   ON mj.JobID=ma.JobID
-        JOIN Vehicles v           ON v.VehicleID=mj.VehicleID
-        JOIN VehicleModel vm      ON vm.ModelID=v.ModelID
-        JOIN ActivityType at      ON at.ActivityTypeID=ma.ActivityTypeID
-        ORDER BY ma.StartedAt DESC, ma.ActivityID DESC
-    ");
-    $stmt->execute([':mid'=>$mechId]);
-    jsonOk($stmt->fetchAll());
+    $stmt = $pdo->prepare('CALL sp_get_mechanic_assigned_jobs(:mechanic, FALSE)');
+    $stmt->execute([':mechanic' => $mechId]);
+    $rows = $stmt->fetchAll();
+    $stmt->closeCursor();
+    jsonOk($rows);
 }
 
 // ── UPDATE OWN ACTIVITY (diagnostic result, repeat fault, timestamps) ─

@@ -52,27 +52,12 @@ if ($resource === 'kpis') {
 if ($resource === 'jobs') {
     requirePermission('MaintenanceJobs', 'SELECT');
     if ($method === 'GET') {
-        $where = ['1=1']; $params = [];
-        if (!empty($_GET['status'])) {
-            if ($_GET['status'] === 'Open')       $where[] = "mj.DateClosed IS NULL AND NOT EXISTS(SELECT 1 FROM MaintenanceActivity ma WHERE ma.JobID=mj.JobID AND ma.StartedAt IS NOT NULL)";
-            elseif ($_GET['status'] === 'In Progress') $where[] = "mj.DateClosed IS NULL AND EXISTS(SELECT 1 FROM MaintenanceActivity ma WHERE ma.JobID=mj.JobID AND ma.StartedAt IS NOT NULL)";
-            elseif ($_GET['status'] === 'Closed') $where[] = "mj.DateClosed IS NOT NULL";
-        }
-        $w = implode(' AND ', $where);
-        $rows = $pdo->query("
-            SELECT mj.JobID, v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
-                   ws.Name AS WorkshopName, mj.DateOpened, mj.DateClosed,
-                   mj.OverallDowntime, mj.TotalCost, mj.AlertID,
-                   CASE WHEN mj.DateClosed IS NOT NULL THEN 'Closed'
-                        WHEN EXISTS(SELECT 1 FROM MaintenanceActivity ma WHERE ma.JobID=mj.JobID AND ma.StartedAt IS NOT NULL) THEN 'In Progress'
-                        ELSE 'Open' END AS Status
-            FROM MaintenanceJobs mj
-            JOIN Vehicles v ON v.VehicleID=mj.VehicleID
-            JOIN VehicleModel vm ON vm.ModelID=v.ModelID
-            JOIN Workshop ws ON ws.WorkshopID=mj.WorkshopID
-            WHERE $w
-            ORDER BY mj.DateOpened DESC
-        ")->fetchAll();
+        $stmt = $pdo->prepare('CALL sp_search_maintenance_jobs(:status, NULL, NULL, NULL, NULL, NULL)');
+        $stmt->execute([':status' => ($_GET['status'] ?? '') ?: null]);
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
+        foreach ($rows as &$row) $row['Status'] = $row['JobStatus'];
+        unset($row);
         jsonOk($rows);
     }
     if ($method === 'POST') {
@@ -115,17 +100,13 @@ if ($resource === 'jobs') {
 if ($resource === 'alerts') {
     requirePermission('PredictiveAlert', 'SELECT');
     if ($method === 'GET') {
-        $where = '1=1'; $params = [];
-        if (!empty($_GET['status'])) { $where .= ' AND pa.Status=:st'; $params[':st']=$_GET['status']; }
-        $stmt = $pdo->prepare("
-            SELECT pa.AlertID, v.RegistrationNumber AS Vehicle, pa.AlertType,
-                   pa.Severity, pa.GeneratedAt, pa.Status, pa.ResolvedAt
-            FROM PredictiveAlert pa
-            JOIN Vehicles v ON v.VehicleID=pa.VehicleID
-            WHERE $where ORDER BY pa.GeneratedAt DESC
-        ");
-        $stmt->execute($params);
-        jsonOk($stmt->fetchAll());
+        $stmt = $pdo->prepare('CALL sp_list_predictive_alerts(NULL, :status, NULL)');
+        $stmt->execute([':status' => ($_GET['status'] ?? '') ?: null]);
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
+        foreach ($rows as &$row) $row['Vehicle'] = $row['RegistrationNumber'];
+        unset($row);
+        jsonOk($rows);
     }
     if ($method === 'PUT' && $id) {
         requirePermission('PredictiveAlert', 'UPDATE');
@@ -143,8 +124,14 @@ if ($resource === 'parts') {
     requirePermission('Part', 'SELECT');
     if ($method === 'GET') {
         $lowOnly = !empty($_GET['low_stock']);
-        $where = $lowOnly ? 'WHERE QuantityInStock <= ReorderThreshold' : '';
-        jsonOk($pdo->query("SELECT * FROM Part $where ORDER BY PartNumber")->fetchAll());
+        if ($lowOnly) {
+            $stmt = $pdo->prepare('CALL sp_low_stock_parts()');
+            $stmt->execute();
+            $rows = $stmt->fetchAll();
+            $stmt->closeCursor();
+            jsonOk($rows);
+        }
+        jsonOk($pdo->query('SELECT * FROM Part ORDER BY PartNumber')->fetchAll());
     }
     if ($method === 'POST') {
         requirePermission('Part', 'INSERT');

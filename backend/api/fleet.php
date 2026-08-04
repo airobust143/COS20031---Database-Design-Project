@@ -68,41 +68,13 @@ if ($resource === 'kpis') {
 if ($resource === 'vehicles') {
     requirePermission('Vehicles', 'SELECT');
     if ($method === 'GET') {
-        $filter = $_GET['filter'] ?? '';
-        $status = $_GET['status'] ?? '';
-        
-        $where = [];
-        $params = [];
-        if ($filter) {
-            $where[] = "(v.RegistrationNumber LIKE :filter OR vm.ModelName LIKE :filter OR vm.Manufacturer LIKE :filter OR d.Name LIKE :filter)";
-            $params[':filter'] = "%$filter%";
-        }
-        if ($status) {
-            $where[] = "v.OperationalStatus = :status";
-            $params[':status'] = $status;
-        }
-        
-        $sql = "
-            SELECT v.VehicleID, v.RegistrationNumber, v.CategoryID, v.ModelID, v.DepotID,
-                   vm.ModelName AS Model, vm.Manufacturer,
-                   v.YearOfManufacture, v.CurrentOdometerReading, v.OperationalStatus,
-                   vc.CategoryName, d.Name AS DepotName
-            FROM Vehicles v
-            JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
-            JOIN VehicleModel vm ON vm.ModelID = v.ModelID
-            JOIN Depots d ON d.DepotID = v.DepotID
-        ";
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-        $sql .= ' ORDER BY v.RegistrationNumber';
-        
-        $stmt = $pdo->prepare($sql);
-        foreach ($params as $k => $v) {
-            $stmt->bindValue($k, $v);
-        }
-        $stmt->execute();
+        $stmt = $pdo->prepare('CALL sp_search_vehicles(:status, NULL, NULL, :search, NULL)');
+        $stmt->execute([
+            ':status' => ($_GET['status'] ?? '') ?: null,
+            ':search' => ($_GET['filter'] ?? '') ?: null,
+        ]);
         $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
         jsonOk($rows);
     }
     if ($method === 'POST') {
@@ -193,17 +165,10 @@ if ($resource === 'depots') {
 if ($resource === 'assignments') {
     requirePermission('VehicleAssignments', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT va.AssignmentID, va.VehicleID, va.DriverID, va.DepotID, v.RegistrationNumber, CONCAT(vm.Manufacturer,' ',vm.ModelName) AS VehicleModel,
-                   CONCAT(dr.FirstName,' ',dr.LastName) AS DriverName,
-                   dep.Name AS DepotName, va.StartDate, va.EndDate, va.IsPermanent
-            FROM VehicleAssignments va
-            JOIN Vehicles v ON v.VehicleID=va.VehicleID
-            JOIN VehicleModel vm ON vm.ModelID=v.ModelID
-            JOIN Drivers dr ON dr.DriverID=va.DriverID
-            JOIN Depots dep ON dep.DepotID=va.DepotID
-            ORDER BY va.StartDate DESC
-        ")->fetchAll();
+        $stmt = $pdo->prepare('CALL sp_vehicle_assignment_history(NULL, NULL, :limit)');
+        $stmt->execute([':limit' => 500]);
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
         jsonOk($rows);
     }
     if ($method === 'POST') {
@@ -352,21 +317,10 @@ if ($resource === 'mechanics') {
 if ($resource === 'users') {
     requirePermission('UserAccount', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT ua.UserID, ua.Username, ua.IsActive,
-                   ua.DriverID, ua.MechanicID, ua.DepotID,
-                   r.RoleName,
-                   CONCAT(d.FirstName,' ',d.LastName) AS LinkedDriver,
-                   CONCAT(m.FirstName,' ',m.LastName) AS LinkedMechanic,
-                   dep.Name AS DepotName, ur.GrantedDate
-            FROM UserAccount ua
-            LEFT JOIN UserRole ur  ON ur.UserID  = ua.UserID
-            LEFT JOIN Role r       ON r.RoleID   = ur.RoleID
-            LEFT JOIN Drivers d    ON d.DriverID  = ua.DriverID
-            LEFT JOIN Mechanic m   ON m.MechanicID= ua.MechanicID
-            LEFT JOIN Depots dep   ON dep.DepotID  = ua.DepotID
-            ORDER BY ua.Username
-        ")->fetchAll();
+        $stmt = $pdo->prepare('CALL sp_list_users_by_role(NULL)');
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
         jsonOk($rows);
     }
     if ($method === 'POST') {

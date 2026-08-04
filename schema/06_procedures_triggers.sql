@@ -683,6 +683,9 @@ BEGIN
     SELECT 
         v.VehicleID,
         v.RegistrationNumber,
+        v.CategoryID,
+        v.ModelID,
+        v.DepotID,
         vm.ModelName AS Model,
         vm.Manufacturer,
         v.YearOfManufacture,
@@ -854,6 +857,9 @@ BEGIN
     
     SELECT 
         va.AssignmentID,
+        va.VehicleID,
+        va.DriverID,
+        va.DepotID,
         v.RegistrationNumber,
         CONCAT(vm.Manufacturer, ' ', vm.ModelName) AS VehicleModel,
         CONCAT(dr.FirstName, ' ', dr.LastName) AS DriverName,

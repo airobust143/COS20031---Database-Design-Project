@@ -183,18 +183,15 @@ if ($resource === 'coaching') {
 if ($resource === 'drivers') {
     requirePermission('Drivers', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT dr.DriverID, CONCAT(dr.FirstName,' ',dr.LastName) AS DriverName,
-                   dep.Name AS DepotName, dr.EmploymentStatus,
-                   COALESCE(s.FinalScore, 100) AS SafetyScore
-            FROM Drivers dr
-            JOIN Depots dep ON dep.DepotID=dr.DepotID
-            LEFT JOIN (
-                SELECT DriverID, FinalScore, ROW_NUMBER() OVER (PARTITION BY DriverID ORDER BY ScorePeriod DESC) rn
-                FROM DriverSafetyScore
-            ) s ON s.DriverID=dr.DriverID AND s.rn=1
-            ORDER BY dr.LastName
-        ")->fetchAll();
+        $stmt = $pdo->prepare('CALL sp_search_drivers(NULL, NULL, NULL, NULL, NULL)');
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
+        foreach ($rows as &$row) {
+            $row['DriverName'] = trim($row['FirstName'] . ' ' . $row['LastName']);
+            $row['SafetyScore'] = $row['CurrentSafetyScore'];
+        }
+        unset($row);
         jsonOk($rows);
     }
     jsonErr('Bad request');

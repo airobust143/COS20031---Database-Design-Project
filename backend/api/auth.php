@@ -152,19 +152,17 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ->execute([':h' => $newHash, ':id' => $user['UserID']]);
     }
 
-    // Load all permissions
-    $permStmt = $pdo->prepare("
-        SELECT DISTINCT p.TableName, p.Action
-        FROM UserRole ur
-        JOIN RolePermission rp ON ur.RoleID = rp.RoleID
-        JOIN Permission p      ON rp.PermissionID = p.PermissionID
-        WHERE ur.UserID = :uid
-    ");
+    // Load effective permissions through the database's RBAC procedure.
+    // Its first result set contains roles; its second contains permissions.
+    $permStmt = $pdo->prepare('CALL sp_get_user_permissions(:uid)');
     $permStmt->execute([':uid' => $user['UserID']]);
+    $permStmt->fetchAll();
+    $permStmt->nextRowset();
     $permissions = [];
     while ($perm = $permStmt->fetch()) {
         $permissions[$perm['TableName']][] = $perm['Action'];
     }
+    $permStmt->closeCursor();
 
     // Role display names
     $roleDisplayMap = [
