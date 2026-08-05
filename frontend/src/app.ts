@@ -276,15 +276,6 @@ function renderAppShell(root: HTMLElement): void {
       <span class="topbar-title" id="topbar-title">${cfg.nav[0]!.label}</span>
     </div>
     <div class="topbar-right">
-      <div class="topbar-search" role="search">
-        <span class="topbar-search-icon" aria-hidden="true">${icon('search', 15)}</span>
-        <input
-          class="topbar-search-input"
-          type="search"
-          placeholder="Search…"
-          aria-label="Search SmartFleet"
-        >
-      </div>
       <div class="topbar-user">
         <div class="topbar-avatar">${initials}</div>
         <div class="topbar-user-info">

@@ -342,18 +342,6 @@ body {
 }
 .topbar-title { font-size: 16px; font-weight: 700; color: var(--text-primary); letter-spacing: -.01em; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
-.topbar-search {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 6px 12px;
-}
-.topbar-search-icon { color: var(--text-muted); display: flex; }
-.topbar-search-input {
-  border: none; background: none; outline: none;
-  font-size: 13px; color: var(--text-primary);
-  font-family: var(--font); width: 170px;
-}
-.topbar-search-input::placeholder { color: var(--text-muted); }
 .topbar-user {
   display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--border); border-radius: var(--radius);
