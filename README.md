@@ -124,7 +124,6 @@ Open **http://localhost:5173** in your browser.
 - `safety_lead` / `safety_lead_pwd` - Safety Operations
 - `workshop_north` / `workshop_north_pwd` - Workshop Manager (Northern Branch)
 - `workshop_south` / `workshop_south_pwd` - Workshop Manager (Southern Branch)
-- `mechanic_lead` / `mechanic_lead_pwd` - Mechanic
 
 ### Backend API (Auto-loaded by Frontend)
 
