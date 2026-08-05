@@ -411,12 +411,20 @@ function wireTabSwitchers(container: HTMLElement): void {
 }
 
 // ── Delegated action handling ─────────────────────────────────────────
+const actionContainers = new WeakSet<HTMLElement>();
+
 function wireActions(container: HTMLElement, role: string): void {
-  container.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-action]');
-    if (!btn) return;
-    void handleAction(btn.dataset['action'] ?? '', btn.dataset['id'] ? Number(btn.dataset['id']) : undefined, role);
-  });
+  // The main content element survives navigation while its innerHTML is replaced.
+  // Only attach its delegated listener once, otherwise every navigation adds
+  // another handler and produces repeated confirmations/API requests.
+  if (!actionContainers.has(container)) {
+    container.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-action]');
+      if (!btn) return;
+      void handleAction(btn.dataset['action'] ?? '', btn.dataset['id'] ? Number(btn.dataset['id']) : undefined, role);
+    });
+    actionContainers.add(container);
+  }
   
   // Handle create user form submission
   const createUserForm = container.querySelector('#createUserForm') as HTMLFormElement;
