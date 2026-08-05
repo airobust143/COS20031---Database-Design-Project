@@ -1738,7 +1738,7 @@ INSERT INTO `UserAccount` (`UserID`, `Username`, `PasswordHash`, `IsActive`, `Dr
   (21, 'fleet_admin', '$2y$10$aH970r2oKMzOtZDmZ/Zqf.x05qijadNgHqMSjseZUYQ72XsYWHXC.', TRUE, NULL, NULL, NULL),
   (22, 'safety_lead', '$2y$10$39r.jxGaE/P9b4jdATOoLucWlMZJQdhtGgbV7IftIeJNWtCzEcmT6', TRUE, NULL, NULL, 1),
   (23, 'workshop_north', '$2y$10$UfUkKb3Dz.5/Y.ThB.Y8Y.nbgv3bGPgS.2paq4rFD/OEDkmrxFpie', TRUE, NULL, NULL, 2),
-  (24, 'workshop_south', '$2y$10$jKC9MGG/sJjoApP8Ot29P.UHTYYlpyO1QAy7eoB04wRksz3H1B0fa', TRUE, NULL, NULL, 3),
+  (24, 'workshop_south', '$2y$10$jKC9MGG/sJjoApP8Ot29P.UHTYYlpyO1QAy7eoB04wRksz3H1B0fa', TRUE, NULL, NULL, 3);
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`) VALUES
   (1, 5, '2025-01-01'),
@@ -1765,7 +1765,6 @@ INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`) VALUES
   (22, 2, '2025-01-01'),
   (23, 3, '2025-01-01'),
   (24, 3, '2025-01-01'),
-  (25, 4, '2025-06-01'),
   (21, 2, '2025-01-01'),
   (21, 3, '2025-01-01'),
   (22, 5, '2025-02-01'),
