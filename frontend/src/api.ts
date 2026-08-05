@@ -95,8 +95,8 @@ export interface ApiVehicle {
   CategoryName: string; DepotName: string;
 }
 export interface ApiDepot {
-  DepotID: number; Name: string; City: string;
-  Address: string; ContactPhone: string;
+  DepotID: number; Name: string; StreetAddress: string;
+  District: string; City: string; ContactPhone: string | null;
   VehicleCount: number; DriverCount: number;
 }
 export interface ApiAssignment {

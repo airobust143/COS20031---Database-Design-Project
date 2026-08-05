@@ -138,15 +138,21 @@ if ($resource === 'depots') {
     if ($method === 'POST') {
         requirePermission('Depots', 'INSERT');
         $b = readBody();
-        $pdo->prepare("INSERT INTO Depots (City,Address,Name,ContactPhone) VALUES (:city,:addr,:name,:ph)")
-            ->execute([':city'=>$b['City'],':addr'=>$b['Address'],':name'=>$b['Name'],':ph'=>$b['ContactPhone']??null]);
+        $pdo->prepare("INSERT INTO Depots (Name,StreetAddress,District,City,ContactPhone) VALUES (:name,:street,:district,:city,:ph)")
+            ->execute([
+                ':name'=>$b['Name'], ':street'=>$b['StreetAddress'], ':district'=>$b['District'],
+                ':city'=>$b['City'], ':ph'=>$b['ContactPhone']??null,
+            ]);
         jsonOk(['id' => (int)$pdo->lastInsertId()]);
     }
     if ($method === 'PUT' && $id) {
         requirePermission('Depots', 'UPDATE');
         $b = readBody();
-        $pdo->prepare("UPDATE Depots SET City=:city,Address=:addr,Name=:name,ContactPhone=:ph WHERE DepotID=:id")
-            ->execute([':city'=>$b['City'],':addr'=>$b['Address'],':name'=>$b['Name'],':ph'=>$b['ContactPhone']??null,':id'=>$id]);
+        $pdo->prepare("UPDATE Depots SET Name=:name,StreetAddress=:street,District=:district,City=:city,ContactPhone=:ph WHERE DepotID=:id")
+            ->execute([
+                ':name'=>$b['Name'], ':street'=>$b['StreetAddress'], ':district'=>$b['District'],
+                ':city'=>$b['City'], ':ph'=>$b['ContactPhone']??null, ':id'=>$id,
+            ]);
         jsonOk(['updated' => $id]);
     }
     if ($method === 'DELETE' && $id) {

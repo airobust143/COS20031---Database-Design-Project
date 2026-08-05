@@ -161,7 +161,7 @@ async function renderDepots(): Promise<string> {
               <button class="btn btn-danger btn-sm btn-icon" title="Delete" data-action="delete-depot" data-id="${d.DepotID}">${icon('trash',14)}</button>
             </div>
           </div>
-          <div class="text-sm text-muted" style="margin-bottom:6px">${d.Address}</div>
+          <div class="text-sm text-muted" style="margin-bottom:6px">${d.StreetAddress}, ${d.District}</div>
           <div class="text-sm text-muted" style="margin-bottom:14px">${d.ContactPhone ?? '—'}</div>
           <div class="flex gap-12">
             <div><div style="font-weight:700;font-size:18px">${d.VehicleCount}</div><div class="text-xs text-muted">Vehicles</div></div>

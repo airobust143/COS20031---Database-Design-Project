@@ -632,12 +632,20 @@ async function openRecordEditor(type: EditableRecordType, id?: number): Promise<
       DepotID: formNumber(form, 'DepotID'), OperationalStatus: formValue(form, 'OperationalStatus'),
     }, id);
   } else if (type === 'depot') {
-    const record = id ? depots.find(d => d.DepotID === id) : { Name: '', City: '', Address: '', ContactPhone: '' };
+    const record = id ? depots.find(d => d.DepotID === id) : {
+      Name: '', StreetAddress: '', District: '', City: '', ContactPhone: '',
+    };
     if (!record) throw new Error('Depot not found.');
     title = id ? 'Edit Depot' : 'Add Depot';
-    fields = input('Name', 'Depot name', record.Name) + input('City', 'City', record.City) +
-      input('Address', 'Address', record.Address) + input('ContactPhone', 'Contact phone', record.ContactPhone, 'tel', false);
-    save = async form => Fleet.saveDepot({ Name: formValue(form, 'Name'), City: formValue(form, 'City'), Address: formValue(form, 'Address'), ContactPhone: formValue(form, 'ContactPhone') || null }, id);
+    fields = input('Name', 'Depot name', record.Name) +
+      input('StreetAddress', 'Street address', record.StreetAddress) +
+      input('District', 'District', record.District) + input('City', 'City', record.City) +
+      input('ContactPhone', 'Contact phone', record.ContactPhone, 'tel', false);
+    save = async form => Fleet.saveDepot({
+      Name: formValue(form, 'Name'), StreetAddress: formValue(form, 'StreetAddress'),
+      District: formValue(form, 'District'), City: formValue(form, 'City'),
+      ContactPhone: formValue(form, 'ContactPhone') || null,
+    }, id);
   } else if (type === 'driver') {
     const record = id ? drivers.find(d => d.DriverID === id) : {
       FirstName: '', LastName: '', ContactInformation: '', DepotID: depots[0]?.DepotID ?? 0,
