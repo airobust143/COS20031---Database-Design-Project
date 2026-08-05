@@ -125,6 +125,10 @@ Open **http://localhost:5173** in your browser.
 - `workshop_north` / `workshop_north_pwd` - Workshop Manager (Northern Branch)
 - `workshop_south` / `workshop_south_pwd` - Workshop Manager (Southern Branch)
 
+**Driver/Mechanic users:**
+- Username: Driver/Mechanic ID (e.g. `driver01`, `mechanic02`)
+- Password: `driver_pwd` for drivers, `mechanic_pwd` for mechanics
+
 ### Backend API (Auto-loaded by Frontend)
 
 The frontend automatically proxies API requests to the PHP backend running on XAMPP.
