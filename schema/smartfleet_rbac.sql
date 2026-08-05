@@ -203,8 +203,8 @@ WHERE ua.Username = 'workshop_south' AND NOT EXISTS (SELECT 1 FROM UserRole ur W
 
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
-FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'fleet_admin'
-WHERE ua.Username = 'auditor' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
+FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'mechanic'
+WHERE ua.Username = 'mechanic_lead' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
 -- =====================================================================
 -- PART B — DATABASE-LEVEL RBAC (MariaDB 10.4 syntax)
@@ -279,27 +279,27 @@ CREATE USER IF NOT EXISTS 'fleet_admin'@'localhost'    IDENTIFIED BY 'fleet_admi
 CREATE USER IF NOT EXISTS 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
 CREATE USER IF NOT EXISTS 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
 CREATE USER IF NOT EXISTS 'workshop_south'@'localhost' IDENTIFIED BY 'workshop_south_pwd';
-CREATE USER IF NOT EXISTS 'auditor'@'localhost'        IDENTIFIED BY 'auditor_pwd';
+CREATE USER IF NOT EXISTS 'mechanic_lead'@'localhost'       IDENTIFIED BY 'mechanic_lead_pwd';
 
 ALTER USER 'fleet_admin'@'localhost'    IDENTIFIED BY 'fleet_admin_pwd';
 ALTER USER 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
 ALTER USER 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
 ALTER USER 'workshop_south'@'localhost' IDENTIFIED BY 'workshop_south_pwd';
-ALTER USER 'auditor'@'localhost'        IDENTIFIED BY 'auditor_pwd';
+ALTER USER 'mechanic_lead'@'localhost'       IDENTIFIED BY 'mechanic_lead_pwd';
 
 -- 4. Assign roles to users -------------------------------------------
 GRANT sf_fleet_admin  TO 'fleet_admin'@'localhost';
 GRANT sf_safety_ops   TO 'safety_lead'@'localhost';
 GRANT sf_workshop_mgr TO 'workshop_north'@'localhost';
 GRANT sf_workshop_mgr TO 'workshop_south'@'localhost';
-GRANT sf_fleet_admin  TO 'auditor'@'localhost';
+GRANT sf_mechanic     TO 'mechanic_lead'@'localhost';
 
 -- 5. Default roles (MariaDB: ONE role, ONE user per statement) --------
 SET DEFAULT ROLE sf_fleet_admin  FOR 'fleet_admin'@'localhost';
 SET DEFAULT ROLE sf_safety_ops   FOR 'safety_lead'@'localhost';
 SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_north'@'localhost';
 SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_south'@'localhost';
-SET DEFAULT ROLE sf_fleet_admin  FOR 'auditor'@'localhost';
+SET DEFAULT ROLE sf_mechanic     FOR 'mechanic_lead'@'localhost';
 
 -- REVOKE examples:
 -- REVOKE DELETE ON `smart_fleet_management`.`Part` FROM sf_workshop_mgr;
