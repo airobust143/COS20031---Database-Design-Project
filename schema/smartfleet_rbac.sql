@@ -181,6 +181,33 @@ WHERE r.RoleName = 'driver' AND p.Action = 'SELECT'
 -- This part links the application users in UserAccount to the roles defined above.
 -- It assumes you have already created these users in the UserAccount table.
 
+-- Link every seeded driver account (driver01-driver10) to the driver role.
+-- DriverID is used instead of the username pattern so the mapping remains
+-- correct if an account is renamed later.
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua
+JOIN `Role` r ON r.RoleName = 'driver'
+WHERE ua.DriverID IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM `UserRole` ur
+      WHERE ur.UserID = ua.UserID AND ur.RoleID = r.RoleID
+  );
+
+-- Link every seeded mechanic account (mechanic01-mechanic10) to the
+-- mechanic role.
+INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
+SELECT ua.UserID, r.RoleID, CURDATE()
+FROM `UserAccount` ua
+JOIN `Role` r ON r.RoleName = 'mechanic'
+WHERE ua.MechanicID IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1
+      FROM `UserRole` ur
+      WHERE ur.UserID = ua.UserID AND ur.RoleID = r.RoleID
+  );
+
 INSERT INTO `UserRole` (`UserID`, `RoleID`, `GrantedDate`)
 SELECT ua.UserID, r.RoleID, CURDATE()
 FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'fleet_admin'
