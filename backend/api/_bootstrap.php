@@ -42,6 +42,15 @@ $SESSION_USER = [
     'permissions'=> $_SESSION['permissions'] ?? [],
 ];
 
+// Activity-log actor context (read by schema/09_activity_log.sql triggers)
+$pdo->prepare('SET @sf_actor_id = ?, @sf_actor_username = ?, @sf_actor_role = ?, @sf_client_ip = ?, @sf_request_id = UUID()')
+    ->execute([
+        $_SESSION['user_id'] ?? null,
+        $_SESSION['username'] ?? null,
+        $_SESSION['role'] ?? null,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
+
 // ── Permission helper ─────────────────────────────────────────────────
 function hasPermission(string $table, string $action): bool {
     $perms = $_SESSION['permissions'][$table] ?? [];
