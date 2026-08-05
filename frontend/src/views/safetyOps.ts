@@ -99,9 +99,9 @@ ${kpis.pendingReview > 0 ? `
   <div id="stab-events" class="tab-panel active">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input class="form-control" placeholder="Search events…" style="width:200px">
-        <select class="form-control" style="width:140px">
-          <option>All Severities</option>
+        <input class="form-control" data-table-search="safety-events" placeholder="Search events…" style="width:200px">
+        <select class="form-control" data-table-filter="safety-events" data-filter-column="4" style="width:140px">
+          <option value="">All Severities</option>
           <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
         </select>
       </div>
@@ -115,7 +115,7 @@ ${kpis.pendingReview > 0 ? `
           <th>Timestamp</th><th>Driver</th><th>Vehicle</th>
           <th>Event Type</th><th>Severity</th><th>Review Status</th><th>Actions</th>
         </tr></thead>
-        <tbody>
+        <tbody data-table-body="safety-events">
           ${events.length === 0
             ? `<tr><td colspan="7"><div class="empty-state"><p>No safety events found.</p></div></td></tr>`
             : events.map(e => `
@@ -306,9 +306,9 @@ async function renderEvents(): Promise<string> {
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input class="form-control" placeholder="Search events…" style="width:200px">
-        <select class="form-control" style="width:140px">
-          <option>All Severities</option>
+        <input class="form-control" data-table-search="safety-events" placeholder="Search events…" style="width:200px">
+        <select class="form-control" data-table-filter="safety-events" data-filter-column="4" style="width:140px">
+          <option value="">All Severities</option>
           <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
         </select>
       </div>
@@ -319,7 +319,7 @@ async function renderEvents(): Promise<string> {
           <th>Timestamp</th><th>Driver</th><th>Vehicle</th>
           <th>Event Type</th><th>Severity</th><th>Review Status</th><th>Actions</th>
         </tr></thead>
-        <tbody>
+        <tbody data-table-body="safety-events">
           ${events.length === 0
             ? `<tr><td colspan="7"><div class="empty-state"><p>No safety events found.</p></div></td></tr>`
             : events.map(e => `

@@ -111,9 +111,9 @@ ${kpis.newAlerts > 0 ? `
   <div id="wtab-jobs" class="tab-panel active">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input class="form-control" placeholder="Search jobs…" style="width:200px">
-        <select class="form-control" style="width:150px">
-          <option>All Statuses</option><option>Open</option>
+        <input class="form-control" data-table-search="workshop-jobs" placeholder="Search jobs…" style="width:200px">
+        <select class="form-control" data-table-filter="workshop-jobs" data-filter-column="5" style="width:150px">
+          <option value="">All Statuses</option><option>Open</option>
           <option>In Progress</option><option>Closed</option>
         </select>
       </div>
@@ -128,7 +128,7 @@ ${kpis.newAlerts > 0 ? `
           <th>Job ID</th><th>Vehicle</th><th>Workshop</th>
           <th>Opened</th><th>Closed</th><th>Status</th><th>Cost</th><th>Alert</th>
         </tr></thead>
-        <tbody>
+        <tbody data-table-body="workshop-jobs">
           ${jobs.length === 0
             ? `<tr><td colspan="8"><div class="empty-state"><p>No jobs found.</p></div></td></tr>`
             : jobs.map(j => `
@@ -322,9 +322,9 @@ async function renderJobs(): Promise<string> {
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input class="form-control" placeholder="Search jobs…" style="width:200px">
-        <select class="form-control" style="width:150px">
-          <option>All Statuses</option><option>Open</option>
+        <input class="form-control" data-table-search="workshop-jobs" placeholder="Search jobs…" style="width:200px">
+        <select class="form-control" data-table-filter="workshop-jobs" data-filter-column="5" style="width:150px">
+          <option value="">All Statuses</option><option>Open</option>
           <option>In Progress</option><option>Closed</option>
         </select>
       </div>
@@ -339,7 +339,7 @@ async function renderJobs(): Promise<string> {
           <th>Job ID</th><th>Vehicle</th><th>Workshop</th>
           <th>Opened</th><th>Closed</th><th>Status</th><th>Cost</th><th>Alert</th>
         </tr></thead>
-        <tbody>
+        <tbody data-table-body="workshop-jobs">
           ${jobs.length === 0
             ? `<tr><td colspan="8"><div class="empty-state"><p>No jobs found.</p></div></td></tr>`
             : jobs.map(j => `

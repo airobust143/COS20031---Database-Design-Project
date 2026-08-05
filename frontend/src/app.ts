@@ -331,6 +331,7 @@ function renderAppShell(root: HTMLElement): void {
         ${html}`;
       wireTabSwitchers(mainContent);
       wireActions(mainContent, currentUser!.role);
+      wireTableFilters(mainContent);
       // Wire vehicle filters if on vehicles page
       if (currentUser!.role === 'fleet_admin' && navId === 'vehicles') {
         wireVehicleFilters(mainContent);
@@ -402,6 +403,54 @@ function wireTabSwitchers(container: HTMLElement): void {
 }
 
 // ── Delegated action handling ─────────────────────────────────────────
+// Wire declarative search fields and optional select filters to their tables.
+function wireTableFilters(container: HTMLElement): void {
+  container.querySelectorAll<HTMLInputElement>('[data-table-search]').forEach(searchInput => {
+    const tableId = searchInput.dataset['tableSearch'];
+    if (!tableId) return;
+
+    const scope = searchInput.closest<HTMLElement>('.tab-panel, .card-body') ?? container;
+    const tbody = scope.querySelector<HTMLTableSectionElement>(`tbody[data-table-body="${tableId}"]`);
+    const select = scope.querySelector<HTMLSelectElement>(`select[data-table-filter="${tableId}"]`);
+    if (!tbody) return;
+
+    const dataRows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'))
+      .filter(row => !row.querySelector('.empty-state'));
+    if (dataRows.length === 0) return;
+
+    const applyFilters = (): void => {
+      tbody.querySelector('[data-filter-empty]')?.remove();
+
+      const searchTerm = searchInput.value.trim().toLocaleLowerCase();
+      const selectedValue = select?.value.trim().toLocaleLowerCase() ?? '';
+      const filterColumn = Number(select?.dataset['filterColumn'] ?? -1);
+      let visibleRows = 0;
+
+      dataRows.forEach(row => {
+        const matchesSearch = !searchTerm || (row.textContent ?? '').toLocaleLowerCase().includes(searchTerm);
+        const cellValue = filterColumn >= 0
+          ? (row.cells[filterColumn]?.textContent ?? '').trim().toLocaleLowerCase()
+          : '';
+        const matchesSelect = !selectedValue || cellValue === selectedValue;
+        const visible = matchesSearch && matchesSelect;
+        row.hidden = !visible;
+        if (visible) visibleRows += 1;
+      });
+
+      if (visibleRows === 0) {
+        const emptyRow = tbody.insertRow();
+        emptyRow.dataset['filterEmpty'] = 'true';
+        const cell = emptyRow.insertCell();
+        cell.colSpan = tbody.closest('table')?.querySelectorAll('thead th').length ?? 1;
+        cell.innerHTML = '<div class="empty-state"><p>No matching records found.</p></div>';
+      }
+    };
+
+    searchInput.addEventListener('input', applyFilters);
+    select?.addEventListener('change', applyFilters);
+  });
+}
+
 const actionContainers = new WeakSet<HTMLElement>();
 
 function wireActions(container: HTMLElement, role: string): void {
