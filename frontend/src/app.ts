@@ -8,7 +8,7 @@ import type { AuthUser } from './api.ts';
 import { Auth, ApiError, Fleet, Safety, Workshop } from './api.ts';
 import { icon, NAV_ICONS } from './icons.ts';
 import { renderFleetAdmin, wireVehicleFilters, wireDriverFilters }      from './views/fleetAdmin.ts';
-import { renderSafetyOps }       from './views/safetyOps.ts';
+import { renderSafetyOps, wireSafetyScorePeriods } from './views/safetyOps.ts';
 import { renderWorkshopManager } from './views/workshopManager.ts';
 import { renderMechanic }        from './views/mechanic.ts';
 import { renderDriver }          from './views/driver.ts';
@@ -332,6 +332,7 @@ function renderAppShell(root: HTMLElement): void {
       wireTabSwitchers(mainContent);
       wireActions(mainContent, currentUser!.role);
       wireTableFilters(mainContent);
+      if (currentUser!.role === 'safety_ops') wireSafetyScorePeriods(mainContent);
       // Wire vehicle filters if on vehicles page
       if (currentUser!.role === 'fleet_admin' && navId === 'vehicles') {
         wireVehicleFilters(mainContent);

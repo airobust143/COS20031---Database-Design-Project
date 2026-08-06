@@ -35,21 +35,58 @@ export async function renderSafetyOps(navId: string): Promise<string> {
   }
 }
 
+export function wireSafetyScorePeriods(container: HTMLElement): void {
+  container.querySelectorAll<HTMLSelectElement>('[data-score-period]').forEach(select => {
+    select.addEventListener('change', async () => {
+      const scope = select.closest<HTMLElement>('.tab-panel, .card') ?? container;
+      const tbody = scope.querySelector<HTMLTableSectionElement>('[data-score-rows]');
+      if (!tbody) return;
+      select.disabled = true;
+      try {
+        const scores = await Safety.scores(select.value);
+        tbody.innerHTML = renderScoreRows(scores);
+      } catch (error) {
+        tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><p>Could not load scores: ${String(error)}</p></div></td></tr>`;
+      } finally {
+        select.disabled = false;
+      }
+    });
+  });
+}
+
+function renderScoreRows(scores: Awaited<ReturnType<typeof Safety.scores>>): string {
+  if (scores.length === 0) {
+    return `<tr><td colspan="9"><div class="empty-state"><p>No scores for this period.</p></div></td></tr>`;
+  }
+  return scores.map(s => `
+    <tr>
+      <td><strong>${s.DriverName}</strong></td>
+      <td><div class="score-circle ${scoreClass(Number(s.FinalScore))}" style="width:40px;height:40px;font-size:13px">${s.FinalScore}</div></td>
+      <td class="text-muted">−${s.DeductedPoints}</td>
+      <td><span class="badge badge-green">${s.LowCount}</span></td>
+      <td><span class="badge badge-yellow">${s.MediumCount}</span></td>
+      <td><span class="badge badge-orange">${s.HighCount}</span></td>
+      <td><span class="badge badge-red">${s.CriticalCount}</span></td>
+      <td>${Number(s.CoachingRequired) ? '<span class="badge badge-orange">Required</span>' : '<span class="badge badge-gray">No</span>'}</td>
+      <td>${Number(s.Suspended) ? '<span class="badge badge-red">Yes</span>' : '<span class="badge badge-gray">No</span>'}</td>
+    </tr>`).join('');
+}
+
 // ============================================================
 // Dashboard — Full overview with KPIs and tabs
 // ============================================================
 async function renderDashboard(): Promise<string> {
-  const [kpis, events, reviewQueue, scores, coaching, drivers, periods] = await Promise.all([
+  const [kpis, events, reviewQueue, coaching, drivers, periods] = await Promise.all([
     Safety.kpis(),
     Safety.events(),
     Safety.reviewQueue(),
-    Safety.scores(),
     Safety.coaching(),
     Safety.drivers(),
     Safety.lookupPeriods(),
   ]);
 
   const currentPeriod = periods[0]?.ScorePeriod ?? '';
+  const scores = currentPeriod ? await Safety.scores(currentPeriod) : [];
 
   return `
 <div class="kpi-grid">
@@ -187,8 +224,8 @@ ${kpis.pendingReview > 0 ? `
   <div id="stab-scores" class="tab-panel">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <select class="form-control" style="width:150px">
-          ${periods.map(p => `<option${p.ScorePeriod === currentPeriod ? ' selected' : ''}>${p.ScorePeriod}</option>`).join('')}
+        <select class="form-control" style="width:150px" data-score-period>
+          ${periods.map(p => `<option value="${p.ScorePeriod}"${p.ScorePeriod === currentPeriod ? ' selected' : ''}>${p.ScorePeriod}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -199,7 +236,7 @@ ${kpis.pendingReview > 0 ? `
           <th>Low</th><th>Med</th><th>High</th><th>Crit</th>
           <th>Coaching</th><th>Suspended</th>
         </tr></thead>
-        <tbody>
+        <tbody data-score-rows>
           ${scores.length === 0
             ? `<tr><td colspan="9"><div class="empty-state"><p>No scores for this period.</p></div></td></tr>`
             : scores.map(s => `
@@ -417,12 +454,9 @@ ${reviewQueue.length === 0
 // Driver Scores Page — Scores only
 // ============================================================
 async function renderScores(): Promise<string> {
-  const [scores, periods] = await Promise.all([
-    Safety.scores(),
-    Safety.lookupPeriods(),
-  ]);
-
+  const periods = await Safety.lookupPeriods();
   const currentPeriod = periods[0]?.ScorePeriod ?? '';
+  const scores = currentPeriod ? await Safety.scores(currentPeriod) : [];
 
   return `
 <div class="card">
@@ -435,8 +469,8 @@ async function renderScores(): Promise<string> {
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <select class="form-control" style="width:150px">
-          ${periods.map(p => `<option${p.ScorePeriod === currentPeriod ? ' selected' : ''}>${p.ScorePeriod}</option>`).join('')}
+        <select class="form-control" style="width:150px" data-score-period>
+          ${periods.map(p => `<option value="${p.ScorePeriod}"${p.ScorePeriod === currentPeriod ? ' selected' : ''}>${p.ScorePeriod}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -447,7 +481,7 @@ async function renderScores(): Promise<string> {
           <th>Low</th><th>Med</th><th>High</th><th>Crit</th>
           <th>Coaching</th><th>Suspended</th>
         </tr></thead>
-        <tbody>
+        <tbody data-score-rows>
           ${scores.length === 0
             ? `<tr><td colspan="9"><div class="empty-state"><p>No scores for this period.</p></div></td></tr>`
             : scores.map(s => `
