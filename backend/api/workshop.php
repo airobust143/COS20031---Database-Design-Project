@@ -131,7 +131,12 @@ if ($resource === 'parts') {
             $stmt->closeCursor();
             jsonOk($rows);
         }
-        jsonOk($pdo->query('SELECT * FROM Part ORDER BY PartNumber')->fetchAll());
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_search_parts(:search_term, NULL, FALSE)',
+            [':search_term' => ($_GET['search'] ?? '') ?: null]
+        )[0] ?? [];
+        jsonOk($rows);
     }
     if ($method === 'POST') {
         requirePermission('Part', 'INSERT');

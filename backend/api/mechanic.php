@@ -22,18 +22,20 @@ if (!$mechId) jsonErr('This account is not linked to a mechanic record.', 403);
 // ── KPIs ─────────────────────────────────────────────────────────────
 if ($resource === 'kpis') {
     requirePermission('MaintenanceActivity', 'SELECT');
-    $stmt = $pdo->prepare("
-        SELECT
-            COUNT(*)                                               AS total,
-            SUM(ma.CompleteAt IS NOT NULL)                         AS completed,
-            SUM(ma.StartedAt IS NOT NULL AND ma.CompleteAt IS NULL) AS inProgress,
-            SUM(ma.IsRepeatFault)                                  AS repeatFaults,
-            COALESCE(SUM(am.LabourHours),0)                        AS totalHours
-        FROM MaintenanceActivity ma
-        JOIN ActivityMechanic am ON am.ActivityID=ma.ActivityID AND am.MechanicID=:mid
-    ");
-    $stmt->execute([':mid'=>$mechId]);
-    jsonOk($stmt->fetch());
+    $sets = callProcedure(
+        $pdo,
+        'CALL sp_get_mechanic_workload_summary(:mechanic_id)',
+        [':mechanic_id' => $mechId]
+    );
+    $workload = $sets[1][0] ?? [];
+    $performance = $sets[2][0] ?? [];
+    jsonOk([
+        'total' => (int)($workload['ActiveActivities'] ?? 0),
+        'completed' => (int)($performance['CompletedActivities'] ?? 0),
+        'inProgress' => (int)($workload['InProgressActivities'] ?? 0),
+        'repeatFaults' => (int)($performance['RepeatFaults'] ?? 0),
+        'totalHours' => (float)($performance['TotalHours'] ?? 0),
+    ]);
 }
 
 // ── MY ACTIVITIES ─────────────────────────────────────────────────────

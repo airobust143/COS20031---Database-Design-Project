@@ -50,17 +50,25 @@ function resolveVehicleModel(PDO $pdo, string $model, string $manufacturer): int
 // -- KPIs -- //
 if ($resource === 'kpis') {
     requirePermission('Vehicles', 'SELECT');
+    $summaryRows = callProcedure($pdo, 'CALL sp_fleet_summary_counts()')[0] ?? [];
+    $summary = [];
+    foreach ($summaryRows as $row) {
+        $summary[$row['MetricType']][$row['Category']] = (int)$row['Count'];
+    }
+    $vehicleStatus = $summary['VehiclesByStatus'] ?? [];
+    $driverStatus = $summary['DriversByStatus'] ?? [];
+    $jobStatus = $summary['MaintenanceJobs'] ?? [];
     jsonOk([
-        'totalVehicles'   => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles")->fetchColumn(),
-        'operational'     => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles WHERE OperationalStatus IN ('Active','Available')")->fetchColumn(),
-        'underMaint'      => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles WHERE OperationalStatus='Under Maintenance'")->fetchColumn(),
-        'totalDrivers'    => (int)$pdo->query("SELECT COUNT(*) FROM Drivers")->fetchColumn(),
-        'activeDrivers'   => (int)$pdo->query("SELECT COUNT(*) FROM Drivers WHERE EmploymentStatus='Active'")->fetchColumn(),
+        'totalVehicles'   => array_sum($vehicleStatus),
+        'operational'     => (int)($vehicleStatus['Active'] ?? 0) + (int)($vehicleStatus['Available'] ?? 0),
+        'underMaint'      => (int)($vehicleStatus['Under Maintenance'] ?? 0),
+        'totalDrivers'    => array_sum($driverStatus),
+        'activeDrivers'   => (int)($driverStatus['Active'] ?? 0),
         'totalMechanics'  => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic")->fetchColumn(),
         'activeMechanics' => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic WHERE EmploymentStatus='Active'")->fetchColumn(),
         'totalDepots'     => (int)$pdo->query("SELECT COUNT(*) FROM Depots")->fetchColumn(),
-        'openJobs'        => (int)$pdo->query("SELECT COUNT(*) FROM MaintenanceJobs WHERE DateClosed IS NULL")->fetchColumn(),
-        'activeAssignments' => (int)$pdo->query("SELECT COUNT(*) FROM VehicleAssignments WHERE EndDate IS NULL OR EndDate >= CURDATE()")->fetchColumn(),
+        'openJobs'        => (int)($jobStatus['Open'] ?? 0) + (int)($jobStatus['In Progress'] ?? 0),
+        'activeAssignments' => (int)($summary['ActiveAssignments']['Current'] ?? 0),
     ]);
 }
 
@@ -416,11 +424,11 @@ if ($resource === 'recent_jobs') {
 // -- VEHICLE STATUS BREAKDOWN -- //
 if ($resource === 'vehicle_status_breakdown') {
     requirePermission('Vehicles', 'SELECT');
-    $rows = $pdo->query("
-        SELECT OperationalStatus AS status, COUNT(*) AS count
-        FROM Vehicles
-        GROUP BY OperationalStatus
-    ")->fetchAll();
+    $summaryRows = callProcedure($pdo, 'CALL sp_fleet_summary_counts()')[0] ?? [];
+    $rows = array_map(
+        fn(array $row) => ['status' => $row['Category'], 'count' => (int)$row['Count']],
+        array_values(array_filter($summaryRows, fn(array $row) => $row['MetricType'] === 'VehiclesByStatus'))
+    );
     jsonOk($rows);
 }
 

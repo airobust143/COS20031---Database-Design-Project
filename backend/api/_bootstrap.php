@@ -75,6 +75,20 @@ function requirePermission(string $table, string $action): void {
     }
 }
 
+/** Execute a read-only procedure and consume every result set. */
+function callProcedure(PDO $pdo, string $sql, array $parameters = []): array {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($parameters);
+    $resultSets = [];
+    do {
+        if ($stmt->columnCount() > 0) {
+            $resultSets[] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } while ($stmt->nextRowset());
+    $stmt->closeCursor();
+    return $resultSets;
+}
+
 // ── Read JSON body ────────────────────────────────────────────────────
 function readBody(): array {
     $raw = file_get_contents('php://input');
