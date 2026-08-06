@@ -24,6 +24,7 @@ const files = [
     '07_login_attempts.sql',
     '08_indexes.sql',
     'smartfleet_rbac.sql',
+    '09_activity_log.sql',
 ];
 
 // Locate mysql executable
