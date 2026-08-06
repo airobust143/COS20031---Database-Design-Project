@@ -118,7 +118,6 @@ ${kpis.newAlerts > 0 ? `
         </select>
       </div>
       <div class="action-row-right">
-        <button class="btn btn-secondary btn-sm">${icon('export',14)} Export</button>
         <button class="btn btn-primary btn-sm">${icon('plus',14)} New Job</button>
       </div>
     </div>
@@ -329,7 +328,6 @@ async function renderJobs(): Promise<string> {
         </select>
       </div>
       <div class="action-row-right">
-        <button class="btn btn-secondary btn-sm">${icon('export',14)} Export</button>
         <button class="btn btn-primary btn-sm">${icon('plus',14)} New Job</button>
       </div>
     </div>

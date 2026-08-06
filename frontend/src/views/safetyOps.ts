@@ -142,9 +142,6 @@ ${kpis.pendingReview > 0 ? `
           <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
         </select>
       </div>
-      <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} Log Safety Event</button>
-      </div>
     </div>
     <div class="table-wrap">
       <table>
@@ -261,7 +258,7 @@ ${kpis.pendingReview > 0 ? `
   <div id="stab-coaching" class="tab-panel">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} New Coaching Record</button>
+        <button class="btn btn-primary btn-sm" data-action="add-coaching">${icon('plus',14)} New Coaching Record</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -338,7 +335,6 @@ async function renderEvents(): Promise<string> {
       <h2>Safety Events</h2>
       <p>All recorded safety incidents</p>
     </div>
-    <button class="btn btn-primary btn-sm">${icon('plus',14)} Log Safety Event</button>
   </div>
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
@@ -517,7 +513,7 @@ async function renderCoaching(): Promise<string> {
       <h2>Coaching Records</h2>
       <p>Driver coaching sessions and outcomes</p>
     </div>
-    <button class="btn btn-primary btn-sm">${icon('plus',14)} New Coaching Record</button>
+    <button class="btn btn-primary btn-sm" data-action="add-coaching">${icon('plus',14)} New Coaching Record</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">

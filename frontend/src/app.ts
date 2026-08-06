@@ -528,6 +528,7 @@ function wireActions(container: HTMLElement, role: string): void {
 
 async function handleAction(action: string, id: number | undefined, _role: string): Promise<void> {
   try {
+    if (action === 'add-coaching') { await openCoachingEditor(); return; }
     if (action === 'review-start'      && id) { await Safety.updateReviewStatus(id, 'In Review');  showToast('Review started.'); }
     if (action === 'review-complete'   && id) { await Safety.updateReviewStatus(id, 'Completed');  showToast('Review marked complete.'); }
     if (action === 'suspend-driver'    && id) { await Safety.setDriverStatus(id, 'Suspended');     showToast('Driver suspended.'); }
@@ -628,6 +629,66 @@ async function handleAction(action: string, id: number | undefined, _role: strin
 }
 
 // ── Toast notification ────────────────────────────────────────────────
+async function openCoachingEditor(): Promise<void> {
+  const drivers = await Safety.drivers();
+  if (drivers.length === 0) throw new Error('No drivers are available for coaching.');
+
+  document.getElementById('coachingRecordModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'coachingRecordModal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:650px">
+    <div class="modal-header"><h2>New Coaching Record</h2><button type="button" class="modal-close" aria-label="Close">${icon('x', 20)}</button></div>
+    <form id="coachingRecordForm">
+      <div class="form-grid">
+        <div><label for="coaching_driver">Driver *</label><select id="coaching_driver" name="DriverID" required>
+          ${drivers.map(driver => `<option value="${driver.DriverID}">${escapeHtml(driver.DriverName)}</option>`).join('')}
+        </select></div>
+        <div><label for="coaching_type">Record type *</label><select id="coaching_type" name="RecordType" required>
+          <option value="Low Safety Score">Low Safety Score</option>
+          <option value="Repeated High-Severity Incidents">Repeated High-Severity Incidents</option>
+          <option value="Critical Event">Critical Event</option>
+          <option value="Other">Other</option>
+        </select></div>
+        <div><label for="coaching_date">Scheduled date *</label><input id="coaching_date" name="ScheduledDate" type="date" value="${new Date().toISOString().slice(0, 10)}" required></div>
+        <div style="grid-column:1/-1"><label for="coaching_reason">Reason *</label><textarea id="coaching_reason" name="Reason" rows="4" maxlength="255" required></textarea></div>
+      </div>
+      <div id="coachingRecordError" class="alert alert-error" style="display:none;margin-top:16px"></div>
+      <div class="form-actions" style="margin-top:24px"><button type="button" class="btn btn-outline">Cancel</button><button type="submit" class="btn btn-primary">Add record</button></div>
+    </form>
+  </div>`;
+  document.body.appendChild(modal);
+
+  const close = (): void => modal.remove();
+  modal.querySelectorAll<HTMLButtonElement>('.modal-close, .btn-outline').forEach(button => button.addEventListener('click', close));
+  modal.addEventListener('click', event => { if (event.target === modal) close(); });
+  modal.querySelector<HTMLFormElement>('#coachingRecordForm')!.addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const errorBox = form.querySelector<HTMLElement>('#coachingRecordError')!;
+    const data = new FormData(form);
+    submit.disabled = true;
+    errorBox.style.display = 'none';
+    void Safety.addCoaching({
+      DriverID: formNumber(data, 'DriverID'),
+      RecordType: formValue(data, 'RecordType'),
+      ScheduledDate: formValue(data, 'ScheduledDate'),
+      Reason: formValue(data, 'Reason'),
+      Outcome: 'Pending',
+    }).then(() => {
+      close();
+      showToast('Coaching record added.');
+    }).catch(error => {
+      errorBox.textContent = error instanceof ApiError ? error.message : String(error);
+      errorBox.style.display = 'block';
+      submit.disabled = false;
+    });
+  });
+  modal.querySelector<HTMLTextAreaElement>('#coaching_reason')?.focus();
+}
+
 type EditableRecordType = 'vehicle' | 'depot' | 'assignment' | 'driver' | 'mechanic';
 
 async function openRecordEditor(type: EditableRecordType, id?: number): Promise<void> {
