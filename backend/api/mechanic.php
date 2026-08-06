@@ -48,6 +48,18 @@ if ($resource === 'my_activities') {
     jsonOk($rows);
 }
 
+if ($resource === 'my_job_detail' && $method === 'GET' && $id) {
+    requirePermission('MaintenanceActivity', 'SELECT');
+    try {
+        jsonOk(callProcedure($pdo, 'CALL sp_get_mechanic_job_detail(:mechanic_id, :job_id)', [
+            ':mechanic_id' => $mechId,
+            ':job_id' => $id,
+        ]));
+    } catch (PDOException $e) {
+        jsonErr('Forbidden: you are not assigned to this job.', 403);
+    }
+}
+
 // ── UPDATE OWN ACTIVITY (diagnostic result, repeat fault, timestamps) ─
 if ($resource === 'my_activity') {
     requirePermission('MaintenanceActivity', 'UPDATE');

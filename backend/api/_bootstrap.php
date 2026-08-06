@@ -70,7 +70,16 @@ function jsonErr(string $msg, int $code = 400): never {
 }
 
 function requirePermission(string $table, string $action): void {
-    if (!hasPermission($table, $action)) {
+    $permission = callProcedure(
+        $GLOBALS['pdo'],
+        'CALL sp_check_user_permission(:user_id, :table_name, :action_name)',
+        [
+            ':user_id' => $_SESSION['user_id'],
+            ':table_name' => $table,
+            ':action_name' => $action,
+        ]
+    )[0][0]['HasPermission'] ?? 0;
+    if (!hasPermission($table, $action) || !(int)$permission) {
         jsonErr("Forbidden: no $action permission on $table.", 403);
     }
 }

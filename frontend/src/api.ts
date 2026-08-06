@@ -136,6 +136,11 @@ export const Fleet = {
   users:         ()       => get<ApiUser[]>('/fleet.php?resource=users'),
   recentJobs:    ()       => get<ApiJob[]>('/fleet.php?resource=recent_jobs'),
   statusBreakdown: ()     => get<StatusBreakdown[]>('/fleet.php?resource=vehicle_status_breakdown'),
+  vehicleProfile: (id: number) => get<unknown[][]>(`/fleet.php?resource=vehicle_profile&id=${id}`),
+  availableVehicles: (depotId?: number, categoryId?: number) =>
+    get<ApiVehicle[]>(`/fleet.php?resource=available_vehicles${depotId ? `&depot_id=${depotId}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`),
+  maintenanceDue: (odometerThreshold = 10000, daysThreshold = 180) =>
+    get<unknown[]>(`/fleet.php?resource=maintenance_due&odometer_threshold=${odometerThreshold}&days_threshold=${daysThreshold}`),
 
   saveVehicle:   (data: Record<string, unknown>, id?: number) =>
     id ? put<{ updated: number }>(`/fleet.php?resource=vehicles&id=${id}`, data)
@@ -208,6 +213,9 @@ export const Safety = {
   scores:      (period = '')  => get<ApiScore[]>(`/safety.php?resource=scores${period ? '&period='+period : ''}`),
   coaching:    (outcome = '') => get<ApiCoaching[]>(`/safety.php?resource=coaching${outcome ? '&outcome='+outcome : ''}`),
   drivers:     ()             => get<ApiDriverSafety[]>('/safety.php?resource=drivers'),
+  driverProfile: (id: number) => get<unknown[][]>(`/safety.php?resource=driver_profile&id=${id}`),
+  suspendedDrivers: ()        => get<unknown[]>('/safety.php?resource=suspended_drivers'),
+  coachingQueue: ()           => get<unknown[]>('/safety.php?resource=coaching_queue'),
 
   logEvent:    (data: Record<string, unknown>) => post<{ id: number }>('/safety.php?resource=events', data),
   updateReviewStatus: (id: number, status: string) => put<{ updated: number }>(`/safety.php?resource=events&id=${id}`, { ReviewStatus: status }),
@@ -252,6 +260,10 @@ export const Workshop = {
   suppliers:  ()            => get<ApiSupplier[]>('/workshop.php?resource=suppliers'),
   warranty:   (status = '') => get<ApiWarrantyClaim[]>(`/workshop.php?resource=warranty${status ? '&status='+encodeURIComponent(status) : ''}`),
   mechanics:  ()            => get<ApiMechanic[]>('/workshop.php?resource=mechanics'),
+  jobDetail: (id: number)  => get<unknown[][]>(`/workshop.php?resource=job_detail&id=${id}`),
+  openJobs: (workshopId?: number) => get<ApiJob[]>(`/workshop.php?resource=open_jobs${workshopId ? `&workshop_id=${workshopId}` : ''}`),
+  mechanicWorkload: (workshopId?: number) => get<unknown[]>(`/workshop.php?resource=mechanic_workload${workshopId ? `&workshop_id=${workshopId}` : ''}`),
+  workshopSummary: (workshopId?: number) => get<unknown[]>(`/workshop.php?resource=workshop_summary${workshopId ? `&workshop_id=${workshopId}` : ''}`),
 
   saveJob:    (data: Record<string, unknown>, id?: number) =>
     id ? put<{ updated: number }>(`/workshop.php?resource=jobs&id=${id}`, data)
@@ -299,6 +311,7 @@ export interface ApiMyActivity {
 export const Mechanic = {
   kpis:           () => get<MechanicKpis>('/mechanic.php?resource=kpis'),
   myActivities:   () => get<ApiMyActivity[]>('/mechanic.php?resource=my_activities'),
+  myJobDetail: (id: number) => get<unknown[][]>(`/mechanic.php?resource=my_job_detail&id=${id}`),
   updateActivity: (id: number, data: Record<string, unknown>) =>
     put<{ updated: number }>(`/mechanic.php?resource=my_activity&id=${id}`, data),
   updateLabour:   (id: number, labourHours: number) =>
@@ -330,4 +343,6 @@ export const Driver = {
   myEvents:        () => get<ApiMyEvent[]>('/driver.php?resource=my_events'),
   myScores:        () => get<ApiMyScore[]>('/driver.php?resource=my_scores'),
   myCertifications:() => get<ApiMyCert[]>('/driver.php?resource=my_certifications'),
+  myVehicle:       () => get<unknown>('/driver.php?resource=my_vehicle'),
+  myCompleteProfile:() => get<unknown[][]>('/driver.php?resource=my_complete_profile'),
 };

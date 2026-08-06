@@ -281,6 +281,30 @@ if ($resource === 'mechanics') {
     jsonErr('Bad request');
 }
 
+// ── PROCEDURE-BASED WORKSHOP DETAIL AND OPERATIONS BOARD ─────────────
+if ($resource === 'job_detail' && $method === 'GET' && $id) {
+    requirePermission('MaintenanceJobs', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_job_detail(:job_id)', [':job_id' => $id]));
+}
+
+if ($resource === 'open_jobs' && $method === 'GET') {
+    requirePermission('MaintenanceJobs', 'SELECT');
+    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    jsonOk(callProcedure($pdo, 'CALL sp_list_open_jobs(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
+}
+
+if ($resource === 'mechanic_workload' && $method === 'GET') {
+    requirePermission('Mechanic', 'SELECT');
+    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    jsonOk(callProcedure($pdo, 'CALL sp_list_mechanics_workload(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
+}
+
+if ($resource === 'workshop_summary' && $method === 'GET') {
+    requirePermission('MaintenanceJobs', 'SELECT');
+    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    jsonOk(callProcedure($pdo, 'CALL sp_workshop_summary(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
+}
+
 // ── LOOKUP ───────────────────────────────────────────────────────────
 if ($resource === 'lookup') {
     $type = $_GET['type'] ?? '';

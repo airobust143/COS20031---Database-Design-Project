@@ -432,6 +432,32 @@ if ($resource === 'vehicle_status_breakdown') {
     jsonOk($rows);
 }
 
+// -- PROCEDURE-BASED FLEET DETAIL AND WORK QUEUES -- //
+if ($resource === 'vehicle_profile' && $method === 'GET' && $id) {
+    requirePermission('Vehicles', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_vehicle_profile(:vehicle_id)', [':vehicle_id' => $id]));
+}
+
+if ($resource === 'available_vehicles' && $method === 'GET') {
+    requirePermission('Vehicles', 'SELECT');
+    $depotId = !empty($_GET['depot_id']) ? (int)$_GET['depot_id'] : null;
+    $categoryId = !empty($_GET['category_id']) ? (int)$_GET['category_id'] : null;
+    jsonOk(callProcedure($pdo, 'CALL sp_list_available_vehicles(:depot_id, :category_id)', [
+        ':depot_id' => $depotId,
+        ':category_id' => $categoryId,
+    ])[0] ?? []);
+}
+
+if ($resource === 'maintenance_due' && $method === 'GET') {
+    requirePermission('MaintenanceJobs', 'SELECT');
+    $odometer = max(1, min(100000, (int)($_GET['odometer_threshold'] ?? 10000)));
+    $days = max(1, min(3650, (int)($_GET['days_threshold'] ?? 180)));
+    jsonOk(callProcedure($pdo, 'CALL sp_vehicles_due_maintenance(:odometer, :days)', [
+        ':odometer' => $odometer,
+        ':days' => $days,
+    ])[0] ?? []);
+}
+
 // -- LOOKUP DATA (for dropdowns) -- //
 if ($resource === 'lookup') {
     $type = $_GET['type'] ?? '';

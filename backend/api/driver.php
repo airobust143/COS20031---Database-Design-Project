@@ -109,4 +109,14 @@ if ($resource === 'my_certifications') {
     jsonOk($stmt->fetchAll());
 }
 
+if ($resource === 'my_vehicle') {
+    requirePermission('Vehicles', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_driver_own_vehicle(:driver_id)', [':driver_id' => $driverId])[0][0] ?? []);
+}
+
+if ($resource === 'my_complete_profile') {
+    requirePermission('Drivers', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_driver_complete_profile(:driver_id)', [':driver_id' => $driverId]));
+}
+
 jsonErr("Unknown resource: $resource");
