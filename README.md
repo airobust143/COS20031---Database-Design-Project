@@ -120,6 +120,8 @@ npm run dev
 Open **http://localhost:5173** in your browser.
 
 **Default users:**
+- `driver01` through `driver10` / `driver_pwd` - Driver
+- `mechanic01` through `mechanic10` / `mechanic_pwd` - Mechanic
 - `fleet_admin` / `fleet_admin_pwd` - Fleet Admin (full access)
 - `safety_lead` / `safety_lead_pwd` - Safety Operations
 - `workshop_north` / `workshop_north_pwd` - Workshop Manager (Northern Branch)
