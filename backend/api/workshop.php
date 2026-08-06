@@ -37,14 +37,22 @@ $id       = isset($_GET['id']) ? (int)$_GET['id'] : null;
 // ── KPIs ─────────────────────────────────────────────────────────────
 if ($resource === 'kpis') {
     requirePermission('MaintenanceJobs', 'SELECT');
+    $summaryStmt = $pdo->prepare('CALL sp_workshop_summary(NULL)');
+    $summaryStmt->execute();
+    $summaryRows = $summaryStmt->fetchAll();
+    $summaryStmt->closeCursor();
+    $sum = static fn(string $field): float => array_sum(array_map(
+        static fn(array $row): float => (float)($row[$field] ?? 0),
+        $summaryRows
+    ));
     jsonOk([
-        'openJobs'      => (int)$pdo->query("SELECT COUNT(*) FROM MaintenanceJobs WHERE DateClosed IS NULL")->fetchColumn(),
+        'openJobs'      => (int)$sum('OpenJobs'),
         'inProgress'    => (int)$pdo->query("SELECT COUNT(*) FROM MaintenanceJobs mj WHERE DateClosed IS NULL AND EXISTS(SELECT 1 FROM MaintenanceActivity ma WHERE ma.JobID=mj.JobID AND ma.StartedAt IS NOT NULL)")->fetchColumn(),
         'newAlerts'     => (int)$pdo->query("SELECT COUNT(*) FROM PredictiveAlert WHERE Status='New'")->fetchColumn(),
         'lowStock'      => (int)$pdo->query("SELECT COUNT(*) FROM Part WHERE QuantityInStock <= ReorderThreshold")->fetchColumn(),
         'pendingClaims' => (int)$pdo->query("SELECT COUNT(*) FROM WarrantyClaim WHERE Status='Submitted'")->fetchColumn(),
-        'activeMechanics'=> (int)$pdo->query("SELECT COUNT(*) FROM Mechanic WHERE EmploymentStatus='Active'")->fetchColumn(),
-        'totalCost'     => (float)$pdo->query("SELECT COALESCE(SUM(TotalCost),0) FROM MaintenanceJobs")->fetchColumn(),
+        'activeMechanics'=> (int)$sum('ActiveMechanics'),
+        'totalCost'     => $sum('TotalRevenue'),
     ]);
 }
 
@@ -169,19 +177,19 @@ if ($resource === 'parts') {
 if ($resource === 'suppliers') {
     requirePermission('Supplier', 'SELECT');
     if ($method === 'GET') {
-        jsonOk($pdo->query("SELECT * FROM Supplier ORDER BY Name")->fetchAll());
+        jsonOk($pdo->query("SELECT SupplierID, Name, ContactEmail AS ContactInfo, LeadTimeDays FROM Supplier ORDER BY Name")->fetchAll());
     }
     if ($method === 'POST') {
         requirePermission('Supplier', 'INSERT');
         $b = readBody();
-        $pdo->prepare("INSERT INTO Supplier (Name,ContactInfo,LeadTimeDays) VALUES (:n,:c,:l)")
+        $pdo->prepare("INSERT INTO Supplier (Name,ContactEmail,LeadTimeDays) VALUES (:n,:c,:l)")
             ->execute([':n'=>$b['Name'],':c'=>$b['ContactInfo']??null,':l'=>$b['LeadTimeDays']??0]);
         jsonOk(['id' => (int)$pdo->lastInsertId()]);
     }
     if ($method === 'PUT' && $id) {
         requirePermission('Supplier', 'UPDATE');
         $b = readBody();
-        $pdo->prepare("UPDATE Supplier SET Name=:n,ContactInfo=:c,LeadTimeDays=:l WHERE SupplierID=:id")
+        $pdo->prepare("UPDATE Supplier SET Name=:n,ContactEmail=:c,LeadTimeDays=:l WHERE SupplierID=:id")
             ->execute([':n'=>$b['Name'],':c'=>$b['ContactInfo']??null,':l'=>$b['LeadTimeDays']??0,':id'=>$id]);
         jsonOk(['updated' => $id]);
     }
@@ -235,20 +243,17 @@ if ($resource === 'warranty') {
 if ($resource === 'mechanics') {
     requirePermission('Mechanic', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus,
-                   w.Name AS WorkshopName,
-                   GROUP_CONCAT(mct.Name ORDER BY mct.Name SEPARATOR '||') AS Certifications
-            FROM Mechanic m
-            JOIN Workshop w ON w.WorkshopID=m.WorkshopID
-            LEFT JOIN MechanicCertification mc ON mc.MechanicID=m.MechanicID
-                   AND (mc.ExpireDate IS NULL OR mc.ExpireDate >= CURDATE())
-            LEFT JOIN MechanicCertType mct ON mct.MecCertTypeID=mc.MecCertTypeID
-            GROUP BY m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus, w.Name
-            ORDER BY m.LastName
-        ")->fetchAll();
+        $stmt = $pdo->prepare('CALL sp_list_mechanics_workload(NULL)');
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
         foreach ($rows as &$r) {
-            $r['CertList'] = $r['Certifications'] ? explode('||', $r['Certifications']) : [];
+            $r['FirstName'] = $r['FirstName'] ?? $r['MechanicName'] ?? '';
+            $r['LastName'] = $r['LastName'] ?? '';
+            $certifications = $r['Certifications'] ?? '';
+            $r['CertList'] = $certifications
+                ? (str_contains($certifications, '||') ? explode('||', $certifications) : explode(', ', $certifications))
+                : [];
             unset($r['Certifications']);
         }
         jsonOk($rows);

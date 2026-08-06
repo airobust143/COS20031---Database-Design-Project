@@ -47,20 +47,38 @@ function resolveVehicleModel(PDO $pdo, string $model, string $manufacturer): int
     return (int) $pdo->lastInsertId();
 }
 
+function loadFleetSummary(PDO $pdo): array {
+    $stmt = $pdo->prepare('CALL sp_fleet_summary_counts()');
+    $stmt->execute();
+    $rows = $stmt->fetchAll();
+    $stmt->closeCursor();
+    return $rows;
+}
+
 // -- KPIs -- //
 if ($resource === 'kpis') {
     requirePermission('Vehicles', 'SELECT');
+    $summary = loadFleetSummary($pdo);
+    $count = static function (string $metric, ?array $categories = null) use ($summary): int {
+        $total = 0;
+        foreach ($summary as $row) {
+            if ($row['MetricType'] === $metric && ($categories === null || in_array($row['Category'], $categories, true))) {
+                $total += (int)$row['Count'];
+            }
+        }
+        return $total;
+    };
     jsonOk([
-        'totalVehicles'   => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles")->fetchColumn(),
-        'operational'     => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles WHERE OperationalStatus IN ('Active','Available')")->fetchColumn(),
-        'underMaint'      => (int)$pdo->query("SELECT COUNT(*) FROM Vehicles WHERE OperationalStatus='Under Maintenance'")->fetchColumn(),
-        'totalDrivers'    => (int)$pdo->query("SELECT COUNT(*) FROM Drivers")->fetchColumn(),
-        'activeDrivers'   => (int)$pdo->query("SELECT COUNT(*) FROM Drivers WHERE EmploymentStatus='Active'")->fetchColumn(),
+        'totalVehicles'   => $count('VehiclesByStatus'),
+        'operational'     => $count('VehiclesByStatus', ['Active','Available']),
+        'underMaint'      => $count('VehiclesByStatus', ['Under Maintenance']),
+        'totalDrivers'    => $count('DriversByStatus'),
+        'activeDrivers'   => $count('DriversByStatus', ['Active']),
         'totalMechanics'  => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic")->fetchColumn(),
         'activeMechanics' => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic WHERE EmploymentStatus='Active'")->fetchColumn(),
         'totalDepots'     => (int)$pdo->query("SELECT COUNT(*) FROM Depots")->fetchColumn(),
-        'openJobs'        => (int)$pdo->query("SELECT COUNT(*) FROM MaintenanceJobs WHERE DateClosed IS NULL")->fetchColumn(),
-        'activeAssignments' => (int)$pdo->query("SELECT COUNT(*) FROM VehicleAssignments WHERE EndDate IS NULL OR EndDate >= CURDATE()")->fetchColumn(),
+        'openJobs'        => $count('MaintenanceJobs', ['Open','In Progress']),
+        'activeAssignments' => $count('ActiveAssignments'),
     ]);
 }
 
@@ -229,12 +247,12 @@ if ($resource === 'drivers') {
         requirePermission('Drivers', 'INSERT');
         $b = readBody();
         $pdo->prepare("INSERT INTO Drivers
-            (FirstName,LastName,ContactInformation,DepotID,LicenceType,
-            LicenceExpiryDate,EmploymentStatus,EmergencyContactDetails)
+            (FirstName,LastName,ContactPhoneNumber,DepotID,LicenceType,
+            LicenceExpiryDate,EmploymentStatus,EmergencyContactPhone)
             VALUES (:fn,:ln,:ci,:dep,:lt,:led,:es,:ec)")->execute([
-            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
+            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactPhoneNumber']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
-            ':es'=>$b['EmploymentStatus']??'Active',':ec'=>$b['EmergencyContactDetails']??null,
+            ':es'=>$b['EmploymentStatus']??'Active',':ec'=>$b['EmergencyContactPhone']??null,
         ]);
         jsonOk(['id' => (int)$pdo->lastInsertId()]);
     }
@@ -242,13 +260,13 @@ if ($resource === 'drivers') {
         requirePermission('Drivers', 'UPDATE');
         $b = readBody();
         $pdo->prepare("UPDATE Drivers SET
-            FirstName=:fn,LastName=:ln,ContactInformation=:ci,
+            FirstName=:fn,LastName=:ln,ContactPhoneNumber=:ci,
             DepotID=:dep,LicenceType=:lt,LicenceExpiryDate=:led,
-            EmploymentStatus=:es,EmergencyContactDetails=:ec
+            EmploymentStatus=:es,EmergencyContactPhone=:ec
             WHERE DriverID=:id")->execute([
-            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
+            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactPhoneNumber']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
-            ':es'=>$b['EmploymentStatus'],':ec'=>$b['EmergencyContactDetails']??null,':id'=>$id,
+            ':es'=>$b['EmploymentStatus'],':ec'=>$b['EmergencyContactPhone']??null,':id'=>$id,
         ]);
         jsonOk(['updated' => $id]);
     }
@@ -416,11 +434,10 @@ if ($resource === 'recent_jobs') {
 // -- VEHICLE STATUS BREAKDOWN -- //
 if ($resource === 'vehicle_status_breakdown') {
     requirePermission('Vehicles', 'SELECT');
-    $rows = $pdo->query("
-        SELECT OperationalStatus AS status, COUNT(*) AS count
-        FROM Vehicles
-        GROUP BY OperationalStatus
-    ")->fetchAll();
+    $rows = array_values(array_map(
+        static fn(array $row): array => ['status' => $row['Category'], 'count' => (int)$row['Count']],
+        array_filter(loadFleetSummary($pdo), static fn(array $row): bool => $row['MetricType'] === 'VehiclesByStatus')
+    ));
     jsonOk($rows);
 }
 
@@ -468,6 +485,14 @@ if ($resource === 'lookup') {
     if ($type === 'vehicles_list') {
         requirePermission('Vehicles', 'SELECT');
         $rows = $pdo->query("SELECT VehicleID, RegistrationNumber FROM Vehicles ORDER BY RegistrationNumber")->fetchAll();
+        jsonOk($rows);
+    }
+    if ($type === 'available_vehicles') {
+        requirePermission('Vehicles', 'SELECT');
+        $stmt = $pdo->prepare('CALL sp_list_available_vehicles(NULL, NULL)');
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        $stmt->closeCursor();
         jsonOk($rows);
     }
     jsonErr("Unknown lookup type: $type");

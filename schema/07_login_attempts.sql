@@ -13,6 +13,4 @@ CREATE TABLE IF NOT EXISTS `login_attempts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   COMMENT='Tracks failed login attempts per IP for rate-limiting.';
 
--- =====================================================================
--- End of 07_login_attempts.sql
--- =====================================================================
+

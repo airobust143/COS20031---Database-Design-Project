@@ -118,7 +118,7 @@ ${kpis.newAlerts > 0 ? `
         </select>
       </div>
       <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} New Job</button>
+        <button class="btn btn-primary btn-sm" data-action="create-job">${icon('plus',14)} New Job</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -198,7 +198,7 @@ ${kpis.newAlerts > 0 ? `
       <div>
         <div class="action-row" style="margin-bottom:12px">
           <span style="font-weight:600;font-size:14px">Parts Inventory</span>
-          <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Part</button>
+          <button class="btn btn-primary btn-sm" data-action="add-part">${icon('plus',14)} Add Part</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -225,7 +225,7 @@ ${kpis.newAlerts > 0 ? `
       <div>
         <div class="action-row" style="margin-bottom:12px">
           <span style="font-weight:600;font-size:14px">Suppliers</span>
-          <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Supplier</button>
+          <button class="btn btn-primary btn-sm" data-action="add-supplier">${icon('plus',14)} Add Supplier</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -248,7 +248,7 @@ ${kpis.newAlerts > 0 ? `
   <div id="wtab-warranty" class="tab-panel">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} New Claim</button>
+        <button class="btn btn-primary btn-sm" data-action="new-claim">${icon('plus',14)} New Claim</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -278,7 +278,7 @@ ${kpis.newAlerts > 0 ? `
   <div id="wtab-roster" class="tab-panel">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Mechanic</button>
+        <button class="btn btn-primary btn-sm" data-action="add-workshop-mechanic">${icon('plus',14)} Add Mechanic</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -328,7 +328,7 @@ async function renderJobs(): Promise<string> {
         </select>
       </div>
       <div class="action-row-right">
-        <button class="btn btn-primary btn-sm">${icon('plus',14)} New Job</button>
+        <button class="btn btn-primary btn-sm" data-action="create-job">${icon('plus',14)} New Job</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -447,7 +447,7 @@ ${lowStockParts.length > 0 ? `
         <h2>Parts Inventory</h2>
         <p>Stock levels and pricing</p>
       </div>
-      <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Part</button>
+      <button class="btn btn-primary btn-sm" data-action="add-part">${icon('plus',14)} Add Part</button>
     </div>
     <div class="card-body">
       <div class="table-wrap">
@@ -480,7 +480,7 @@ ${lowStockParts.length > 0 ? `
         <h2>Suppliers</h2>
         <p>Contact information and lead times</p>
       </div>
-      <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Supplier</button>
+      <button class="btn btn-primary btn-sm" data-action="add-supplier">${icon('plus',14)} Add Supplier</button>
     </div>
     <div class="card-body">
       <div class="table-wrap">
@@ -514,7 +514,7 @@ async function renderWarranty(): Promise<string> {
       <h2>Warranty Claims</h2>
       <p>Track warranty submissions and approvals</p>
     </div>
-    <button class="btn btn-primary btn-sm">${icon('plus',14)} New Claim</button>
+    <button class="btn btn-primary btn-sm" data-action="new-claim">${icon('plus',14)} New Claim</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">
@@ -555,7 +555,7 @@ async function renderRoster(): Promise<string> {
       <h2>Mechanic Roster</h2>
       <p>Workshop staff and certifications</p>
     </div>
-    <button class="btn btn-primary btn-sm">${icon('plus',14)} Add Mechanic</button>
+    <button class="btn btn-primary btn-sm" data-action="add-workshop-mechanic">${icon('plus',14)} Add Mechanic</button>
   </div>
   <div class="card-body">
     <div class="table-wrap">

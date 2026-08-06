@@ -107,7 +107,7 @@ export interface ApiAssignment {
 export interface ApiDriver {
   DriverID: number; FirstName: string; LastName: string;
   DepotName: string; LicenceType: string; LicenceExpiryDate: string;
-  DepotID: number; ContactInformation: string | null; EmergencyContactDetails: string | null;
+  DepotID: number; ContactPhoneNumber: string | null; EmergencyContactPhone: string | null;
   EmploymentStatus: string; SafetyScore: number;
 }
 export interface ApiMechanic {
@@ -172,6 +172,7 @@ export const Fleet = {
   lookupVehicleCategories: () => get<{ CategoryID: number; CategoryName: string }[]>('/fleet.php?resource=lookup&type=vehicle_categories'),
   lookupWorkshopsList: () => get<{ WorkshopID: number; Name: string }[]>('/fleet.php?resource=lookup&type=workshops_list'),
   lookupVehiclesList:  () => get<{ VehicleID: number; RegistrationNumber: string }[]>('/fleet.php?resource=lookup&type=vehicles_list'),
+  lookupAvailableVehicles: () => get<{ VehicleID: number; RegistrationNumber: string; VehicleModel: string }[]>('/fleet.php?resource=lookup&type=available_vehicles'),
 };
 
 // ── Safety Ops ───────────────────────────────────────────────────────

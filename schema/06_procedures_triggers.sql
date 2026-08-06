@@ -1845,11 +1845,13 @@ CREATE PROCEDURE `sp_list_mechanics_workload` (
 BEGIN
     SELECT 
         m.MechanicID,
+        m.FirstName,
+        m.LastName,
         CONCAT(m.FirstName, ' ', m.LastName) AS MechanicName,
         m.EmploymentStatus,
         w.WorkshopID,
         w.Name AS WorkshopName,
-        GROUP_CONCAT(DISTINCT mct.Name ORDER BY mct.Name SEPARATOR ', ') AS Certifications,
+        GROUP_CONCAT(DISTINCT mct.Name ORDER BY mct.Name SEPARATOR '||') AS Certifications,
         COUNT(DISTINCT cert_check.MecCertTypeID) AS CertificationCount,
         -- Current workload (open/in-progress activities)
         COALESCE(current_work.ActiveActivities, 0) AS ActiveActivities,
@@ -2799,5 +2801,5 @@ DELIMITER ;
 --   - System already implements best-practice auth/authz
 --   - Permissions are loaded once at login and cached in session
 --   - requirePermission() is called before every sensitive operation
--- =====================================================================
+
 

@@ -262,12 +262,12 @@ if ($resource === 'drivers') {
         requirePermission('Drivers', 'INSERT');
         $b = readBody();
         $pdo->prepare("INSERT INTO Drivers
-            (FirstName,LastName,ContactInformation,DepotID,LicenceType,
-            LicenceExpiryDate,EmploymentStatus,EmergencyContactDetails)
+            (FirstName,LastName,ContactPhoneNumber,DepotID,LicenceType,
+            LicenceExpiryDate,EmploymentStatus,EmergencyContactPhone)
             VALUES (:fn,:ln,:ci,:dep,:lt,:led,:es,:ec)")->execute([
-            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
+            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactPhoneNumber']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
-            ':es'=>$b['EmploymentStatus']??'Active',':ec'=>$b['EmergencyContactDetails']??null,
+            ':es'=>$b['EmploymentStatus']??'Active',':ec'=>$b['EmergencyContactPhone']??null,
         ]);
         jsonOk(['id' => (int)$pdo->lastInsertId()]);
     }
@@ -275,13 +275,13 @@ if ($resource === 'drivers') {
         requirePermission('Drivers', 'UPDATE');
         $b = readBody();
         $pdo->prepare("UPDATE Drivers SET
-            FirstName=:fn,LastName=:ln,ContactInformation=:ci,
+            FirstName=:fn,LastName=:ln,ContactPhoneNumber=:ci,
             DepotID=:dep,LicenceType=:lt,LicenceExpiryDate=:led,
-            EmploymentStatus=:es,EmergencyContactDetails=:ec
+            EmploymentStatus=:es,EmergencyContactPhone=:ec
             WHERE DriverID=:id")->execute([
-            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
+            ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactPhoneNumber']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
-            ':es'=>$b['EmploymentStatus'],':ec'=>$b['EmergencyContactDetails']??null,':id'=>$id,
+            ':es'=>$b['EmploymentStatus'],':ec'=>$b['EmergencyContactPhone']??null,':id'=>$id,
         ]);
         jsonOk(['updated' => $id]);
     }

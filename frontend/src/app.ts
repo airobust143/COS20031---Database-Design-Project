@@ -529,6 +529,11 @@ function wireActions(container: HTMLElement, role: string): void {
 async function handleAction(action: string, id: number | undefined, _role: string): Promise<void> {
   try {
     if (action === 'add-coaching') { await openCoachingEditor(); return; }
+    if (action === 'create-job') { await openJobEditor(); return; }
+    if (action === 'add-part') { await openWorkshopCreateEditor('part'); return; }
+    if (action === 'add-supplier') { await openWorkshopCreateEditor('supplier'); return; }
+    if (action === 'new-claim') { await openWorkshopCreateEditor('claim'); return; }
+    if (action === 'add-workshop-mechanic') { await openWorkshopCreateEditor('mechanic'); return; }
     if (action === 'review-start'      && id) { await Safety.updateReviewStatus(id, 'In Review');  showToast('Review started.'); }
     if (action === 'review-complete'   && id) { await Safety.updateReviewStatus(id, 'Completed');  showToast('Review marked complete.'); }
     if (action === 'suspend-driver'    && id) { await Safety.setDriverStatus(id, 'Suspended');     showToast('Driver suspended.'); }
@@ -629,6 +634,169 @@ async function handleAction(action: string, id: number | undefined, _role: strin
 }
 
 // ── Toast notification ────────────────────────────────────────────────
+type WorkshopCreateType = 'part' | 'supplier' | 'claim' | 'mechanic';
+
+async function openWorkshopCreateEditor(type: WorkshopCreateType): Promise<void> {
+  let title = '';
+  let fields = '';
+  let save: (data: FormData) => Promise<unknown>;
+
+  if (type === 'part') {
+    title = 'Add Part';
+    fields = `
+      <div><label for="workshop_part_number">Part number *</label><input id="workshop_part_number" name="PartNumber" maxlength="50" required></div>
+      <div><label for="workshop_part_price">Unit price *</label><input id="workshop_part_price" name="UnitPrice" type="number" min="0" step="0.01" required></div>
+      <div><label for="workshop_part_stock">Quantity in stock *</label><input id="workshop_part_stock" name="QuantityInStock" type="number" min="0" step="1" value="0" required></div>
+      <div><label for="workshop_part_threshold">Reorder threshold *</label><input id="workshop_part_threshold" name="ReorderThreshold" type="number" min="0" step="1" value="0" required></div>
+      <div style="grid-column:1/-1"><label for="workshop_part_description">Description *</label><textarea id="workshop_part_description" name="Description" rows="3" maxlength="255" required></textarea></div>`;
+    save = data => Workshop.savePart({
+      PartNumber: formValue(data, 'PartNumber'), Description: formValue(data, 'Description'),
+      UnitPrice: formNumber(data, 'UnitPrice'), QuantityInStock: formNumber(data, 'QuantityInStock'),
+      ReorderThreshold: formNumber(data, 'ReorderThreshold'),
+    });
+  } else if (type === 'supplier') {
+    title = 'Add Supplier';
+    fields = `
+      <div><label for="workshop_supplier_name">Supplier name *</label><input id="workshop_supplier_name" name="Name" maxlength="150" required></div>
+      <div><label for="workshop_supplier_email">Contact email</label><input id="workshop_supplier_email" name="ContactInfo" type="email" maxlength="254"></div>
+      <div><label for="workshop_supplier_lead">Lead time (days) *</label><input id="workshop_supplier_lead" name="LeadTimeDays" type="number" min="0" step="1" value="0" required></div>`;
+    save = data => Workshop.saveSupplier({
+      Name: formValue(data, 'Name'), ContactInfo: formValue(data, 'ContactInfo') || null,
+      LeadTimeDays: formNumber(data, 'LeadTimeDays'),
+    });
+  } else if (type === 'claim') {
+    const activities = await Workshop.lookupActivities();
+    if (activities.length === 0) throw new Error('Create a maintenance activity before adding a warranty claim.');
+    title = 'New Warranty Claim';
+    fields = `
+      <div><label for="workshop_claim_activity">Maintenance activity *</label><select id="workshop_claim_activity" name="ActivityID" required>
+        ${activities.map(activity => `<option value="${activity.ActivityID}">JOB-${String(activity.JobID).padStart(4, '0')} — ${escapeHtml(activity.ActivityType)}</option>`).join('')}
+      </select></div>
+      <div><label for="workshop_claim_type">Warranty type *</label><select id="workshop_claim_type" name="WarrantyType" required><option value="Manufacturer">Manufacturer</option><option value="Supplier">Supplier</option></select></div>
+      <div><label for="workshop_claim_date">Claim date *</label><input id="workshop_claim_date" name="ClaimDate" type="date" value="${new Date().toISOString().slice(0, 10)}" required></div>`;
+    save = data => Workshop.addWarrantyClaim({
+      ActivityID: formNumber(data, 'ActivityID'), WarrantyType: formValue(data, 'WarrantyType'),
+      ClaimDate: formValue(data, 'ClaimDate'), Status: 'Submitted',
+    });
+  } else {
+    const workshops = await Workshop.lookupWorkshops();
+    if (workshops.length === 0) throw new Error('Create a workshop before adding a mechanic.');
+    title = 'Add Mechanic';
+    fields = `
+      <div><label for="workshop_mechanic_first">First name *</label><input id="workshop_mechanic_first" name="FirstName" maxlength="100" required></div>
+      <div><label for="workshop_mechanic_last">Last name *</label><input id="workshop_mechanic_last" name="LastName" maxlength="100" required></div>
+      <div><label for="workshop_mechanic_location">Workshop *</label><select id="workshop_mechanic_location" name="WorkshopID" required>
+        ${workshops.map(workshop => `<option value="${workshop.WorkshopID}">${escapeHtml(workshop.Name)}</option>`).join('')}
+      </select></div>
+      <div><label for="workshop_mechanic_status">Employment status *</label><select id="workshop_mechanic_status" name="EmploymentStatus" required><option>Active</option><option>Inactive</option><option>Suspended</option><option>Terminated</option></select></div>`;
+    save = data => Workshop.saveMechanic({
+      FirstName: formValue(data, 'FirstName'), LastName: formValue(data, 'LastName'),
+      WorkshopID: formNumber(data, 'WorkshopID'), EmploymentStatus: formValue(data, 'EmploymentStatus'),
+    });
+  }
+
+  document.getElementById('workshopCreateModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'workshopCreateModal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:680px">
+    <div class="modal-header"><h2>${title}</h2><button type="button" class="modal-close" aria-label="Close">${icon('x', 20)}</button></div>
+    <form id="workshopCreateForm"><div class="form-grid">${fields}</div>
+      <div id="workshopCreateError" class="alert alert-error" style="display:none;margin-top:16px"></div>
+      <div class="form-actions" style="margin-top:24px"><button type="button" class="btn btn-outline">Cancel</button><button type="submit" class="btn btn-primary">${title}</button></div>
+    </form></div>`;
+  document.body.appendChild(modal);
+  const close = (): void => modal.remove();
+  modal.querySelectorAll<HTMLButtonElement>('.modal-close, .btn-outline').forEach(button => button.addEventListener('click', close));
+  modal.addEventListener('click', event => { if (event.target === modal) close(); });
+  modal.querySelector<HTMLFormElement>('#workshopCreateForm')!.addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const errorBox = form.querySelector<HTMLElement>('#workshopCreateError')!;
+    submit.disabled = true;
+    errorBox.style.display = 'none';
+    void save(new FormData(form)).then(() => {
+      close();
+      showToast(`${title} completed successfully.`);
+    }).catch(error => {
+      errorBox.textContent = error instanceof ApiError ? error.message : String(error);
+      errorBox.style.display = 'block';
+      submit.disabled = false;
+    });
+  });
+  modal.querySelector<HTMLElement>('input, select, textarea')?.focus();
+}
+
+async function openJobEditor(): Promise<void> {
+  const [vehicles, workshops, alerts] = await Promise.all([
+    Workshop.lookupVehicles(),
+    Workshop.lookupWorkshops(),
+    Workshop.alerts(),
+  ]);
+  if (vehicles.length === 0) throw new Error('Create a vehicle before adding a maintenance job.');
+  if (workshops.length === 0) throw new Error('Create a workshop before adding a maintenance job.');
+
+  document.getElementById('newJobModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'newJobModal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:650px">
+    <div class="modal-header"><h2>New Maintenance Job</h2><button type="button" class="modal-close" aria-label="Close">${icon('x', 20)}</button></div>
+    <form id="newJobForm"><div class="form-grid">
+      <div><label for="job_vehicle">Vehicle *</label><select id="job_vehicle" name="VehicleID" required>
+        ${vehicles.map(vehicle => `<option value="${vehicle.VehicleID}">${escapeHtml(vehicle.RegistrationNumber)}</option>`).join('')}
+      </select></div>
+      <div><label for="job_workshop">Workshop *</label><select id="job_workshop" name="WorkshopID" required>
+        ${workshops.map(workshop => `<option value="${workshop.WorkshopID}">${escapeHtml(workshop.Name)}</option>`).join('')}
+      </select></div>
+      <div><label for="job_opened">Date opened *</label><input id="job_opened" name="DateOpened" type="date" value="${new Date().toISOString().slice(0, 10)}" required></div>
+      <div><label for="job_cost">Estimated cost</label><input id="job_cost" name="TotalCost" type="number" min="0" step="0.01" value="0"></div>
+      <div><label for="job_downtime">Expected downtime (hours)</label><input id="job_downtime" name="OverallDowntime" type="number" min="0" step="0.01"></div>
+      <div><label for="job_alert">Related alert</label><select id="job_alert" name="AlertID">
+        <option value="">— None —</option>
+        ${alerts.map(alert => `<option value="${alert.AlertID}">${escapeHtml(`${alert.Vehicle} — ${alert.AlertType}`)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div id="newJobError" class="alert alert-error" style="display:none;margin-top:16px"></div>
+    <div class="form-actions" style="margin-top:24px"><button type="button" class="btn btn-outline">Cancel</button><button type="submit" class="btn btn-primary">Create job</button></div>
+    </form></div>`;
+  document.body.appendChild(modal);
+
+  const close = (): void => modal.remove();
+  modal.querySelectorAll<HTMLButtonElement>('.modal-close, .btn-outline').forEach(button => button.addEventListener('click', close));
+  modal.addEventListener('click', event => { if (event.target === modal) close(); });
+  modal.querySelector<HTMLFormElement>('#newJobForm')!.addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const data = new FormData(form);
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    const errorBox = form.querySelector<HTMLElement>('#newJobError')!;
+    const alertId = formValue(data, 'AlertID');
+    const downtime = formValue(data, 'OverallDowntime');
+    submit.disabled = true;
+    errorBox.style.display = 'none';
+    void Workshop.saveJob({
+      VehicleID: formNumber(data, 'VehicleID'),
+      WorkshopID: formNumber(data, 'WorkshopID'),
+      DateOpened: formValue(data, 'DateOpened'),
+      DateClosed: null,
+      OverallDowntime: downtime ? Number(downtime) : null,
+      TotalCost: formNumber(data, 'TotalCost'),
+      AlertID: alertId ? Number(alertId) : null,
+    }).then(() => {
+      close();
+      showToast('Maintenance job created.');
+    }).catch(error => {
+      errorBox.textContent = error instanceof ApiError ? error.message : String(error);
+      errorBox.style.display = 'block';
+      submit.disabled = false;
+    });
+  });
+}
+
 async function openCoachingEditor(): Promise<void> {
   const drivers = await Safety.drivers();
   if (drivers.length === 0) throw new Error('No drivers are available for coaching.');
@@ -692,9 +860,9 @@ async function openCoachingEditor(): Promise<void> {
 type EditableRecordType = 'vehicle' | 'depot' | 'assignment' | 'driver' | 'mechanic';
 
 async function openRecordEditor(type: EditableRecordType, id?: number): Promise<void> {
-  const [vehicles, depots, drivers, mechanics, categories, workshops] = await Promise.all([
-    Fleet.vehicles(), Fleet.depots(), Fleet.drivers(), Fleet.mechanics(),
-    Fleet.lookupVehicleCategories(), Fleet.lookupWorkshopsList(),
+  const [vehicles, availableVehicles, depots, drivers, mechanics, categories, workshops] = await Promise.all([
+    Fleet.vehicles(), Fleet.lookupAvailableVehicles(), Fleet.depots(), Fleet.drivers(),
+    Fleet.mechanics(), Fleet.lookupVehicleCategories(), Fleet.lookupWorkshopsList(),
   ]);
   const select = (name: string, label: string, options: { value: string | number; label: string }[], value: string | number) => `
     <div><label for="edit_${name}">${label}</label>
@@ -750,22 +918,22 @@ async function openRecordEditor(type: EditableRecordType, id?: number): Promise<
     }, id);
   } else if (type === 'driver') {
     const record = id ? drivers.find(d => d.DriverID === id) : {
-      FirstName: '', LastName: '', ContactInformation: '', DepotID: depots[0]?.DepotID ?? 0,
-      LicenceType: '', LicenceExpiryDate: '', EmploymentStatus: 'Active', EmergencyContactDetails: '',
+      FirstName: '', LastName: '', ContactPhoneNumber: '', DepotID: depots[0]?.DepotID ?? 0,
+      LicenceType: '', LicenceExpiryDate: '', EmploymentStatus: 'Active', EmergencyContactPhone: '',
     };
     if (!record || !record.DepotID) throw new Error('Create a depot before adding a driver.');
     title = id ? 'Edit Driver' : 'Add Driver';
     fields = input('FirstName', 'First name', record.FirstName) + input('LastName', 'Last name', record.LastName) +
-      input('ContactInformation', 'Contact information', record.ContactInformation, 'text', false) +
+      input('ContactPhoneNumber', 'Contact phone number', record.ContactPhoneNumber, 'tel', false) +
       select('DepotID', 'Depot', depotOptions, record.DepotID) + input('LicenceType', 'Licence type', record.LicenceType) +
       input('LicenceExpiryDate', 'Licence expiry date', record.LicenceExpiryDate, 'date') +
       select('EmploymentStatus', 'Employment status', employmentOptions.map(s => ({ value: s, label: s })), record.EmploymentStatus) +
-      input('EmergencyContactDetails', 'Emergency contact details', record.EmergencyContactDetails, 'text', false);
+      input('EmergencyContactPhone', 'Emergency contact phone', record.EmergencyContactPhone, 'tel', false);
     save = async form => Fleet.saveDriver({
       FirstName: formValue(form, 'FirstName'), LastName: formValue(form, 'LastName'),
-      ContactInformation: formValue(form, 'ContactInformation') || null, DepotID: formNumber(form, 'DepotID'),
+      ContactPhoneNumber: formValue(form, 'ContactPhoneNumber') || null, DepotID: formNumber(form, 'DepotID'),
       LicenceType: formValue(form, 'LicenceType'), LicenceExpiryDate: formValue(form, 'LicenceExpiryDate'),
-      EmploymentStatus: formValue(form, 'EmploymentStatus'), EmergencyContactDetails: formValue(form, 'EmergencyContactDetails') || null,
+      EmploymentStatus: formValue(form, 'EmploymentStatus'), EmergencyContactPhone: formValue(form, 'EmergencyContactPhone') || null,
     }, id);
   } else if (type === 'mechanic') {
     const record = id ? mechanics.find(m => m.MechanicID === id) : {
@@ -779,13 +947,14 @@ async function openRecordEditor(type: EditableRecordType, id?: number): Promise<
     save = async form => Fleet.saveMechanic({ FirstName: formValue(form, 'FirstName'), LastName: formValue(form, 'LastName'), WorkshopID: formNumber(form, 'WorkshopID'), EmploymentStatus: formValue(form, 'EmploymentStatus') }, id);
   } else {
     const assignments = id ? await Fleet.assignments() : [];
+    const assignmentVehicles = id ? vehicles : availableVehicles;
     const record = id ? assignments.find(a => a.AssignmentID === id) : {
-      VehicleID: vehicles[0]?.VehicleID ?? 0, DriverID: drivers[0]?.DriverID ?? 0,
+      VehicleID: assignmentVehicles[0]?.VehicleID ?? 0, DriverID: drivers[0]?.DriverID ?? 0,
       DepotID: depots[0]?.DepotID ?? 0, StartDate: new Date().toISOString().slice(0, 10), EndDate: null, IsPermanent: 0,
     };
     if (!record || !record.VehicleID || !record.DriverID || !record.DepotID) throw new Error('Create a vehicle, driver, and depot before adding an assignment.');
     title = id ? 'Edit Vehicle Assignment' : 'New Vehicle Assignment';
-    fields = select('VehicleID', 'Vehicle', vehicles.map(v => ({ value: v.VehicleID, label: v.RegistrationNumber })), record.VehicleID) +
+    fields = select('VehicleID', 'Vehicle', assignmentVehicles.map(v => ({ value: v.VehicleID, label: v.RegistrationNumber })), record.VehicleID) +
       select('DriverID', 'Driver', drivers.map(d => ({ value: d.DriverID, label: `${d.FirstName} ${d.LastName}` })), record.DriverID) +
       select('DepotID', 'Depot', depotOptions, record.DepotID) + input('StartDate', 'Start date', record.StartDate, 'date') +
       input('EndDate', 'End date', record.EndDate, 'date', false) +
