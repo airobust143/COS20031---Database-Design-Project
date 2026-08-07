@@ -1,4 +1,4 @@
-﻿USE `smart_fleet_management`;
+USE `smart_fleet_management`;
 
 -- =====================================================================
 -- CORE FLEET DOMAIN ehicle assignment eligibility
@@ -2657,3 +2657,86 @@ BEGIN
         latest_score.CoachingRequired, latest_score.Suspended;
 END$$
 DELIMITER ;
+
+-- =====================================================================
+-- End of Driver procedures
+-- =====================================================================
+
+
+-- =====================================================================
+-- SYSTEM/AUTHENTICATION PROCEDURES 
+-- =====================================================================
+-- ROLE: System (Authentication/Authorization)
+-- 
+-- The following procedures were implemented earlier in this file and
+-- are used by the backend authentication and authorization system:
+--
+-- 1. sp_get_user_permissions (lines ~840-865)
+--    - Get user's roles and resolved permissions
+--    - Used during login to load user's permission set
+--    - Returns 2 result sets: roles and permissions
+--    - Uses indexes: idx_ur_role, idx_rp_permission
+--
+-- 2. sp_check_user_permission (lines ~877-892)
+--    - Check if user has specific permission (table.action)
+--    - Used by requirePermission() middleware in _bootstrap.php
+--    - Returns: 1 if permission exists, 0 if not
+--    - Uses indexes: idx_ur_role, idx_rp_permission
+--
+-- 3. sp_list_users_by_role (lines ~804-830)
+--    - List users filtered by role
+--    - Used by Fleet Admin for user management
+--    - Uses indexes: idx_ur_role, idx_ua_driver, idx_ua_mechanic, idx_ua_depot
+--
+-- AUTHENTICATION IMPLEMENTATION (in backend/api/auth.php):
+-- 
+--  POST /api/auth.php?action=login                                 
+--    - Authenticates user with username/password                   
+--    - Rate limiting (5 attempts per 15 minutes per IP)            
+--    - Uses login_attempts table for brute-force protection        
+--    - Stores user session with permissions in $_SESSION           
+--    - Calls sp_get_user_permissions to load permission set        
+--                                                                    
+--  POST /api/auth.php?action=logout                                
+--    - Destroys user session                                       
+--                                                                    
+--  GET /api/auth.php?action=me                                     
+--    - Returns current user info and permissions                   
+-- 
+--
+-- AUTHORIZATION MIDDLEWARE (in backend/api/_bootstrap.php):
+-- 
+-- â”‚ requirePermission($table, $action)                              â”‚
+-- â”‚   - Called before each API operation                            â”‚
+-- â”‚   - Checks $_SESSION['permissions'] against requested action    â”‚
+-- â”‚   - Returns 403 Forbidden if permission denied                  â”‚
+-- â”‚   - Uses cached permissions (no DB query per request)           â”‚
+-- â”‚                                                                   â”‚
+-- â”‚ hasPermission($table, $action)                                  â”‚
+-- â”‚   - Helper function to check permission                         â”‚
+-- â”‚   - Returns boolean                                             â”‚
+-- 
+--
+-- USAGE EXAMPLE:
+--   // In any API endpoint (fleet.php, workshop.php, etc.):
+--   requirePermission('Vehicles', 'SELECT');  // Check read permission
+--   requirePermission('Vehicles', 'INSERT');  // Check create permission
+--   requirePermission('Vehicles', 'UPDATE');  // Check update permission
+--   requirePermission('Vehicles', 'DELETE');  // Check delete permission
+--
+-- SECURITY FEATURES:
+--   âœ“ Bcrypt password hashing (PASSWORD_DEFAULT)
+--   âœ“ Automatic hash rehashing when algorithm improves
+--   âœ“ Timing-safe username enumeration protection
+--   âœ“ Rate limiting (5 attempts / 15 minutes / IP)
+--   âœ“ Session-based authentication
+--   âœ“ Permission caching in session (no DB query per request)
+--   âœ“ Role-based access control (RBAC)
+--   âœ“ Table.Action granular permissions
+--
+-- NOTES:
+--   - No additional authentication procedures needed
+--   - System already implements best-practice auth/authz
+--   - Permissions are loaded once at login and cached in session
+--   - requirePermission() is called before every sensitive operation
+-- =====================================================================
