@@ -21,10 +21,11 @@ if (!$driverId) jsonErr('This account is not linked to a driver record.', 403);
 // ── KPIs ─────────────────────────────────────────────────────────────
 if ($resource === 'kpis') {
     requirePermission('DriverSafetyScore', 'SELECT');
-    $summaryStmt = $pdo->prepare('CALL sp_get_driver_safety_summary(:driver)');
-    $summaryStmt->execute([':driver'=>$driverId]);
-    $summary = $summaryStmt->fetch() ?: [];
-    $summaryStmt->closeCursor();
+    $summary = callProcedure(
+        $pdo,
+        'CALL sp_get_driver_safety_summary(:driver_id)',
+        [':driver_id' => $driverId]
+    )[0][0] ?? [];
 
     $dr = $pdo->prepare("SELECT CONCAT(FirstName,' ',LastName) AS FullName, EmploymentStatus, LicenceType, LicenceExpiryDate FROM Drivers WHERE DriverID=:d");
     $dr->execute([':d'=>$driverId]);
@@ -106,6 +107,16 @@ if ($resource === 'my_certifications') {
     ");
     $stmt->execute([':d'=>$driverId]);
     jsonOk($stmt->fetchAll());
+}
+
+if ($resource === 'my_vehicle') {
+    requirePermission('Vehicles', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_driver_own_vehicle(:driver_id)', [':driver_id' => $driverId])[0][0] ?? []);
+}
+
+if ($resource === 'my_complete_profile') {
+    requirePermission('Drivers', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_driver_complete_profile(:driver_id)', [':driver_id' => $driverId]));
 }
 
 jsonErr("Unknown resource: $resource");

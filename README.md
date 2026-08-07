@@ -126,7 +126,10 @@ Open **http://localhost:5173** in your browser.
 - `safety_lead` / `safety_lead_pwd` - Safety Operations
 - `workshop_north` / `workshop_north_pwd` - Workshop Manager (Northern Branch)
 - `workshop_south` / `workshop_south_pwd` - Workshop Manager (Southern Branch)
-- `auditor` / `auditor_pwd` - Auditor
+
+**Driver/Mechanic users:**
+- Username: Driver/Mechanic ID (e.g. `driver01`, `mechanic02`)
+- Password: `driver_pwd` for drivers, `mechanic_pwd` for mechanics
 
 ### Backend API (Auto-loaded by Frontend)
 

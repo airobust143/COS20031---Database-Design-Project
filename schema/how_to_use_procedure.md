@@ -1,8 +1,9 @@
 # How to Use the Stored Procedures in the Backend
 
-The backend currently uses inline SQL and does not directly call any of the 30
-stored procedures. The following list shows what each procedure can provide and
-which current inline SQL can be replaced.
+All 30 procedures are integrated into the project. The three business-rule
+procedures run automatically through database triggers; the remaining query
+procedures are exposed through protected backend API resources. The following
+list describes each procedure and its corresponding application capability.
 
 ## Business-rule procedures
 

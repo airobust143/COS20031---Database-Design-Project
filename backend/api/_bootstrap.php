@@ -42,6 +42,15 @@ $SESSION_USER = [
     'permissions'=> $_SESSION['permissions'] ?? [],
 ];
 
+// Activity-log actor context (read by schema/09_activity_log.sql triggers)
+$pdo->prepare('SET @sf_actor_id = ?, @sf_actor_username = ?, @sf_actor_role = ?, @sf_client_ip = ?, @sf_request_id = UUID()')
+    ->execute([
+        $_SESSION['user_id'] ?? null,
+        $_SESSION['username'] ?? null,
+        $_SESSION['role'] ?? null,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
+
 // ── Permission helper ─────────────────────────────────────────────────
 function hasPermission(string $table, string $action): bool {
     $perms = $_SESSION['permissions'][$table] ?? [];
@@ -61,9 +70,32 @@ function jsonErr(string $msg, int $code = 400): never {
 }
 
 function requirePermission(string $table, string $action): void {
-    if (!hasPermission($table, $action)) {
+    $permission = callProcedure(
+        $GLOBALS['pdo'],
+        'CALL sp_check_user_permission(:user_id, :table_name, :action_name)',
+        [
+            ':user_id' => $_SESSION['user_id'],
+            ':table_name' => $table,
+            ':action_name' => $action,
+        ]
+    )[0][0]['HasPermission'] ?? 0;
+    if (!hasPermission($table, $action) || !(int)$permission) {
         jsonErr("Forbidden: no $action permission on $table.", 403);
     }
+}
+
+/** Execute a read-only procedure and consume every result set. */
+function callProcedure(PDO $pdo, string $sql, array $parameters = []): array {
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($parameters);
+    $resultSets = [];
+    do {
+        if ($stmt->columnCount() > 0) {
+            $resultSets[] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+    } while ($stmt->nextRowset());
+    $stmt->closeCursor();
+    return $resultSets;
 }
 
 // ── Read JSON body ────────────────────────────────────────────────────

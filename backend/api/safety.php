@@ -210,6 +210,22 @@ if ($resource === 'driver_status') {
     jsonErr('Bad request');
 }
 
+// ── PROCEDURE-BASED SAFETY DETAIL AND QUEUES ─────────────────────────
+if ($resource === 'driver_profile' && $method === 'GET' && $id) {
+    requirePermission('Drivers', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_driver_profile(:driver_id)', [':driver_id' => $id]));
+}
+
+if ($resource === 'suspended_drivers' && $method === 'GET') {
+    requirePermission('Drivers', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_list_suspended_drivers()')[0] ?? []);
+}
+
+if ($resource === 'coaching_queue' && $method === 'GET') {
+    requirePermission('CoachingRecord', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_drivers_requiring_coaching()')[0] ?? []);
+}
+
 // ── LOOKUP DATA (for forms) ───────────────────────────────────────────
 if ($resource === 'lookup') {
     $type = $_GET['type'] ?? '';

@@ -47,38 +47,28 @@ function resolveVehicleModel(PDO $pdo, string $model, string $manufacturer): int
     return (int) $pdo->lastInsertId();
 }
 
-function loadFleetSummary(PDO $pdo): array {
-    $stmt = $pdo->prepare('CALL sp_fleet_summary_counts()');
-    $stmt->execute();
-    $rows = $stmt->fetchAll();
-    $stmt->closeCursor();
-    return $rows;
-}
-
 // -- KPIs -- //
 if ($resource === 'kpis') {
     requirePermission('Vehicles', 'SELECT');
-    $summary = loadFleetSummary($pdo);
-    $count = static function (string $metric, ?array $categories = null) use ($summary): int {
-        $total = 0;
-        foreach ($summary as $row) {
-            if ($row['MetricType'] === $metric && ($categories === null || in_array($row['Category'], $categories, true))) {
-                $total += (int)$row['Count'];
-            }
-        }
-        return $total;
-    };
+    $summaryRows = callProcedure($pdo, 'CALL sp_fleet_summary_counts()')[0] ?? [];
+    $summary = [];
+    foreach ($summaryRows as $row) {
+        $summary[$row['MetricType']][$row['Category']] = (int)$row['Count'];
+    }
+    $vehicleStatus = $summary['VehiclesByStatus'] ?? [];
+    $driverStatus = $summary['DriversByStatus'] ?? [];
+    $jobStatus = $summary['MaintenanceJobs'] ?? [];
     jsonOk([
-        'totalVehicles'   => $count('VehiclesByStatus'),
-        'operational'     => $count('VehiclesByStatus', ['Active','Available']),
-        'underMaint'      => $count('VehiclesByStatus', ['Under Maintenance']),
-        'totalDrivers'    => $count('DriversByStatus'),
-        'activeDrivers'   => $count('DriversByStatus', ['Active']),
+        'totalVehicles'   => array_sum($vehicleStatus),
+        'operational'     => (int)($vehicleStatus['Active'] ?? 0) + (int)($vehicleStatus['Available'] ?? 0),
+        'underMaint'      => (int)($vehicleStatus['Under Maintenance'] ?? 0),
+        'totalDrivers'    => array_sum($driverStatus),
+        'activeDrivers'   => (int)($driverStatus['Active'] ?? 0),
         'totalMechanics'  => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic")->fetchColumn(),
         'activeMechanics' => (int)$pdo->query("SELECT COUNT(*) FROM Mechanic WHERE EmploymentStatus='Active'")->fetchColumn(),
         'totalDepots'     => (int)$pdo->query("SELECT COUNT(*) FROM Depots")->fetchColumn(),
-        'openJobs'        => $count('MaintenanceJobs', ['Open','In Progress']),
-        'activeAssignments' => $count('ActiveAssignments'),
+        'openJobs'        => (int)($jobStatus['Open'] ?? 0) + (int)($jobStatus['In Progress'] ?? 0),
+        'activeAssignments' => (int)($summary['ActiveAssignments']['Current'] ?? 0),
     ]);
 }
 
@@ -434,11 +424,38 @@ if ($resource === 'recent_jobs') {
 // -- VEHICLE STATUS BREAKDOWN -- //
 if ($resource === 'vehicle_status_breakdown') {
     requirePermission('Vehicles', 'SELECT');
-    $rows = array_values(array_map(
-        static fn(array $row): array => ['status' => $row['Category'], 'count' => (int)$row['Count']],
-        array_filter(loadFleetSummary($pdo), static fn(array $row): bool => $row['MetricType'] === 'VehiclesByStatus')
-    ));
+    $summaryRows = callProcedure($pdo, 'CALL sp_fleet_summary_counts()')[0] ?? [];
+    $rows = array_map(
+        fn(array $row) => ['status' => $row['Category'], 'count' => (int)$row['Count']],
+        array_values(array_filter($summaryRows, fn(array $row) => $row['MetricType'] === 'VehiclesByStatus'))
+    );
     jsonOk($rows);
+}
+
+// -- PROCEDURE-BASED FLEET DETAIL AND WORK QUEUES -- //
+if ($resource === 'vehicle_profile' && $method === 'GET' && $id) {
+    requirePermission('Vehicles', 'SELECT');
+    jsonOk(callProcedure($pdo, 'CALL sp_get_vehicle_profile(:vehicle_id)', [':vehicle_id' => $id]));
+}
+
+if ($resource === 'available_vehicles' && $method === 'GET') {
+    requirePermission('Vehicles', 'SELECT');
+    $depotId = !empty($_GET['depot_id']) ? (int)$_GET['depot_id'] : null;
+    $categoryId = !empty($_GET['category_id']) ? (int)$_GET['category_id'] : null;
+    jsonOk(callProcedure($pdo, 'CALL sp_list_available_vehicles(:depot_id, :category_id)', [
+        ':depot_id' => $depotId,
+        ':category_id' => $categoryId,
+    ])[0] ?? []);
+}
+
+if ($resource === 'maintenance_due' && $method === 'GET') {
+    requirePermission('MaintenanceJobs', 'SELECT');
+    $odometer = max(1, min(100000, (int)($_GET['odometer_threshold'] ?? 10000)));
+    $days = max(1, min(3650, (int)($_GET['days_threshold'] ?? 180)));
+    jsonOk(callProcedure($pdo, 'CALL sp_vehicles_due_maintenance(:odometer, :days)', [
+        ':odometer' => $odometer,
+        ':days' => $days,
+    ])[0] ?? []);
 }
 
 // -- LOOKUP DATA (for dropdowns) -- //
