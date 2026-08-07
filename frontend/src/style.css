@@ -562,6 +562,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 .action-row-left, .action-row-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .table-search-row { margin-bottom: 16px; }
 .card > .table-search-row { padding: 16px 18px 0; }
+.table-search-column { width: auto; min-width: 130px; }
 
 /* ── Timeline ── */
 .timeline { display: flex; flex-direction: column; }

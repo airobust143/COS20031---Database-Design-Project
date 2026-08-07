@@ -426,8 +426,39 @@ function wireTableFilters(container: HTMLElement): void {
 
     const scope = searchInput.closest<HTMLElement>('.tab-panel, .card-body') ?? container;
     const tbody = scope.querySelector<HTMLTableSectionElement>(`tbody[data-table-body="${tableId}"]`);
-    const select = scope.querySelector<HTMLSelectElement>(`select[data-table-filter="${tableId}"]`);
     if (!tbody) return;
+
+    const table = tbody.closest<HTMLTableElement>('table');
+    if (!table) return;
+
+    const categoricalFilter = scope.querySelector<HTMLSelectElement>(`select[data-table-filter="${tableId}"]`);
+    let searchColumn = scope.querySelector<HTMLSelectElement>(`select[data-table-search-column="${tableId}"]`);
+
+    // Build the searchable-field selector from the table's visible headers so
+    // each view gets relevant choices without duplicating configuration.
+    if (!searchColumn) {
+      searchColumn = document.createElement('select');
+      searchColumn.className = 'form-control table-search-column';
+      searchColumn.dataset['tableSearchColumn'] = tableId;
+      searchColumn.setAttribute('aria-label', 'Choose a field to search');
+
+      const allFieldsOption = document.createElement('option');
+      allFieldsOption.value = '';
+      allFieldsOption.textContent = 'All fields';
+      searchColumn.append(allFieldsOption);
+
+      Array.from(table.tHead?.rows.item(0)?.cells ?? []).forEach((header, columnIndex) => {
+        const label = (header.textContent ?? '').trim();
+        if (!label || /^(actions?|controls?)$/i.test(label) || header.dataset['searchable'] === 'false') return;
+
+        const option = document.createElement('option');
+        option.value = String(columnIndex);
+        option.textContent = label;
+        searchColumn!.append(option);
+      });
+
+      searchInput.before(searchColumn);
+    }
 
     const dataRows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'))
       .filter(row => !row.querySelector('.empty-state'));
@@ -437,12 +468,16 @@ function wireTableFilters(container: HTMLElement): void {
       tbody.querySelector('[data-filter-empty]')?.remove();
 
       const searchTerm = searchInput.value.trim().toLocaleLowerCase();
-      const selectedValue = select?.value.trim().toLocaleLowerCase() ?? '';
-      const filterColumn = Number(select?.dataset['filterColumn'] ?? -1);
+      const selectedSearchColumn = searchColumn?.value === '' ? -1 : Number(searchColumn?.value);
+      const selectedValue = categoricalFilter?.value.trim().toLocaleLowerCase() ?? '';
+      const filterColumn = Number(categoricalFilter?.dataset['filterColumn'] ?? -1);
       let visibleRows = 0;
 
       dataRows.forEach(row => {
-        const matchesSearch = !searchTerm || (row.textContent ?? '').toLocaleLowerCase().includes(searchTerm);
+        const searchableText = selectedSearchColumn >= 0
+          ? (row.cells[selectedSearchColumn]?.textContent ?? '')
+          : (row.textContent ?? '');
+        const matchesSearch = !searchTerm || searchableText.toLocaleLowerCase().includes(searchTerm);
         const cellValue = filterColumn >= 0
           ? (row.cells[filterColumn]?.textContent ?? '').trim().toLocaleLowerCase()
           : '';
@@ -462,7 +497,8 @@ function wireTableFilters(container: HTMLElement): void {
     };
 
     searchInput.addEventListener('input', applyFilters);
-    select?.addEventListener('change', applyFilters);
+    searchColumn.addEventListener('change', applyFilters);
+    categoricalFilter?.addEventListener('change', applyFilters);
   });
 }
 
