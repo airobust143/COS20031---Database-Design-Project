@@ -7,7 +7,7 @@
 import type { AuthUser } from './api.ts';
 import { Auth, ApiError, Fleet, Safety, Workshop } from './api.ts';
 import { icon, NAV_ICONS } from './icons.ts';
-import { renderFleetAdmin, wireVehicleFilters, wireDriverFilters }      from './views/fleetAdmin.ts';
+import { renderFleetAdmin }                                             from './views/fleetAdmin.ts';
 import { renderSafetyOps, wireSafetyScorePeriods } from './views/safetyOps.ts';
 import { renderWorkshopManager } from './views/workshopManager.ts';
 import { renderMechanic }        from './views/mechanic.ts';
@@ -275,16 +275,6 @@ function renderAppShell(root: HTMLElement): void {
     <div class="topbar-left">
       <span class="topbar-title" id="topbar-title">${cfg.nav[0]!.label}</span>
     </div>
-    <div class="topbar-right">
-      <div class="topbar-user">
-        <div class="topbar-avatar">${initials}</div>
-        <div class="topbar-user-info">
-          <span class="topbar-user-name">${currentUser.username}</span>
-          <span class="topbar-user-role">${cfg.label}</span>
-        </div>
-        <span class="topbar-chevron" aria-hidden="true">${icon('chevronDown', 14)}</span>
-      </div>
-    </div>
   </header>
 
   <!-- ── Main ── -->
@@ -333,13 +323,6 @@ function renderAppShell(root: HTMLElement): void {
       wireActions(mainContent, currentUser!.role);
       wireTableFilters(mainContent);
       if (currentUser!.role === 'safety_ops') wireSafetyScorePeriods(mainContent);
-      // Wire vehicle filters if on vehicles page
-      if (currentUser!.role === 'fleet_admin' && navId === 'vehicles') {
-        wireVehicleFilters(mainContent);
-      }
-      if (currentUser!.role === 'fleet_admin' && navId === 'drivers') {
-        wireDriverFilters(mainContent);
-      }
     } catch (err) {
       const msg = err instanceof ApiError
         ? `Error ${err.status}: ${err.message}`
@@ -406,14 +389,77 @@ function wireTabSwitchers(container: HTMLElement): void {
 // ── Delegated action handling ─────────────────────────────────────────
 // Wire declarative search fields and optional select filters to their tables.
 function wireTableFilters(container: HTMLElement): void {
+  let generatedTableId = 0;
+
+  // Views with select filters provide their own data-table-* attributes.
+  // All other rendered data tables receive the same searchable control here.
+  container.querySelectorAll<HTMLTableElement>('table').forEach(table => {
+    if (table.dataset['noSearch'] === 'true') return;
+
+    const tbody = table.tBodies.item(0);
+    if (!tbody) return;
+
+    const tableId = tbody.dataset['tableBody'] ?? `auto-table-${++generatedTableId}`;
+    tbody.dataset['tableBody'] = tableId;
+
+    if (container.querySelector(`[data-table-search="${tableId}"]`)) return;
+
+    const controls = document.createElement('div');
+    controls.className = 'action-row table-search-row';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'form-control';
+    input.dataset['tableSearch'] = tableId;
+    input.placeholder = 'Search table…';
+    input.setAttribute('aria-label', 'Search this table');
+    input.style.width = '220px';
+    controls.append(input);
+
+    const tableWrap = table.closest<HTMLElement>('.table-wrap');
+    const anchor = tableWrap ?? table;
+    anchor.parentElement?.insertBefore(controls, anchor);
+  });
+
   container.querySelectorAll<HTMLInputElement>('[data-table-search]').forEach(searchInput => {
     const tableId = searchInput.dataset['tableSearch'];
     if (!tableId) return;
 
     const scope = searchInput.closest<HTMLElement>('.tab-panel, .card-body') ?? container;
     const tbody = scope.querySelector<HTMLTableSectionElement>(`tbody[data-table-body="${tableId}"]`);
-    const select = scope.querySelector<HTMLSelectElement>(`select[data-table-filter="${tableId}"]`);
     if (!tbody) return;
+
+    const table = tbody.closest<HTMLTableElement>('table');
+    if (!table) return;
+
+    const categoricalFilter = scope.querySelector<HTMLSelectElement>(`select[data-table-filter="${tableId}"]`);
+    let searchColumn = scope.querySelector<HTMLSelectElement>(`select[data-table-search-column="${tableId}"]`);
+
+    // Build the searchable-field selector from the table's visible headers so
+    // each view gets relevant choices without duplicating configuration.
+    if (!searchColumn) {
+      searchColumn = document.createElement('select');
+      searchColumn.className = 'form-control table-search-column';
+      searchColumn.dataset['tableSearchColumn'] = tableId;
+      searchColumn.setAttribute('aria-label', 'Choose a field to search');
+
+      const allFieldsOption = document.createElement('option');
+      allFieldsOption.value = '';
+      allFieldsOption.textContent = 'All fields';
+      searchColumn.append(allFieldsOption);
+
+      Array.from(table.tHead?.rows.item(0)?.cells ?? []).forEach((header, columnIndex) => {
+        const label = (header.textContent ?? '').trim();
+        if (!label || /^(actions?|controls?)$/i.test(label) || header.dataset['searchable'] === 'false') return;
+
+        const option = document.createElement('option');
+        option.value = String(columnIndex);
+        option.textContent = label;
+        searchColumn!.append(option);
+      });
+
+      searchInput.before(searchColumn);
+    }
 
     const dataRows = Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'))
       .filter(row => !row.querySelector('.empty-state'));
@@ -423,12 +469,16 @@ function wireTableFilters(container: HTMLElement): void {
       tbody.querySelector('[data-filter-empty]')?.remove();
 
       const searchTerm = searchInput.value.trim().toLocaleLowerCase();
-      const selectedValue = select?.value.trim().toLocaleLowerCase() ?? '';
-      const filterColumn = Number(select?.dataset['filterColumn'] ?? -1);
+      const selectedSearchColumn = searchColumn?.value === '' ? -1 : Number(searchColumn?.value);
+      const selectedValue = categoricalFilter?.value.trim().toLocaleLowerCase() ?? '';
+      const filterColumn = Number(categoricalFilter?.dataset['filterColumn'] ?? -1);
       let visibleRows = 0;
 
       dataRows.forEach(row => {
-        const matchesSearch = !searchTerm || (row.textContent ?? '').toLocaleLowerCase().includes(searchTerm);
+        const searchableText = selectedSearchColumn >= 0
+          ? (row.cells[selectedSearchColumn]?.textContent ?? '')
+          : (row.textContent ?? '');
+        const matchesSearch = !searchTerm || searchableText.toLocaleLowerCase().includes(searchTerm);
         const cellValue = filterColumn >= 0
           ? (row.cells[filterColumn]?.textContent ?? '').trim().toLocaleLowerCase()
           : '';
@@ -448,7 +498,8 @@ function wireTableFilters(container: HTMLElement): void {
     };
 
     searchInput.addEventListener('input', applyFilters);
-    select?.addEventListener('change', applyFilters);
+    searchColumn.addEventListener('change', applyFilters);
+    categoricalFilter?.addEventListener('change', applyFilters);
   });
 }
 
@@ -534,6 +585,34 @@ async function handleAction(action: string, id: number | undefined, _role: strin
     if (action === 'add-supplier') { await openWorkshopCreateEditor('supplier'); return; }
     if (action === 'new-claim') { await openWorkshopCreateEditor('claim'); return; }
     if (action === 'add-workshop-mechanic') { await openWorkshopCreateEditor('mechanic'); return; }
+    if (action === 'create-safety-event') {
+      await openSafetyEventEditor();
+      return;
+    }
+    if (action === 'create-coaching-record') {
+      await openCoachingRecordEditor();
+      return;
+    }
+    if (action === 'create-workshop-job') {
+      await openWorkshopJobEditor(id);
+      return;
+    }
+    if (action === 'create-workshop-part') {
+      openWorkshopPartEditor();
+      return;
+    }
+    if (action === 'create-workshop-supplier') {
+      openWorkshopSupplierEditor();
+      return;
+    }
+    if (action === 'create-warranty-claim') {
+      await openWarrantyClaimEditor();
+      return;
+    }
+    if (action === 'create-workshop-mechanic') {
+      await openWorkshopMechanicEditor();
+      return;
+    }
     if (action === 'review-start'      && id) { await Safety.updateReviewStatus(id, 'In Review');  showToast('Review started.'); }
     if (action === 'review-complete'   && id) { await Safety.updateReviewStatus(id, 'Completed');  showToast('Review marked complete.'); }
     if (action === 'suspend-driver'    && id) { await Safety.setDriverStatus(id, 'Suspended');     showToast('Driver suspended.'); }
@@ -631,6 +710,124 @@ async function handleAction(action: string, id: number | undefined, _role: strin
   } catch (err) {
     showToast(err instanceof ApiError ? err.message : String(err), true);
   }
+}
+
+function editorSelect(name: string, label: string, options: { value: string | number; label: string }[], value?: string | number): string {
+  return `<div><label for="create_${name}">${label} *</label><select id="create_${name}" name="${name}" required>${options.map(option =>
+    `<option value="${option.value}" ${String(option.value) === String(value ?? '') ? 'selected' : ''}>${escapeHtml(option.label)}</option>`
+  ).join('')}</select></div>`;
+}
+
+function editorInput(name: string, label: string, value: string | number, type = 'text', required = true, extra = ''): string {
+  return `<div><label for="create_${name}">${label}${required ? ' *' : ''}</label><input id="create_${name}" name="${name}" type="${type}" value="${escapeHtml(String(value))}" ${required ? 'required' : ''} ${extra}></div>`;
+}
+
+function openCreateModal(title: string, fields: string, submitLabel: string, save: (form: FormData) => Promise<unknown>): void {
+  document.getElementById('createRecordModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'createRecordModal';
+  modal.className = 'modal';
+  modal.style.display = 'flex';
+  modal.innerHTML = `<div class="modal-content" style="max-width:720px"><div class="modal-header"><h2>${title}</h2><button type="button" class="modal-close" aria-label="Close">${icon('x', 20)}</button></div><form id="createRecordForm"><div class="form-grid">${fields}</div><div id="createRecordError" class="alert alert-error" style="display:none;margin-top:16px"></div><div class="form-actions" style="margin-top:24px"><button type="button" class="btn btn-outline">Cancel</button><button type="submit" class="btn btn-primary">${submitLabel}</button></div></form></div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll<HTMLButtonElement>('.modal-close, .btn-outline').forEach(button => button.addEventListener('click', () => modal.remove()));
+  modal.querySelector<HTMLFormElement>('#createRecordForm')!.addEventListener('submit', event => {
+    event.preventDefault();
+    void save(new FormData(event.currentTarget as HTMLFormElement)).then(() => {
+      modal.remove();
+      showToast(`${title} created.`);
+    }).catch(error => {
+      const errorBox = modal.querySelector<HTMLElement>('#createRecordError')!;
+      errorBox.textContent = error instanceof ApiError ? error.message : String(error);
+      errorBox.style.display = 'block';
+    });
+  });
+}
+
+async function openSafetyEventEditor(): Promise<void> {
+  const [drivers, vehicles, depots, eventTypes] = await Promise.all([
+    Fleet.drivers(), Safety.lookupVehicles(), Safety.lookupDepots(), Safety.lookupEventTypes(),
+  ]);
+  if (!drivers.length || !vehicles.length || !depots.length || !eventTypes.length) throw new Error('A driver, vehicle, depot, and event type are required before logging an event.');
+  const now = new Date();
+  const timestamp = `${now.toISOString().slice(0, 10)}T${now.toTimeString().slice(0, 5)}`;
+  const fields = editorInput('Timestamp', 'Date and time', timestamp, 'datetime-local') +
+    editorSelect('DriverID', 'Driver', drivers.map(d => ({ value: d.DriverID, label: `${d.FirstName} ${d.LastName}` }))) +
+    editorSelect('VehicleID', 'Vehicle', vehicles.map(v => ({ value: v.VehicleID, label: v.RegistrationNumber }))) +
+    editorSelect('DepotID', 'Depot', depots.map(d => ({ value: d.DepotID, label: d.Name }))) +
+    editorSelect('EventsTypeID', 'Event type', eventTypes.map(e => ({ value: e.EventsTypeID, label: e.Name }))) +
+    editorSelect('Severity', 'Severity', ['Low', 'Medium', 'High', 'Critical'].map(value => ({ value, label: value })), 'Low') +
+    editorInput('Odometer', 'Odometer', 0, 'number', false, 'min="0"');
+  openCreateModal('Log Safety Event', fields, 'Log event', form => Safety.logEvent({
+    Timestamp: formValue(form, 'Timestamp').replace('T', ' '), DriverID: formNumber(form, 'DriverID'), VehicleID: formNumber(form, 'VehicleID'), DepotID: formNumber(form, 'DepotID'), EventsTypeID: formNumber(form, 'EventsTypeID'), Severity: formValue(form, 'Severity'), Odometer: formNumber(form, 'Odometer'),
+  }));
+}
+
+async function openCoachingRecordEditor(): Promise<void> {
+  const drivers = await Fleet.drivers();
+  if (!drivers.length) throw new Error('Create a driver before adding a coaching record.');
+  const fields = editorSelect('DriverID', 'Driver', drivers.map(d => ({ value: d.DriverID, label: `${d.FirstName} ${d.LastName}` }))) +
+    editorInput('Reason', 'Reason', '') +
+    editorSelect('RecordType', 'Record type', ['Other', 'Safety Event', 'Low Safety Score', 'Performance'].map(value => ({ value, label: value })), 'Other') +
+    editorInput('ScheduledDate', 'Scheduled date', new Date().toISOString().slice(0, 10), 'date');
+  openCreateModal('Coaching Record', fields, 'Create record', form => Safety.addCoaching({
+    DriverID: formNumber(form, 'DriverID'), Reason: formValue(form, 'Reason'), RecordType: formValue(form, 'RecordType'), ScheduledDate: formValue(form, 'ScheduledDate'), Outcome: 'Pending',
+  }));
+}
+
+async function openWorkshopJobEditor(alertId?: number): Promise<void> {
+  const [vehicles, workshops] = await Promise.all([Workshop.lookupVehicles(), Workshop.lookupWorkshops()]);
+  if (!vehicles.length || !workshops.length) throw new Error('A vehicle and workshop are required before creating a job.');
+  const fields = editorSelect('VehicleID', 'Vehicle', vehicles.map(v => ({ value: v.VehicleID, label: v.RegistrationNumber }))) +
+    editorSelect('WorkshopID', 'Workshop', workshops.map(w => ({ value: w.WorkshopID, label: w.Name }))) +
+    editorInput('DateOpened', 'Date opened', new Date().toISOString().slice(0, 10), 'date') +
+    editorInput('OverallDowntime', 'Downtime (hours)', 0, 'number', false, 'min="0" step="0.25"') +
+    editorInput('TotalCost', 'Total cost', 0, 'number', false, 'min="0" step="0.01"');
+  openCreateModal('Maintenance Job', fields, 'Create job', form => Workshop.saveJob({
+    VehicleID: formNumber(form, 'VehicleID'), WorkshopID: formNumber(form, 'WorkshopID'), DateOpened: formValue(form, 'DateOpened'), OverallDowntime: formValue(form, 'OverallDowntime') || null, TotalCost: formNumber(form, 'TotalCost'), AlertID: alertId ?? null,
+  }));
+}
+
+function openWorkshopPartEditor(): void {
+  const fields = editorInput('PartNumber', 'Part number', '') +
+    editorInput('Description', 'Description', '') +
+    editorInput('UnitPrice', 'Unit price', 0, 'number', true, 'min="0" step="0.01"') +
+    editorInput('QuantityInStock', 'Quantity in stock', 0, 'number', true, 'min="0"') +
+    editorInput('ReorderThreshold', 'Reorder threshold', 0, 'number', true, 'min="0"');
+  openCreateModal('Part', fields, 'Add part', form => Workshop.savePart({
+    PartNumber: formValue(form, 'PartNumber'), Description: formValue(form, 'Description'), UnitPrice: formNumber(form, 'UnitPrice'), QuantityInStock: formNumber(form, 'QuantityInStock'), ReorderThreshold: formNumber(form, 'ReorderThreshold'),
+  }));
+}
+
+function openWorkshopSupplierEditor(): void {
+  const fields = editorInput('Name', 'Supplier name', '') +
+    editorInput('ContactInfo', 'Contact information', '', 'text', false) +
+    editorInput('LeadTimeDays', 'Lead time (days)', 0, 'number', true, 'min="0"');
+  openCreateModal('Supplier', fields, 'Add supplier', form => Workshop.saveSupplier({
+    Name: formValue(form, 'Name'), ContactInfo: formValue(form, 'ContactInfo') || null, LeadTimeDays: formNumber(form, 'LeadTimeDays'),
+  }));
+}
+
+async function openWarrantyClaimEditor(): Promise<void> {
+  const activities = await Workshop.lookupActivities();
+  if (!activities.length) throw new Error('Create a maintenance activity before submitting a warranty claim.');
+  const fields = editorSelect('ActivityID', 'Maintenance activity', activities.map(a => ({ value: a.ActivityID, label: `JOB-${String(a.JobID).padStart(4, '0')} — ${a.ActivityType}` }))) +
+    editorSelect('WarrantyType', 'Warranty type', ['Parts', 'Labour', 'Manufacturer', 'Other'].map(value => ({ value, label: value }))) +
+    editorInput('ClaimDate', 'Claim date', new Date().toISOString().slice(0, 10), 'date');
+  openCreateModal('Warranty Claim', fields, 'Submit claim', form => Workshop.addWarrantyClaim({
+    ActivityID: formNumber(form, 'ActivityID'), WarrantyType: formValue(form, 'WarrantyType'), ClaimDate: formValue(form, 'ClaimDate'), Status: 'Submitted',
+  }));
+}
+
+async function openWorkshopMechanicEditor(): Promise<void> {
+  const workshops = await Workshop.lookupWorkshops();
+  if (!workshops.length) throw new Error('Create a workshop before adding a mechanic.');
+  const fields = editorInput('FirstName', 'First name', '') + editorInput('LastName', 'Last name', '') +
+    editorSelect('WorkshopID', 'Workshop', workshops.map(w => ({ value: w.WorkshopID, label: w.Name }))) +
+    editorSelect('EmploymentStatus', 'Employment status', ['Active', 'Inactive', 'Suspended', 'Terminated'].map(value => ({ value, label: value })), 'Active');
+  openCreateModal('Mechanic', fields, 'Add mechanic', form => Workshop.saveMechanic({
+    FirstName: formValue(form, 'FirstName'), LastName: formValue(form, 'LastName'), WorkshopID: formNumber(form, 'WorkshopID'), EmploymentStatus: formValue(form, 'EmploymentStatus'),
+  }));
 }
 
 // ── Toast notification ────────────────────────────────────────────────

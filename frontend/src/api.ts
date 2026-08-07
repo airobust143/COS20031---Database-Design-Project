@@ -62,6 +62,16 @@ const post = <T>(path: string, body: unknown) => apiFetch<T>(path, { method: 'PO
 const put  = <T>(path: string, body: unknown) => apiFetch<T>(path, { method: 'PUT',  body: JSON.stringify(body) });
 const del  = <T>(path: string)             => apiFetch<T>(path, { method: 'DELETE' });
 
+type QueryValue = string | number | boolean | null | undefined;
+function withQuery(path: string, params: Record<string, QueryValue> = {}): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') query.set(key, String(value));
+  });
+  const suffix = query.toString();
+  return suffix ? `${path}&${suffix}` : path;
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────
 
 export interface AuthUser {
@@ -128,12 +138,15 @@ export interface StatusBreakdown { status: string; count: number; }
 
 export const Fleet = {
   kpis:          ()       => get<FleetKpis>('/fleet.php?resource=kpis'),
-  vehicles:      ()       => get<ApiVehicle[]>('/fleet.php?resource=vehicles'),
+  vehicles:      (filters: { status?: string; category_id?: number; depot_id?: number; search?: string; driver_id?: number } = {}) =>
+    get<ApiVehicle[]>(withQuery('/fleet.php?resource=vehicles', filters)),
   depots:        ()       => get<ApiDepot[]>('/fleet.php?resource=depots'),
-  assignments:   ()       => get<ApiAssignment[]>('/fleet.php?resource=assignments'),
-  drivers:       ()       => get<ApiDriver[]>('/fleet.php?resource=drivers'),
+  assignments:   (filters: { vehicle_id?: number; driver_id?: number; limit?: number } = {}) =>
+    get<ApiAssignment[]>(withQuery('/fleet.php?resource=assignments', filters)),
+  drivers:       (filters: { search?: string; status?: string; min_score?: number; max_score?: number; depot_id?: number } = {}) =>
+    get<ApiDriver[]>(withQuery('/fleet.php?resource=drivers', filters)),
   mechanics:     ()       => get<ApiMechanic[]>('/fleet.php?resource=mechanics'),
-  users:         ()       => get<ApiUser[]>('/fleet.php?resource=users'),
+  users:         (role = '') => get<ApiUser[]>(withQuery('/fleet.php?resource=users', { role })),
   recentJobs:    ()       => get<ApiJob[]>('/fleet.php?resource=recent_jobs'),
   statusBreakdown: ()     => get<StatusBreakdown[]>('/fleet.php?resource=vehicle_status_breakdown'),
   vehicleProfile: (id: number) => get<unknown[][]>(`/fleet.php?resource=vehicle_profile&id=${id}`),
@@ -213,7 +226,8 @@ export const Safety = {
   reviewQueue: ()             => get<ApiSafetyEvent[]>('/safety.php?resource=review_queue'),
   scores:      (period = '')  => get<ApiScore[]>(`/safety.php?resource=scores${period ? '&period='+period : ''}`),
   coaching:    (outcome = '') => get<ApiCoaching[]>(`/safety.php?resource=coaching${outcome ? '&outcome='+outcome : ''}`),
-  drivers:     ()             => get<ApiDriverSafety[]>('/safety.php?resource=drivers'),
+  drivers:     (filters: { search?: string; status?: string; min_score?: number; max_score?: number; depot_id?: number } = {}) =>
+    get<ApiDriverSafety[]>(withQuery('/safety.php?resource=drivers', filters)),
   driverProfile: (id: number) => get<unknown[][]>(`/safety.php?resource=driver_profile&id=${id}`),
   suspendedDrivers: ()        => get<unknown[]>('/safety.php?resource=suspended_drivers'),
   coachingQueue: ()           => get<unknown[]>('/safety.php?resource=coaching_queue'),
@@ -255,12 +269,15 @@ export interface ApiWarrantyClaim {
 
 export const Workshop = {
   kpis:       ()            => get<WorkshopKpis>('/workshop.php?resource=kpis'),
-  jobs:       (status = '') => get<ApiJob[]>(`/workshop.php?resource=jobs${status ? '&status='+encodeURIComponent(status) : ''}`),
-  alerts:     (status = '') => get<ApiAlert[]>(`/workshop.php?resource=alerts${status ? '&status='+encodeURIComponent(status) : ''}`),
-  parts:      (lowOnly = false) => get<ApiPart[]>(`/workshop.php?resource=parts${lowOnly ? '&low_stock=1' : ''}`),
+  jobs:       (filters: { status?: string; vehicle_id?: number; workshop_id?: number; mechanic_id?: number; start_date?: string; end_date?: string } = {}) =>
+    get<ApiJob[]>(withQuery('/workshop.php?resource=jobs', filters)),
+  alerts:     (filters: { severity?: string; status?: string; vehicle_id?: number } = {}) =>
+    get<ApiAlert[]>(withQuery('/workshop.php?resource=alerts', filters)),
+  parts:      (filters: { search?: string; min_stock?: number; available_only?: boolean; low_stock?: boolean } = {}) =>
+    get<ApiPart[]>(withQuery('/workshop.php?resource=parts', filters)),
   suppliers:  ()            => get<ApiSupplier[]>('/workshop.php?resource=suppliers'),
   warranty:   (status = '') => get<ApiWarrantyClaim[]>(`/workshop.php?resource=warranty${status ? '&status='+encodeURIComponent(status) : ''}`),
-  mechanics:  ()            => get<ApiMechanic[]>('/workshop.php?resource=mechanics'),
+  mechanics:  (workshopId?: number) => get<ApiMechanic[]>(withQuery('/workshop.php?resource=mechanics', { workshop_id: workshopId })),
   jobDetail: (id: number)  => get<unknown[][]>(`/workshop.php?resource=job_detail&id=${id}`),
   openJobs: (workshopId?: number) => get<ApiJob[]>(`/workshop.php?resource=open_jobs${workshopId ? `&workshop_id=${workshopId}` : ''}`),
   mechanicWorkload: (workshopId?: number) => get<unknown[]>(`/workshop.php?resource=mechanic_workload${workshopId ? `&workshop_id=${workshopId}` : ''}`),
@@ -311,7 +328,7 @@ export interface ApiMyActivity {
 
 export const Mechanic = {
   kpis:           () => get<MechanicKpis>('/mechanic.php?resource=kpis'),
-  myActivities:   () => get<ApiMyActivity[]>('/mechanic.php?resource=my_activities'),
+  myActivities:   (includeCompleted = false) => get<ApiMyActivity[]>(`/mechanic.php?resource=my_activities${includeCompleted ? '&include_completed=1' : ''}`),
   myJobDetail: (id: number) => get<unknown[][]>(`/mechanic.php?resource=my_job_detail&id=${id}`),
   updateActivity: (id: number, data: Record<string, unknown>) =>
     put<{ updated: number }>(`/mechanic.php?resource=my_activity&id=${id}`, data),

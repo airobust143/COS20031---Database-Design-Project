@@ -84,6 +84,63 @@ function requirePermission(string $table, string $action): void {
     }
 }
 
+/** Read a trimmed optional query-string value and enforce a safe length. */
+function queryOptionalString(string $name, int $maxLength = 100): ?string {
+    if (!isset($_GET[$name]) || !is_string($_GET[$name])) return null;
+    $value = trim($_GET[$name]);
+    if ($value === '') return null;
+    if (strlen($value) > $maxLength) jsonErr("Query parameter '$name' is too long.", 422);
+    return $value;
+}
+
+/** Read an optional positive integer query-string value. */
+function queryOptionalPositiveInt(string $name): ?int {
+    $value = queryOptionalString($name, 20);
+    if ($value === null) return null;
+    $validated = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($validated === false) jsonErr("Query parameter '$name' must be a positive integer.", 422);
+    return (int)$validated;
+}
+
+/** Read an optional integer constrained to an inclusive range. */
+function queryOptionalBoundedInt(string $name, int $min, int $max): ?int {
+    $value = queryOptionalString($name, 20);
+    if ($value === null) return null;
+    $validated = filter_var($value, FILTER_VALIDATE_INT);
+    if ($validated === false || $validated < $min || $validated > $max) {
+        jsonErr("Query parameter '$name' must be between $min and $max.", 422);
+    }
+    return (int)$validated;
+}
+
+/** Read an optional value from a fixed allow-list. */
+function queryOptionalEnum(string $name, array $allowed): ?string {
+    $value = queryOptionalString($name);
+    if ($value !== null && !in_array($value, $allowed, true)) {
+        jsonErr("Query parameter '$name' has an invalid value.", 422);
+    }
+    return $value;
+}
+
+/** Read and validate an optional ISO YYYY-MM-DD date. */
+function queryOptionalDate(string $name): ?string {
+    $value = queryOptionalString($name, 10);
+    if ($value === null) return null;
+    $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+    if (!$date || $date->format('Y-m-d') !== $value) {
+        jsonErr("Query parameter '$name' must use YYYY-MM-DD format.", 422);
+    }
+    return $value;
+}
+
+/** Read a query-string boolean expressed as 1/0 or true/false. */
+function queryBoolean(string $name, bool $default = false): bool {
+    if (!isset($_GET[$name])) return $default;
+    $value = filter_var($_GET[$name], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    if ($value === null) jsonErr("Query parameter '$name' must be a boolean.", 422);
+    return $value;
+}
+
 /** Execute a read-only procedure and consume every result set. */
 function callProcedure(PDO $pdo, string $sql, array $parameters = []): array {
     $stmt = $pdo->prepare($sql);

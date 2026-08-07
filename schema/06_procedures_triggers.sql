@@ -699,8 +699,20 @@ BEGIN
     JOIN VehicleModel vm ON vm.ModelID = v.ModelID
     JOIN VehiclesCategory vc ON vc.CategoryID = v.CategoryID
     JOIN Depots d ON d.DepotID = v.DepotID
-    LEFT JOIN VehicleAssignments va ON va.VehicleID = v.VehicleID 
-        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+    LEFT JOIN (
+        SELECT ranked.*
+        FROM (
+            SELECT va.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY va.VehicleID
+                       ORDER BY va.StartDate DESC, va.AssignmentID DESC
+                   ) AS rn
+            FROM VehicleAssignments va
+            WHERE va.StartDate <= CURDATE()
+              AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        ) ranked
+        WHERE ranked.rn = 1
+    ) va ON va.VehicleID = v.VehicleID
     LEFT JOIN Drivers dr ON dr.DriverID = va.DriverID
     WHERE 
         (p_status IS NULL OR v.OperationalStatus = p_status)
@@ -709,7 +721,10 @@ BEGIN
         AND (p_search_term IS NULL OR 
              v.RegistrationNumber LIKE CONCAT('%', p_search_term, '%') OR
              vm.ModelName LIKE CONCAT('%', p_search_term, '%') OR
-             vm.Manufacturer LIKE CONCAT('%', p_search_term, '%'))
+             vm.Manufacturer LIKE CONCAT('%', p_search_term, '%') OR
+             vc.CategoryName LIKE CONCAT('%', p_search_term, '%') OR
+             d.Name LIKE CONCAT('%', p_search_term, '%') OR
+             CONCAT(dr.FirstName, ' ', dr.LastName) LIKE CONCAT('%', p_search_term, '%'))
         AND (p_assigned_driver_id IS NULL OR va.DriverID = p_assigned_driver_id)
     ORDER BY v.RegistrationNumber;
 END$$
@@ -1145,6 +1160,10 @@ BEGIN
         dr.FirstName,
         dr.LastName,
         dr.ContactPhoneNumber,
+        dr.ContactPhoneNumber AS ContactInformation,
+        dr.EmergencyContactPhone,
+        dr.EmergencyContactPhone AS EmergencyContactDetails,
+        dr.DepotID,
         dr.LicenceType,
         dr.LicenceExpiryDate,
         dr.EmploymentStatus,
@@ -1171,14 +1190,29 @@ BEGIN
             ROW_NUMBER() OVER (PARTITION BY DriverID ORDER BY ScorePeriod DESC) AS rn
         FROM DriverSafetyScore
     ) latest_score ON latest_score.DriverID = dr.DriverID AND latest_score.rn = 1
-    LEFT JOIN VehicleAssignments va ON va.DriverID = dr.DriverID 
-        AND va.StartDate <= CURDATE() AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+    LEFT JOIN (
+        SELECT ranked.*
+        FROM (
+            SELECT va.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY va.DriverID
+                       ORDER BY va.StartDate DESC, va.AssignmentID DESC
+                   ) AS rn
+            FROM VehicleAssignments va
+            WHERE va.StartDate <= CURDATE()
+              AND (va.EndDate IS NULL OR va.EndDate >= CURDATE())
+        ) ranked
+        WHERE ranked.rn = 1
+    ) va ON va.DriverID = dr.DriverID
     LEFT JOIN Vehicles v ON v.VehicleID = va.VehicleID
     WHERE 
         (p_search_term IS NULL OR 
          dr.FirstName LIKE CONCAT('%', p_search_term, '%') OR
          dr.LastName LIKE CONCAT('%', p_search_term, '%') OR
-         dr.LicenceType LIKE CONCAT('%', p_search_term, '%'))
+         CONCAT(dr.FirstName, ' ', dr.LastName) LIKE CONCAT('%', p_search_term, '%') OR
+         dr.LicenceType LIKE CONCAT('%', p_search_term, '%') OR
+         dep.Name LIKE CONCAT('%', p_search_term, '%') OR
+         v.RegistrationNumber LIKE CONCAT('%', p_search_term, '%'))
         AND (p_employment_status IS NULL OR dr.EmploymentStatus = p_employment_status)
         AND (p_min_score IS NULL OR COALESCE(latest_score.FinalScore, 100) >= p_min_score)
         AND (p_max_score IS NULL OR COALESCE(latest_score.FinalScore, 100) <= p_max_score)
@@ -2801,5 +2835,4 @@ DELIMITER ;
 --   - System already implements best-practice auth/authz
 --   - Permissions are loaded once at login and cached in session
 --   - requirePermission() is called before every sensitive operation
-
-
+-- =====================================================================

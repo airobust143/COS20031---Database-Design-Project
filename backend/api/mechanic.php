@@ -41,11 +41,14 @@ if ($resource === 'kpis') {
 // ── MY ACTIVITIES ─────────────────────────────────────────────────────
 if ($resource === 'my_activities') {
     requirePermission('MaintenanceActivity', 'SELECT');
-    $stmt = $pdo->prepare('CALL sp_get_mechanic_assigned_jobs(:mechanic, FALSE)');
-    $stmt->execute([':mechanic' => $mechId]);
-    $rows = $stmt->fetchAll();
-    $stmt->closeCursor();
-    jsonOk($rows);
+    jsonOk(callProcedure(
+        $pdo,
+        'CALL sp_get_mechanic_assigned_jobs(:mechanic, :include_completed)',
+        [
+            ':mechanic' => $mechId,
+            ':include_completed' => (int)queryBoolean('include_completed'),
+        ]
+    )[0] ?? []);
 }
 
 if ($resource === 'my_job_detail' && $method === 'GET' && $id) {
