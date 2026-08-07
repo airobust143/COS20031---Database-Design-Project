@@ -427,3 +427,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+.mysql-recovery/
+other_md_files_go_here/

@@ -1,29 +1,8 @@
--- =====================================================================
--- Smart Fleet Management Database — ACTIVITY LOG / AUDIT TRAIL
--- COS20031 Group 4 — MySQL 8.0 / MariaDB 10.4+
--- File 9. MUST be run LAST — after 01-08 AND smartfleet_rbac.sql.
--- Already wired into schema/run_all.js (appended to the end of its
--- `files` array), so `node run_all.js <user> <password>` picks it up
--- automatically. If you run files by hand instead, run this one last.
---
--- THIS IS THE ONLY NEW FILE THIS FEATURE ADDS. Two existing files got a
--- small, additive edit to wire it up (see schema/ACTIVITY_LOG.md for the
--- exact diff and rationale):
---   • backend/api/_bootstrap.php — six lines, sets who's making the
---     request so triggers can attribute changes to a real app user.
---   • schema/run_all.js          — one line, adds this filename to the
---     setup script's file list.
--- Nothing else in the app was touched. No new tables were removed, no
--- existing trigger, procedure, or view was modified.
---
--- WHY THIS FILE CAN RUN LAST WITHOUT TOUCHING smartfleet_rbac.sql:
---   smartfleet_rbac.sql creates a bare-bones `AuditLog` table (no
---   triggers ever populate it). This file's `DROP TABLE IF EXISTS
---   AuditLog` + richer `CREATE TABLE AuditLog` simply supersedes it, as
---   long as this file runs afterwards — which is already guaranteed by
---   its position in run_all.js and the instruction above. No need to
---   edit or remove anything from smartfleet_rbac.sql.
---
+=
+-- ACTIVITY LOG / AUDIT TRAIL
+
+-- MUST be run last, fter 01-08 AND smartfleet_rbac.sql
+
 -- WHAT THIS FILE DOES
 --   1. (Re)creates `AuditLog`: one row per INSERT/UPDATE/DELETE on every
 --      business table, with full before/after JSON snapshots, exactly
@@ -54,22 +33,14 @@
 --      trg_dss_ai/au_auto_coaching inserts CoachingRecord), logging at
 --      the database layer via triggers is the only way to catch those
 --      writes too, not just the ones the API directly makes.
---
--- ACTOR ATTRIBUTION: five session variables, set once per request by
--- backend/api/_bootstrap.php right after the auth guard passes:
---   @sf_actor_id, @sf_actor_username, @sf_actor_role, @sf_client_ip,
---   @sf_request_id. Every trigger below reads them via
---   sp_write_audit_log. If a write happens outside the API (a seed
---   script, phpMyAdmin, the mysql CLI), those variables are simply NULL
---   and the row is still captured — just attributed to `DbUser`
---   (CURRENT_USER()) alone rather than an app user.
--- =====================================================================
+
+
 
 USE `smart_fleet_management`;
 
--- ---------------------------------------------------------------------
+
 -- 1. AuditLog table
--- ---------------------------------------------------------------------
+
 DROP TABLE IF EXISTS `AuditLog`;
 
 CREATE TABLE `AuditLog` (
@@ -100,10 +71,10 @@ CREATE TABLE `AuditLog` (
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- 2. sp_write_audit_log — single insertion point for every trigger below.
 --    Diffs OldData/NewData generically; a no-op UPDATE is not logged.
--- ---------------------------------------------------------------------
+
 DROP PROCEDURE IF EXISTS `sp_write_audit_log`;
 
 DELIMITER $$
@@ -153,15 +124,10 @@ BEGIN
 END$$
 DELIMITER ;
 
--- =====================================================================
+
 -- 3. Per-table audit triggers
--- =====================================================================
 
--- ---------------------------------------------------------------------
--- ================= CORE FLEET =================
--- ---------------------------------------------------------------------
-
--- Depots ----------------------------------------------------------------
+-- Depots 
 DROP TRIGGER IF EXISTS `trg_dep_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_dep_au_audit`;
 DROP TRIGGER IF EXISTS `trg_dep_ad_audit`;
@@ -192,7 +158,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- VehiclesCategory --------------------------------------------------------
+-- VehiclesCategory 
 DROP TRIGGER IF EXISTS `trg_vc_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_vc_au_audit`;
 DROP TRIGGER IF EXISTS `trg_vc_ad_audit`;
@@ -219,7 +185,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- VehicleModel --------------------------------------------------------------
+-- VehicleModel 
 DROP TRIGGER IF EXISTS `trg_vm_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_vm_au_audit`;
 DROP TRIGGER IF EXISTS `trg_vm_ad_audit`;
@@ -246,7 +212,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Vehicles ----------------------------------------------------------------
+-- Vehicles
 DROP TRIGGER IF EXISTS `trg_v_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_v_au_audit`;
 DROP TRIGGER IF EXISTS `trg_v_ad_audit`;
@@ -281,7 +247,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- VehiclesDepotHistory ------------------------------------------------------
+-- VehiclesDepotHistory 
 DROP TRIGGER IF EXISTS `trg_vdh_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_vdh_au_audit`;
 DROP TRIGGER IF EXISTS `trg_vdh_ad_audit`;
@@ -308,7 +274,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- VehicleAssignments ----------------------------------------------------------
+-- VehicleAssignments 
 DROP TRIGGER IF EXISTS `trg_va_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_va_au_audit`;
 DROP TRIGGER IF EXISTS `trg_va_ad_audit`;
@@ -339,11 +305,9 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ---------------------------------------------------------------------
--- ================= DRIVER & SAFETY =================
--- ---------------------------------------------------------------------
 
--- CertificationType ----------------------------------------------------------
+
+-- CertificationType 
 DROP TRIGGER IF EXISTS `trg_cty_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_cty_au_audit`;
 DROP TRIGGER IF EXISTS `trg_cty_ad_audit`;
@@ -370,7 +334,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- SafetyEventsType --------------------------------------------------------
+-- SafetyEventsType 
 DROP TRIGGER IF EXISTS `trg_sety_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_sety_au_audit`;
 DROP TRIGGER IF EXISTS `trg_sety_ad_audit`;
@@ -397,7 +361,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Drivers -----------------------------------------------------------------
+-- Drivers
 DROP TRIGGER IF EXISTS `trg_drv_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_drv_au_audit`;
 DROP TRIGGER IF EXISTS `trg_drv_ad_audit`;
@@ -436,7 +400,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- DriverCertifications ------------------------------------------------------
+-- DriverCertifications 
 DROP TRIGGER IF EXISTS `trg_dc_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_dc_au_audit`;
 DROP TRIGGER IF EXISTS `trg_dc_ad_audit`;
@@ -467,7 +431,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- VehicleCertRequirement ------------------------------------------------------
+-- VehicleCertRequirement 
 DROP TRIGGER IF EXISTS `trg_vcr_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_vcr_au_audit`;
 DROP TRIGGER IF EXISTS `trg_vcr_ad_audit`;
@@ -494,7 +458,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- DriverSafetyScore --------------------------------------------------------
+-- DriverSafetyScore
 DROP TRIGGER IF EXISTS `trg_dss_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_dss_au_audit`;
 DROP TRIGGER IF EXISTS `trg_dss_ad_audit`;
@@ -533,7 +497,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- SafetyEvents --------------------------------------------------------------
+-- SafetyEvents 
 DROP TRIGGER IF EXISTS `trg_se_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_se_au_audit`;
 DROP TRIGGER IF EXISTS `trg_se_ad_audit`;
@@ -568,7 +532,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- CoachingRecord --------------------------------------------------------------
+-- CoachingRecord 
 DROP TRIGGER IF EXISTS `trg_cr_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_cr_au_audit`;
 DROP TRIGGER IF EXISTS `trg_cr_ad_audit`;
@@ -603,11 +567,9 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ---------------------------------------------------------------------
--- ================= WORKSHOPS & PEOPLE =================
--- ---------------------------------------------------------------------
 
--- Workshop ------------------------------------------------------------------
+
+-- Workshop 
 DROP TRIGGER IF EXISTS `trg_ws_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_ws_au_audit`;
 DROP TRIGGER IF EXISTS `trg_ws_ad_audit`;
@@ -638,7 +600,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- MechanicCertType ------------------------------------------------------------
+-- MechanicCertType 
 DROP TRIGGER IF EXISTS `trg_mct_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_mct_au_audit`;
 DROP TRIGGER IF EXISTS `trg_mct_ad_audit`;
@@ -665,7 +627,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Mechanic --------------------------------------------------------------------
+-- Mechanic 
 DROP TRIGGER IF EXISTS `trg_mec_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_mec_au_audit`;
 DROP TRIGGER IF EXISTS `trg_mec_ad_audit`;
@@ -696,7 +658,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- MechanicCertification ----------------------------------------------------------
+-- MechanicCertification 
 DROP TRIGGER IF EXISTS `trg_mc_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_mc_au_audit`;
 DROP TRIGGER IF EXISTS `trg_mc_ad_audit`;
@@ -727,11 +689,9 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ---------------------------------------------------------------------
--- ================= MAINTENANCE =================
--- ---------------------------------------------------------------------
+-
 
--- ActivityType ----------------------------------------------------------------
+-- ActivityType 
 DROP TRIGGER IF EXISTS `trg_aty_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_aty_au_audit`;
 DROP TRIGGER IF EXISTS `trg_aty_ad_audit`;
@@ -758,7 +718,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- PredictiveAlert ------------------------------------------------------------
+-- PredictiveAlert 
 DROP TRIGGER IF EXISTS `trg_pa_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_pa_au_audit`;
 DROP TRIGGER IF EXISTS `trg_pa_ad_audit`;
@@ -789,7 +749,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- MaintenanceJobs ---------------------------------------------------------------
+-- MaintenanceJobs 
 DROP TRIGGER IF EXISTS `trg_mj_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_mj_au_audit`;
 DROP TRIGGER IF EXISTS `trg_mj_ad_audit`;
@@ -820,7 +780,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- MaintenanceActivity ---------------------------------------------------------
+-- MaintenanceActivity 
 DROP TRIGGER IF EXISTS `trg_ma_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_ma_au_audit`;
 DROP TRIGGER IF EXISTS `trg_ma_ad_audit`;
@@ -855,7 +815,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ActivityMechanic (composite PK: ActivityID, MechanicID) -----------------------
+-- ActivityMechanic (composite PK: ActivityID, MechanicID) 
 DROP TRIGGER IF EXISTS `trg_am_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_am_au_audit`;
 DROP TRIGGER IF EXISTS `trg_am_ad_audit`;
@@ -882,7 +842,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Part --------------------------------------------------------------------------
+-- Part 
 DROP TRIGGER IF EXISTS `trg_pt_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_pt_au_audit`;
 DROP TRIGGER IF EXISTS `trg_pt_ad_audit`;
@@ -913,7 +873,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Supplier ------------------------------------------------------------------------
+-- Supplier 
 DROP TRIGGER IF EXISTS `trg_sup_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_sup_au_audit`;
 DROP TRIGGER IF EXISTS `trg_sup_ad_audit`;
@@ -940,7 +900,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- SupplyPart (composite PK: PartID, SupplierID) --------------------------------
+-- SupplyPart (composite PK: PartID, SupplierID) 
 DROP TRIGGER IF EXISTS `trg_sp_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_sp_au_audit`;
 DROP TRIGGER IF EXISTS `trg_sp_ad_audit`;
@@ -967,7 +927,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ActivityPart (composite PK: ActivityID, PartID) --------------------------------
+-- ActivityPart (composite PK: ActivityID, PartID) 
 DROP TRIGGER IF EXISTS `trg_ap_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_ap_au_audit`;
 DROP TRIGGER IF EXISTS `trg_ap_ad_audit`;
@@ -994,7 +954,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- WarrantyClaim -----------------------------------------------------------------
+-- WarrantyClaim 
 DROP TRIGGER IF EXISTS `trg_wc_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_wc_au_audit`;
 DROP TRIGGER IF EXISTS `trg_wc_ad_audit`;
@@ -1044,11 +1004,9 @@ BEGIN
 END$$
 DELIMITER ;
 
--- ---------------------------------------------------------------------
--- ================= USERS & ROLES =================
--- ---------------------------------------------------------------------
 
--- Role ----------------------------------------------------------------------------
+
+-- Role
 DROP TRIGGER IF EXISTS `trg_rl_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_rl_au_audit`;
 DROP TRIGGER IF EXISTS `trg_rl_ad_audit`;
@@ -1075,7 +1033,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Permission ------------------------------------------------------------------------
+-- Permission 
 DROP TRIGGER IF EXISTS `trg_perm_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_perm_au_audit`;
 DROP TRIGGER IF EXISTS `trg_perm_ad_audit`;
@@ -1102,16 +1060,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- UserAccount (PasswordHash is never stored in OldData/NewData — see note below) ----
--- Redaction pattern: the stored value is always the literal '***REDACTED***' for
--- INSERT/DELETE. For UPDATE, sp_write_audit_log's generic diff compares the JSON
--- value at each key path between OldData and NewData, so a fixed '***REDACTED***'
--- on both sides would hide a real password change from ChangedFields. To keep
--- "PasswordHash changed" detectable without ever writing the bcrypt hash to the
--- log, the UPDATE trigger below compares OLD/NEW itself and emits distinct
--- '***REDACTED-OLD***' / '***REDACTED-NEW***' markers only when the hash actually
--- differs (both sides stay '***REDACTED***' when it doesn't) — so the diff engine
--- still flags a real change, and no hash material ever leaves the trigger.
+
 DROP TRIGGER IF EXISTS `trg_ua_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_ua_au_audit`;
 DROP TRIGGER IF EXISTS `trg_ua_ad_audit`;
@@ -1144,7 +1093,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- UserRole (composite PK: UserID, RoleID) --------------------------------------------
+-- UserRole (composite PK: UserID, RoleID) 
 DROP TRIGGER IF EXISTS `trg_ur_ai_audit`;
 DROP TRIGGER IF EXISTS `trg_ur_au_audit`;
 DROP TRIGGER IF EXISTS `trg_ur_ad_audit`;
@@ -1190,8 +1139,5 @@ BEGIN
 END$$
 DELIMITER ;
 
--- =====================================================================
--- End of 09_activity_log.sql — 34 tables, 100 triggers (32 tables x 3
--- INSERT/UPDATE/DELETE + 2 composite-PK-only-tables x 2 INSERT/DELETE:
--- WarrantyClaimPart, RolePermission).
--- =====================================================================
+
+

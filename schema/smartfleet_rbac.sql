@@ -1,15 +1,5 @@
--- =====================================================================
--- Smart Fleet Management — RBAC companion script (MariaDB 10.4 / XAMPP)
--- Run AFTER smartfleet_schema.sql
--- Tested target: 10.4.32-MariaDB
---
--- Part A: Application-level RBAC  (rows in Role/Permission tables — read
---         and enforced by YOUR APP CODE, not by the database)
--- Part B: Database-level RBAC     (real MariaDB roles + GRANT/REVOKE —
---         enforced by the ENGINE on every query)
--- Part C: Row-level access via views (drivers: own reads; mechanics:
---         own writes)
--- =====================================================================
+-- Load data to RBAC tables and map roles to permissions
+
 
 USE `smart_fleet_management`;
 
@@ -52,11 +42,11 @@ DELETE FROM `UserRole`;
 DELETE FROM `Permission`;
 DELETE FROM `Role`;
 
--- =====================================================================
--- PART A — APPLICATION-LEVEL RBAC
--- =====================================================================
 
--- 1. Roles ------------------------------------------------------------
+-- PART A: APPLICATION-LEVEL RBAC
+
+
+-- 1. Roles
 INSERT INTO `Role` (`RoleName`) VALUES
     ('fleet_admin'),
     ('safety_ops'),
@@ -64,7 +54,7 @@ INSERT INTO `Role` (`RoleName`) VALUES
     ('mechanic'),
     ('driver');
 
--- 2. Permissions ------------------------------------------------------
+-- 2. Permissions 
 INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     -- core fleet
     ('Depots','SELECT'), ('Depots','INSERT'), ('Depots','UPDATE'), ('Depots','DELETE'),
@@ -108,7 +98,7 @@ INSERT INTO `Permission` (`TableName`, `Action`) VALUES
     -- audit log
     ('AuditLog','SELECT'), ('AuditLog','INSERT'), ('AuditLog','UPDATE'), ('AuditLog','DELETE');
 
--- 3. Role -> Permission mappings --------------------------------------
+-- 3. Role -> Permission mappings 
 
 -- fleet_admin: everything
 INSERT INTO `RolePermission` (`RoleID`, `PermissionID`)
@@ -177,7 +167,7 @@ WHERE r.RoleName = 'driver' AND p.Action = 'SELECT'
 -- JOIN `Permission` p ON p.PermissionID = rp.PermissionID
 -- WHERE r.RoleName = 'safety_ops' AND p.TableName = 'Drivers' AND p.Action = 'UPDATE';
 
--- 4. User -> Role mappings --------------------------------------------
+-- 4. User -> Role mappings 
 -- This part links the application users in UserAccount to the roles defined above.
 -- It assumes you have already created these users in the UserAccount table.
 
@@ -228,18 +218,18 @@ SELECT ua.UserID, r.RoleID, CURDATE()
 FROM `UserAccount` ua JOIN `Role` r ON r.RoleName = 'workshop_mgr'
 WHERE ua.Username = 'workshop_south' AND NOT EXISTS (SELECT 1 FROM UserRole ur WHERE ur.UserID = ua.UserID);
 
--- =====================================================================
--- PART B — DATABASE-LEVEL RBAC (MariaDB 10.4 syntax)
--- =====================================================================
 
--- 1. Create roles (MariaDB: ONE role per statement) -------------------
+-- PART B: DATABASE-LEVEL RBAC 
+
+
+-- 1. Create roles (MariaDB: ONE role per statement) 
 CREATE ROLE IF NOT EXISTS sf_fleet_admin;
 CREATE ROLE IF NOT EXISTS sf_safety_ops;
 CREATE ROLE IF NOT EXISTS sf_workshop_mgr;
 CREATE ROLE IF NOT EXISTS sf_mechanic;
 CREATE ROLE IF NOT EXISTS sf_driver;
 
--- 2. Grant privileges to roles ----------------------------------------
+-- 2. Grant privileges to roles 
 
 -- fleet_admin
 GRANT ALL PRIVILEGES ON `smart_fleet_management`.* TO sf_fleet_admin;
@@ -296,7 +286,7 @@ GRANT SELECT ON `smart_fleet_management`.`Part`                TO sf_mechanic;
 
 -- driver: no base-table access — Part C views only.
 
--- 3. Login users ------------------------------------------------------
+-- 3. Login users
 CREATE USER IF NOT EXISTS 'fleet_admin'@'localhost'    IDENTIFIED BY 'fleet_admin_pwd';
 CREATE USER IF NOT EXISTS 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
 CREATE USER IF NOT EXISTS 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
@@ -307,13 +297,13 @@ ALTER USER 'safety_lead'@'localhost'    IDENTIFIED BY 'safety_lead_pwd';
 ALTER USER 'workshop_north'@'localhost' IDENTIFIED BY 'workshop_north_pwd';
 ALTER USER 'workshop_south'@'localhost' IDENTIFIED BY 'workshop_south_pwd';
 
--- 4. Assign roles to users -------------------------------------------
+-- 4. Assign roles to users 
 GRANT sf_fleet_admin  TO 'fleet_admin'@'localhost';
 GRANT sf_safety_ops   TO 'safety_lead'@'localhost';
 GRANT sf_workshop_mgr TO 'workshop_north'@'localhost';
 GRANT sf_workshop_mgr TO 'workshop_south'@'localhost';
 
--- 5. Default roles (MariaDB: ONE role, ONE user per statement) --------
+-- 5. Default roles (MariaDB: ONE role, ONE user per statement) 
 SET DEFAULT ROLE sf_fleet_admin  FOR 'fleet_admin'@'localhost';
 SET DEFAULT ROLE sf_safety_ops   FOR 'safety_lead'@'localhost';
 SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_north'@'localhost';
@@ -324,16 +314,16 @@ SET DEFAULT ROLE sf_workshop_mgr FOR 'workshop_south'@'localhost';
 -- REVOKE sf_workshop_mgr FROM 'workshop_north'@'localhost';
 
 
--- =====================================================================
--- PART C — ROW-LEVEL ACCESS VIA VIEWS
--- =====================================================================
+
+-- PART C:  ROW-LEVEL ACCESS VIA VIEWS
+
 -- No native row-level security in MariaDB. Views filtered by
 -- CURRENT_USER() give per-row control WHEN people connect with their own
 -- database accounts. (If your app uses one shared connection, the app
 -- must enforce these rules instead.)
 -- Assumes UserAccount.Username == the database login name.
 
--- ---- Drivers: OWN READS --------------------------------------------
+--  Drivers: OWN READS
 CREATE OR REPLACE VIEW `v_my_safety_events` AS
 SELECT se.EventID, se.Timestamp, se.VehicleID, se.EventsTypeID,
        se.Severity, se.DepotID, se.Odometer, se.ReviewStatus
@@ -359,7 +349,7 @@ GRANT SELECT ON `smart_fleet_management`.`v_my_safety_events`  TO sf_driver;
 GRANT SELECT ON `smart_fleet_management`.`v_my_safety_scores`  TO sf_driver;
 GRANT SELECT ON `smart_fleet_management`.`v_my_certifications` TO sf_driver;
 
--- ---- Mechanics: OWN WRITES ------------------------------------------
+-- Mechanics: OWN WRITES 
 -- Reads stay broad (base-table grants above); writes are funnelled
 -- through these filtered views.
 
@@ -392,9 +382,8 @@ GRANT SELECT, UPDATE (`DiagnosticResult`, `IsRepeatFault`, `StartedAt`, `Complet
 -- GRANT SELECT, UPDATE ON `smart_fleet_management`.`v_my_labour`     TO sf_mechanic;
 -- GRANT SELECT, UPDATE ON `smart_fleet_management`.`v_my_activities` TO sf_mechanic;
 
--- =====================================================================
 -- Verification:
 --   SHOW GRANTS FOR sf_safety_ops;
 --   SHOW GRANTS FOR 'safety_lead'@'localhost';
 --   -- test as a user: SET ROLE sf_mechanic; then try a SELECT/UPDATE
--- =====================================================================
+

@@ -1,17 +1,14 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” WORKSHOPS & PEOPLE DOMAIN
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 3 of 8. Requires 01_core_fleet_schema.sql (Depots) to have run.
--- =====================================================================
+﻿
+-- Requires 01_core_fleet_schema.sql to run
+
 -- Tables: Workshop, MechanicCertType, Mechanic, MechanicCertification
--- =====================================================================
+
 
 USE `smart_fleet_management`;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ---------------------------------------------------------------------
 -- Workshop (one per depot)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Workshop` (
     `WorkshopID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `DepotID`    INT UNSIGNED NOT NULL,
@@ -25,9 +22,9 @@ CREATE TABLE `Workshop` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- MechanicCertType (lookup)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `MechanicCertType` (
     `MecCertTypeID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Name`          VARCHAR(100) NOT NULL,
@@ -37,9 +34,8 @@ CREATE TABLE `MechanicCertType` (
     UNIQUE KEY `uq_mecCertType_name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
 -- Mechanic
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Mechanic` (
     `MechanicID`       INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `FirstName`        VARCHAR(100) NOT NULL,
@@ -53,9 +49,9 @@ CREATE TABLE `Mechanic` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- MechanicCertification (full renewal history retained)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `MechanicCertification` (
     `MecCertID`     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `MechanicID`    INT UNSIGNED NOT NULL,
@@ -74,7 +70,5 @@ CREATE TABLE `MechanicCertification` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- =====================================================================
--- End of 03_workshops_people_schema.sql
--- =====================================================================
+
 

@@ -1,7 +1,5 @@
--- =====================================================================
--- SmartFleet — Login attempt tracking for brute-force protection
--- Run this once against smart_fleet_management.
--- =====================================================================
+
+-- Login attempt tracking for brute-force protection
 
 USE `smart_fleet_management`;
 

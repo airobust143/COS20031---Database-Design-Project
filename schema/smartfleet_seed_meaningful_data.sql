@@ -1,10 +1,9 @@
--- ============================================================================
--- SMART FLEET MANAGEMENT - MEANINGFUL TEST DATA
--- Target: MySQL 8.0 / MariaDB 10.4+
--- Run after schema files 01-05 and before procedures/triggers if loading a
--- completely fresh database. The script assumes the target tables are empty.
--- It populates every one of the 34 physical tables with coherent project data.
--- ============================================================================
+
+-- Meaningful mock data 
+
+-- Run after schema files 01-05 and before procedures/triggers if loading a completely fresh database. The script assumes the target tables are empty.
+
+
 
 USE `smart_fleet_management`;
 SET NAMES utf8mb4;

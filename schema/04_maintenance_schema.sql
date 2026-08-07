@@ -1,49 +1,14 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” MAINTENANCE DOMAIN
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 4 of 8. Requires 01 (Vehicles) and 03 (Workshop, Mechanic,
--- MechanicCertType, MechanicCertification) to have run first.
--- =====================================================================
--- Tables: ActivityType, PredictiveAlert, MaintenanceJobs,
---         MaintenanceActivity, ActivityMechanic, Part, Supplier,
---         SupplyPart, ActivityPart, WarrantyClaim, WarrantyClaimPart
---
--- SCHEMA FIX IN THIS FILE â€” Part.QuantityInStock / ReorderThreshold:
---   The brief lists "Parts below reorder thresholds" as something
---   Workshop Management Staff must be able to identify, but the
---   original Part table had no stock/threshold columns at all â€” there
---   was no way to answer that requirement. Two columns have been added
---   and are kept in sync automatically: QuantityInStock is adjusted
---   whenever part usage is inserted, updated, or deleted (see
---   trg_ap_bi_stock / trg_ap_bu_stock / trg_ap_ad_stock in file 06),
---   so "parts below reorder threshold" is now a plain query:
---     SELECT * FROM Part WHERE QuantityInStock <= ReorderThreshold;
---
--- TRIGGERS/PROCEDURES DEFINED IN 06_procedures_triggers.sql:
---   â€¢ ActivityMechanic: a mechanic cannot be assigned to an activity
---     unless they hold a currently-valid certification matching that
---     activity's ActivityType.MecCertTypeID ("A mechanic cannot be
---     assigned to an activity unless they hold the required
---     certification.").
---   â€¢ ActivityPart: part usage insert/update/delete adjusts stock and
---     rejects consumption when insufficient stock is available.
---   â€¢ MaintenanceJobs: opening a job (DateClosed IS NULL) sets the
---     vehicle to 'Under Maintenance'; closing a job (DateClosed set)
---     returns it to 'Available' â€” this is what actually makes the
---     Core Fleet domain's "vehicle under maintenance cannot be
---     assigned" rule mean something operationally, instead of relying
---     on staff to remember to flip OperationalStatus by hand.
---   â€¢ MaintenanceJobs: linking an AlertID bumps that alert's Status
---     from New/Acknowledged to Scheduled, since a job now exists for
---     it ("when a job is created in response to an alert, the alert
---     must be linked to that job so the outcome can be tracked").
--- =====================================================================
+﻿
+-- Requires 01 and 03 run first
+
+-- Tables: ActivityType, PredictiveAlert, MaintenanceJobs, MaintenanceActivity, ActivityMechanic, Part, Supplier,SupplyPart, ActivityPart, WarrantyClaim, WarrantyClaimPart
+
+
 USE `smart_fleet_management`;
 SET FOREIGN_KEY_CHECKS = 0;
--- ---------------------------------------------------------------------
--- ActivityType (lookup) â€” each type maps to the mechanic certification
--- required to perform it (per the brief's certification table).
--- ---------------------------------------------------------------------
+
+-- ActivityType (lookup) each type maps to the mechanic certification required to perform it (per the brief's certification table).
+
 CREATE TABLE `ActivityType` (
     `ActivityTypeID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Name` VARCHAR(100) NOT NULL,
@@ -52,9 +17,9 @@ CREATE TABLE `ActivityType` (
     UNIQUE KEY `uq_activitytype_name` (`Name`),
     CONSTRAINT `fk_activitytype_certtype` FOREIGN KEY (`MecCertTypeID`) REFERENCES `MechanicCertType` (`MecCertTypeID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
+
 -- PredictiveAlert
--- ---------------------------------------------------------------------
+
 CREATE TABLE `PredictiveAlert` (
     `AlertID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `VehicleID` INT UNSIGNED NOT NULL,
@@ -91,9 +56,9 @@ CREATE TABLE `PredictiveAlert` (
     ),
     CONSTRAINT `fk_pa_vehicle` FOREIGN KEY (`VehicleID`) REFERENCES `Vehicles` (`VehicleID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
+
 -- MaintenanceJobs
--- ---------------------------------------------------------------------
+
 CREATE TABLE `MaintenanceJobs` (
     `JobID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `VehicleID` INT UNSIGNED NOT NULL,
@@ -119,9 +84,9 @@ CREATE TABLE `MaintenanceJobs` (
     CONSTRAINT `fk_mj_alert` FOREIGN KEY (`AlertID`) REFERENCES `PredictiveAlert` (`AlertID`) ON DELETE
     SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
+
 -- MaintenanceActivity
--- ---------------------------------------------------------------------
+
 CREATE TABLE `MaintenanceActivity` (
     `ActivityID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `JobID` INT UNSIGNED NOT NULL,
@@ -141,10 +106,9 @@ CREATE TABLE `MaintenanceActivity` (
     CONSTRAINT `fk_ma_job` FOREIGN KEY (`JobID`) REFERENCES `MaintenanceJobs` (`JobID`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_ma_activitytype` FOREIGN KEY (`ActivityTypeID`) REFERENCES `ActivityType` (`ActivityTypeID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
--- ActivityMechanic (junction â€” an activity may need several mechanics;
--- a mechanic may work multiple activities across different jobs)
--- ---------------------------------------------------------------------
+
+-- ActivityMechanic (junction table, an activity may need several mechanics,a mechanic may work multiple activities across different jobs)
+
 CREATE TABLE `ActivityMechanic` (
     `ActivityID` INT UNSIGNED NOT NULL,
     `MechanicID` INT UNSIGNED NOT NULL,
@@ -154,9 +118,8 @@ CREATE TABLE `ActivityMechanic` (
     CONSTRAINT `fk_am_activity` FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_am_mechanic` FOREIGN KEY (`MechanicID`) REFERENCES `Mechanic` (`MechanicID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
--- Part â€” QuantityInStock / ReorderThreshold added (see file header)
--- ---------------------------------------------------------------------
+
+
 CREATE TABLE `Part` (
     `PartID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `PartNumber` VARCHAR(50) NOT NULL,
@@ -168,9 +131,9 @@ CREATE TABLE `Part` (
     UNIQUE KEY `uq_part_number` (`PartNumber`),
     CONSTRAINT `chk_part_unitprice` CHECK (`UnitPrice` >= 0)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
+
 -- Supplier
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Supplier` (
     `SupplierID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Name` VARCHAR(150) NOT NULL,
@@ -178,10 +141,9 @@ CREATE TABLE `Supplier` (
     `LeadTimeDays` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY (`SupplierID`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
--- SupplyPart (junction â€” each part has one primary supplier and an
--- optional backup, each with its own cost)
--- ---------------------------------------------------------------------
+
+-- SupplyPart (junction table, each part has one primary supplier and an optional backup, each with its own cost)
+
 CREATE TABLE `SupplyPart` (
     `PartID` INT UNSIGNED NOT NULL,
     `SupplierID` INT UNSIGNED NOT NULL,
@@ -192,11 +154,9 @@ CREATE TABLE `SupplyPart` (
     CONSTRAINT `fk_sp_part` FOREIGN KEY (`PartID`) REFERENCES `Part` (`PartID`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_sp_supplier` FOREIGN KEY (`SupplierID`) REFERENCES `Supplier` (`SupplierID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
--- ActivityPart (junction â€” parts consumed on an activity, price
--- snapshotted at time of use so later catalogue/supplier price changes
--- never rewrite historical job costs)
--- ---------------------------------------------------------------------
+
+-- ActivityPart (junction table, parts consumed on an activity, price snapshotted at time of use so later catalogue/supplier price changes never rewrite historical job costs)
+
 CREATE TABLE `ActivityPart` (
     `ActivityID` INT UNSIGNED NOT NULL,
     `PartID` INT UNSIGNED NOT NULL,
@@ -210,9 +170,9 @@ CREATE TABLE `ActivityPart` (
     CONSTRAINT `fk_ap_activity` FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_ap_part` FOREIGN KEY (`PartID`) REFERENCES `Part` (`PartID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
+
 -- WarrantyClaim (linked to the activity it arose from)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `WarrantyClaim` (
     `ClaimID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `ActivityID` INT UNSIGNED NOT NULL,
@@ -222,9 +182,9 @@ CREATE TABLE `WarrantyClaim` (
     PRIMARY KEY (`ClaimID`),
     CONSTRAINT `fk_wc_activity` FOREIGN KEY (`ActivityID`) REFERENCES `MaintenanceActivity` (`ActivityID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
--- ---------------------------------------------------------------------
--- WarrantyClaimPart (junction â€” a claim may cover one or more parts)
--- ---------------------------------------------------------------------
+
+-- WarrantyClaimPart (junction table, a claim may cover one or more parts)
+
 CREATE TABLE `WarrantyClaimPart` (
     `ClaimID` INT UNSIGNED NOT NULL,
     `PartID` INT UNSIGNED NOT NULL,
@@ -233,7 +193,5 @@ CREATE TABLE `WarrantyClaimPart` (
     CONSTRAINT `fk_wcp_part` FOREIGN KEY (`PartID`) REFERENCES `Part` (`PartID`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 SET FOREIGN_KEY_CHECKS = 1;
--- =====================================================================
--- End of 04_maintenance_schema.sql
--- =====================================================================
+
 

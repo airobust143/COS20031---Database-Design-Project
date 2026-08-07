@@ -1,30 +1,15 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” USER ROLE DOMAIN (app-level RBAC)
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 5 of 8. Requires 01 (Depots), 02 (Drivers), 03 (Mechanic) first,
--- since UserAccount optionally links to each of those.
--- =====================================================================
+﻿
+-- Requires 01 (Depots), 02 (Drivers), 03 (Mechanic) first since UserAccount optionally links to each of those.
+
 -- Tables: Role, Permission, UserAccount, UserRole, RolePermission
---
--- SCHEMA FIX IN THIS FILE â€” Permission.Description:
---   Two of the RBAC roles are deliberately *coarser* at this app level
---   than the real MariaDB grants in smartfleet_rbac.sql (safety_ops's app-level
---   "UPDATE Drivers" is really "UPDATE Drivers.EmploymentStatus only"
---   at the DB layer; mechanic's app-level "UPDATE MaintenanceActivity /
---   ActivityMechanic" is really "SELECT only, writes via v_my_labour /
---   v_my_activities views" at the DB layer). That gap is real and can't
---   be fully closed without a column/row-aware permission model, so
---   instead of leaving it silently inconsistent, Description now
---   documents the actual scope directly on the Permission row. See
---   smartfleet_rbac.sql for the authoritative enforcement.
--- =====================================================================
+
 
 USE `smart_fleet_management`;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ---------------------------------------------------------------------
+
 -- Role
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Role` (
     `RoleID`   INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `RoleName` VARCHAR(50)  NOT NULL,
@@ -32,9 +17,9 @@ CREATE TABLE `Role` (
     UNIQUE KEY `uq_role_name` (`RoleName`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- Permission
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Permission` (
     `PermissionID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `TableName`    VARCHAR(64)  NOT NULL,
@@ -45,9 +30,9 @@ CREATE TABLE `Permission` (
     UNIQUE KEY `uq_permission_table_action` (`TableName`, `Action`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- UserAccount
--- ---------------------------------------------------------------------
+
 CREATE TABLE `UserAccount` (
     `UserID`     INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Username`   VARCHAR(50)  NOT NULL,
@@ -74,9 +59,9 @@ CREATE TABLE `UserAccount` (
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- UserRole (junction)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `UserRole` (
     `UserID`      INT UNSIGNED NOT NULL,
     `RoleID`      INT UNSIGNED NOT NULL,
@@ -90,9 +75,8 @@ CREATE TABLE `UserRole` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
 -- RolePermission (junction)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `RolePermission` (
     `RoleID`       INT UNSIGNED NOT NULL,
     `PermissionID` INT UNSIGNED NOT NULL,
@@ -107,7 +91,4 @@ CREATE TABLE `RolePermission` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- =====================================================================
--- End of 05_user_role_schema.sql
--- =====================================================================
 

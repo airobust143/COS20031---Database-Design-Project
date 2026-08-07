@@ -1,41 +1,17 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” DRIVER & SAFETY DOMAIN
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 2 of 8. Requires 01_core_fleet_schema.sql to have been run first
--- (Drivers.DepotID -> Depots, SafetyEvents.VehicleID -> Vehicles).
--- =====================================================================
--- Tables: CertificationType, SafetyEventsType, Drivers,
---         DriverCertifications, VehicleCertRequirement,
---         DriverSafetyScore, SafetyEvents, CoachingRecord
---
--- TRIGGERS/PROCEDURES DEFINED IN 06_procedures_triggers.sql (business rules from the brief
--- that the original schema stored columns for but never enforced):
---   â€¢ SafetyEvents: High/Critical severity automatically sets
---     ReviewRequired/ReviewStatus ("High or Critical events will
---     automatically trigger a review").
---   â€¢ SafetyEvents: inserting a Critical event automatically sets the
---     driver's EmploymentStatus to 'Inactive' ("If a critical event
---     happens the driver will be made inactive and unable to be
---     assigned... until the review has been completed or he completes
---     the safety training") and logs a CoachingRecord.
---   â€¢ SafetyEvents: every insert recalculates that driver's monthly
---     DriverSafetyScore live via sp_recalc_driver_safety_score, so the
---     score is always current rather than a manually-run batch job.
---   â€¢ DriverSafetyScore: FinalScore/CoachingRequired/Suspended are
---     always derived (defensively) from BaseScore/DeductedPoints,
---     enforcing the "<=75 coaching, <=50 suspended" thresholds even if
---     a row is inserted/updated directly rather than through the
---     procedure.
---   â€¢ DriverSafetyScore: CoachingRequired becoming true automatically
---     logs a CoachingRecord (once per ScoreID).
--- =====================================================================
+﻿
+-- Requires 01_core_fleet_schema.sql to run first
+
+
+-- Tables: CertificationType, SafetyEventsType, Drivers, DriverCertifications, VehicleCertRequirement, DriverSafetyScore, SafetyEvents, CoachingRecord
+
+
 
 USE `smart_fleet_management`;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- ---------------------------------------------------------------------
+
 -- CertificationType (lookup)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `CertificationType` (
     `CertTypeID` INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     `Name`       VARCHAR(100)  NOT NULL,
@@ -45,9 +21,9 @@ CREATE TABLE `CertificationType` (
     UNIQUE KEY `uq_certtype_name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- SafetyEventsType (lookup)
--- ---------------------------------------------------------------------
+
 CREATE TABLE `SafetyEventsType` (
     `EventsTypeID`    INT UNSIGNED               NOT NULL AUTO_INCREMENT,
     `Name`            VARCHAR(100)                NOT NULL,
@@ -57,9 +33,9 @@ CREATE TABLE `SafetyEventsType` (
     UNIQUE KEY `uq_safetyeventstype_name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- Drivers
--- ---------------------------------------------------------------------
+
 CREATE TABLE `Drivers` (
     `DriverID`               INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     `FirstName`              VARCHAR(100)  NOT NULL,
@@ -78,10 +54,8 @@ CREATE TABLE `Drivers` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
--- DriverCertifications (full history retained â€” multiple rows per
--- driver/cert type over time as renewals occur)
--- ---------------------------------------------------------------------
+-- DriverCertifications 
+
 CREATE TABLE `DriverCertifications` (
     `DriverCertID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `DriverID`     INT UNSIGNED NOT NULL,
@@ -98,11 +72,9 @@ CREATE TABLE `DriverCertifications` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
--- VehicleCertRequirement (which certification types a vehicle category
--- requires â€” implements the Vehicle Certification Matrix; a category
--- may need MULTIPLE cert types, all of which the driver must hold)
--- ---------------------------------------------------------------------
+
+-- VehicleCertRequirement 
+
 CREATE TABLE `VehicleCertRequirement` (
     `ReqID`      INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `CategoryID` INT UNSIGNED NOT NULL,
@@ -117,9 +89,9 @@ CREATE TABLE `VehicleCertRequirement` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- DriverSafetyScore
--- ---------------------------------------------------------------------
+
 CREATE TABLE `DriverSafetyScore` (
     `ScoreID`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `DriverID`        INT UNSIGNED NOT NULL,
@@ -142,9 +114,9 @@ CREATE TABLE `DriverSafetyScore` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- SafetyEvents
--- ---------------------------------------------------------------------
+-
 CREATE TABLE `SafetyEvents` (
     `EventID`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Timestamp`       DATETIME    NOT NULL,
@@ -176,9 +148,9 @@ CREATE TABLE `SafetyEvents` (
         ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------
+
 -- CoachingRecord
--- ---------------------------------------------------------------------
+
 CREATE TABLE `CoachingRecord` (
     `CoachingID`   INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `DriverID`     INT UNSIGNED NOT NULL,
@@ -205,7 +177,5 @@ CREATE TABLE `CoachingRecord` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- =====================================================================
--- End of 02_driver_safety_schema.sql
--- =====================================================================
+
 
