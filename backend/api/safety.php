@@ -183,10 +183,22 @@ if ($resource === 'coaching') {
 if ($resource === 'drivers') {
     requirePermission('Drivers', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_search_drivers(NULL, NULL, NULL, NULL, NULL)');
-        $stmt->execute();
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
+        $minScore = queryOptionalBoundedInt('min_score', 0, 100);
+        $maxScore = queryOptionalBoundedInt('max_score', 0, 100);
+        if ($minScore !== null && $maxScore !== null && $minScore > $maxScore) {
+            jsonErr('Minimum score cannot exceed maximum score.', 422);
+        }
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_search_drivers(:search, :status, :min_score, :max_score, :depot)',
+            [
+                ':search' => queryOptionalString('search'),
+                ':status' => queryOptionalEnum('status', ['Active','Inactive','Suspended','Terminated']),
+                ':min_score' => $minScore,
+                ':max_score' => $maxScore,
+                ':depot' => queryOptionalPositiveInt('depot_id'),
+            ]
+        )[0] ?? [];
         foreach ($rows as &$row) {
             $row['DriverName'] = trim($row['FirstName'] . ' ' . $row['LastName']);
             $row['SafetyScore'] = $row['CurrentSafetyScore'];

@@ -34,6 +34,29 @@ $method   = $_SERVER['REQUEST_METHOD'];
 $resource = $_GET['resource'] ?? '';
 $id       = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
+/** Enforce the workshop/depot scope documented for Workshop Manager accounts. */
+function scopedWorkshopId(PDO $pdo, array $sessionUser, ?int $requestedId): ?int {
+    if (($sessionUser['role'] ?? '') !== 'workshop_mgr') return $requestedId;
+
+    $depotId = (int)($sessionUser['depot_id'] ?? 0);
+    if (!$depotId) jsonErr('This account is not linked to a depot.', 403);
+
+    $stmt = $pdo->prepare('SELECT WorkshopID FROM Workshop WHERE DepotID = :depot ORDER BY WorkshopID');
+    $stmt->execute([':depot' => $depotId]);
+    $allowedIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    if (!$allowedIds) jsonErr('No workshop is assigned to this account depot.', 403);
+
+    if ($requestedId !== null) {
+        if (!in_array($requestedId, $allowedIds, true)) jsonErr('Forbidden: workshop is outside your depot scope.', 403);
+        return $requestedId;
+    }
+
+    if (count($allowedIds) > 1) {
+        jsonErr("Query parameter 'workshop_id' is required when a depot has multiple workshops.", 422);
+    }
+    return $allowedIds[0];
+}
+
 // ── KPIs ─────────────────────────────────────────────────────────────
 if ($resource === 'kpis') {
     requirePermission('MaintenanceJobs', 'SELECT');
@@ -52,10 +75,24 @@ if ($resource === 'kpis') {
 if ($resource === 'jobs') {
     requirePermission('MaintenanceJobs', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_search_maintenance_jobs(:status, NULL, NULL, NULL, NULL, NULL)');
-        $stmt->execute([':status' => ($_GET['status'] ?? '') ?: null]);
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
+        $dateFrom = queryOptionalDate('start_date');
+        $dateTo = queryOptionalDate('end_date');
+        $workshopId = scopedWorkshopId($pdo, $SESSION_USER, queryOptionalPositiveInt('workshop_id'));
+        if ($dateFrom !== null && $dateTo !== null && $dateFrom > $dateTo) {
+            jsonErr('Start date cannot be after end date.', 422);
+        }
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_search_maintenance_jobs(:status, :vehicle, :workshop, :mechanic, :date_from, :date_to)',
+            [
+                ':status' => queryOptionalEnum('status', ['Open','In Progress','Closed']),
+                ':vehicle' => queryOptionalPositiveInt('vehicle_id'),
+                ':workshop' => $workshopId,
+                ':mechanic' => queryOptionalPositiveInt('mechanic_id'),
+                ':date_from' => $dateFrom,
+                ':date_to' => $dateTo,
+            ]
+        )[0] ?? [];
         foreach ($rows as &$row) $row['Status'] = $row['JobStatus'];
         unset($row);
         jsonOk($rows);
@@ -100,10 +137,15 @@ if ($resource === 'jobs') {
 if ($resource === 'alerts') {
     requirePermission('PredictiveAlert', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_list_predictive_alerts(NULL, :status, NULL)');
-        $stmt->execute([':status' => ($_GET['status'] ?? '') ?: null]);
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_list_predictive_alerts(:severity, :status, :vehicle)',
+            [
+                ':severity' => queryOptionalEnum('severity', ['Low','Medium','High','Critical']),
+                ':status' => queryOptionalEnum('status', ['New','Acknowledged','Scheduled','Escalated','Resolved']),
+                ':vehicle' => queryOptionalPositiveInt('vehicle_id'),
+            ]
+        )[0] ?? [];
         foreach ($rows as &$row) $row['Vehicle'] = $row['RegistrationNumber'];
         unset($row);
         jsonOk($rows);
@@ -123,7 +165,7 @@ if ($resource === 'alerts') {
 if ($resource === 'parts') {
     requirePermission('Part', 'SELECT');
     if ($method === 'GET') {
-        $lowOnly = !empty($_GET['low_stock']);
+        $lowOnly = queryBoolean('low_stock');
         if ($lowOnly) {
             $stmt = $pdo->prepare('CALL sp_low_stock_parts()');
             $stmt->execute();
@@ -133,8 +175,12 @@ if ($resource === 'parts') {
         }
         $rows = callProcedure(
             $pdo,
-            'CALL sp_search_parts(:search_term, NULL, FALSE)',
-            [':search_term' => ($_GET['search'] ?? '') ?: null]
+            'CALL sp_search_parts(:search_term, :min_stock, :available_only)',
+            [
+                ':search_term' => queryOptionalString('search'),
+                ':min_stock' => queryOptionalBoundedInt('min_stock', 0, 2147483647),
+                ':available_only' => (int)queryBoolean('available_only'),
+            ]
         )[0] ?? [];
         jsonOk($rows);
     }
@@ -240,20 +286,17 @@ if ($resource === 'warranty') {
 if ($resource === 'mechanics') {
     requirePermission('Mechanic', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus,
-                   w.Name AS WorkshopName,
-                   GROUP_CONCAT(mct.Name ORDER BY mct.Name SEPARATOR '||') AS Certifications
-            FROM Mechanic m
-            JOIN Workshop w ON w.WorkshopID=m.WorkshopID
-            LEFT JOIN MechanicCertification mc ON mc.MechanicID=m.MechanicID
-                   AND (mc.ExpireDate IS NULL OR mc.ExpireDate >= CURDATE())
-            LEFT JOIN MechanicCertType mct ON mct.MecCertTypeID=mc.MecCertTypeID
-            GROUP BY m.MechanicID, m.FirstName, m.LastName, m.EmploymentStatus, w.Name
-            ORDER BY m.LastName
-        ")->fetchAll();
+        $workshopId = scopedWorkshopId($pdo, $SESSION_USER, queryOptionalPositiveInt('workshop_id'));
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_list_mechanics_workload(:workshop_id)',
+            [':workshop_id' => $workshopId]
+        )[0] ?? [];
         foreach ($rows as &$r) {
-            $r['CertList'] = $r['Certifications'] ? explode('||', $r['Certifications']) : [];
+            $nameParts = array_pad(explode(' ', $r['MechanicName'], 2), 2, '');
+            $r['FirstName'] = $nameParts[0];
+            $r['LastName'] = $nameParts[1];
+            $r['CertList'] = $r['Certifications'] ? explode(', ', $r['Certifications']) : [];
             unset($r['Certifications']);
         }
         jsonOk($rows);
@@ -289,19 +332,19 @@ if ($resource === 'job_detail' && $method === 'GET' && $id) {
 
 if ($resource === 'open_jobs' && $method === 'GET') {
     requirePermission('MaintenanceJobs', 'SELECT');
-    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    $workshopId = scopedWorkshopId($pdo, $SESSION_USER, queryOptionalPositiveInt('workshop_id'));
     jsonOk(callProcedure($pdo, 'CALL sp_list_open_jobs(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
 }
 
 if ($resource === 'mechanic_workload' && $method === 'GET') {
     requirePermission('Mechanic', 'SELECT');
-    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    $workshopId = scopedWorkshopId($pdo, $SESSION_USER, queryOptionalPositiveInt('workshop_id'));
     jsonOk(callProcedure($pdo, 'CALL sp_list_mechanics_workload(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
 }
 
 if ($resource === 'workshop_summary' && $method === 'GET') {
     requirePermission('MaintenanceJobs', 'SELECT');
-    $workshopId = !empty($_GET['workshop_id']) ? (int)$_GET['workshop_id'] : null;
+    $workshopId = scopedWorkshopId($pdo, $SESSION_USER, queryOptionalPositiveInt('workshop_id'));
     jsonOk(callProcedure($pdo, 'CALL sp_workshop_summary(:workshop_id)', [':workshop_id' => $workshopId])[0] ?? []);
 }
 

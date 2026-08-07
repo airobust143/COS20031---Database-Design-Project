@@ -560,6 +560,8 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   gap: 10px; flex-wrap: wrap;
 }
 .action-row-left, .action-row-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.table-search-row { margin-bottom: 16px; }
+.card > .table-search-row { padding: 16px 18px 0; }
 
 /* ── Timeline ── */
 .timeline { display: flex; flex-direction: column; }

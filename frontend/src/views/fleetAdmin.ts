@@ -3,7 +3,7 @@
 // Role-gated content for Fleet Admins
 // ============================================================
 
-import { Fleet, type ApiVehicle } from '../api.ts';
+import { Fleet } from '../api.ts';
 import { icon, KPI_ICONS } from '../icons.ts';
 import {
   vehicleStatusBadge, driverStatusBadge,
@@ -88,8 +88,8 @@ async function renderVehicles(): Promise<string> {
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input id="vehicle-search" class="form-control" placeholder="Search vehicles…" style="width:220px">
-        <select id="vehicle-filter-status" class="form-control" style="width:160px">
+        <input id="vehicle-search" class="form-control" data-table-search="fleet-vehicles" placeholder="Search vehicles…" style="width:220px">
+        <select id="vehicle-filter-status" class="form-control" data-table-filter="fleet-vehicles" data-filter-column="6" style="width:160px">
           <option value="">All Statuses</option>
           ${['Active','Available','Under Maintenance','Awaiting Inspection','Out of Service','Retired'].map(s=>`<option value="${s}">${s}</option>`).join('')}
         </select>
@@ -104,7 +104,7 @@ async function renderVehicles(): Promise<string> {
           <th>Reg #</th><th>Model</th><th>Category</th>
           <th>Depot</th><th>Year</th><th>Odometer</th><th>Status</th><th>Actions</th>
         </tr></thead>
-        <tbody id="vehicles-table-body">
+        <tbody id="vehicles-table-body" data-table-body="fleet-vehicles">
           ${vehicles.length === 0 ? `<tr><td colspan="8"><div class="empty-state"><p>No vehicles found.</p></div></td></tr>` :
           vehicles.map(v => `
           <tr data-id="${v.VehicleID}">
@@ -236,8 +236,8 @@ async function renderDrivers(): Promise<string> {
   <div class="card-body">
     <div class="action-row" style="margin-bottom:16px">
       <div class="action-row-left">
-        <input id="driver-search" class="form-control" placeholder="Search drivers…" style="width:220px">
-        <select id="driver-filter-status" class="form-control" style="width:150px">
+        <input id="driver-search" class="form-control" data-table-search="fleet-drivers" placeholder="Search drivers…" style="width:220px">
+        <select id="driver-filter-status" class="form-control" data-table-filter="fleet-drivers" data-filter-column="5" style="width:150px">
           <option value="">All Statuses</option>
           <option>Active</option><option>Suspended</option><option>Inactive</option>
         </select>
@@ -252,7 +252,7 @@ async function renderDrivers(): Promise<string> {
           <th>Name</th><th>Depot</th><th>Licence</th>
           <th>Expiry</th><th>Safety Score</th><th>Status</th><th>Actions</th>
         </tr></thead>
-        <tbody id="drivers-table-body">
+        <tbody id="drivers-table-body" data-table-body="fleet-drivers">
           ${drivers.map(d => `
           <tr data-id="${d.DriverID}">
             <td><strong>${d.FirstName} ${d.LastName}</strong></td>
@@ -426,140 +426,4 @@ async function renderUsers(): Promise<string> {
     </form>
   </div>
 </div>`;
-}
-
-// ── Event wiring for vehicles filtering ───────────────────────────────
-
-export function wireVehicleFilters(container: HTMLElement): void {
-  const searchInput = container.querySelector('#vehicle-search') as HTMLInputElement;
-  const statusFilter = container.querySelector('#vehicle-filter-status') as HTMLSelectElement;
-
-  if (searchInput && statusFilter) {
-    // Initial data cache
-    let vehiclesData: ApiVehicle[] = [];
-
-    // Load vehicles and cache - don't render immediately, vehicles are already rendered
-    void Fleet.vehicles().then(data => {
-      vehiclesData = data;
-    });
-
-    // Filter handler
-    const filterVehicles = () => {
-      // If data hasn't loaded yet, don't filter
-      if (vehiclesData.length === 0) return;
-      
-      const searchTerm = searchInput.value.toLowerCase();
-      const statusValue = statusFilter.value;
-
-      const filtered = vehiclesData.filter(v => {
-        const matchesSearch = searchTerm === '' ||
-          v.RegistrationNumber.toLowerCase().includes(searchTerm) ||
-          v.Model.toLowerCase().includes(searchTerm) ||
-          v.Manufacturer.toLowerCase().includes(searchTerm) ||
-          v.DepotName.toLowerCase().includes(searchTerm);
-        const matchesStatus = statusValue === '' || v.OperationalStatus === statusValue;
-        return matchesSearch && matchesStatus;
-      });
-
-      renderVehicleTable(filtered);
-    };
-
-    searchInput.addEventListener('input', filterVehicles);
-    statusFilter.addEventListener('change', filterVehicles);
-  }
-}
-
-function renderVehicleTable(vehicles: ApiVehicle[]): void {
-  const tbody = document.querySelector('#vehicles-table-body');
-  if (!tbody) return;
-
-  if (vehicles.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><p>No vehicles found.</p></div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = vehicles.map(v => `
-    <tr data-id="${v.VehicleID}">
-      <td><strong>${v.RegistrationNumber}</strong></td>
-      <td>${v.Manufacturer} ${v.Model}</td>
-      <td><span class="badge badge-gray">${v.CategoryName}</span></td>
-      <td>${v.DepotName}</td>
-      <td>${v.YearOfManufacture}</td>
-      <td>${Number(v.CurrentOdometerReading).toLocaleString()} km</td>
-      <td>${vehicleStatusBadge(v.OperationalStatus as never)}</td>
-      <td>
-        <div class="flex gap-8">
-          <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-vehicle" data-id="${v.VehicleID}">${icon('edit',14)}</button>
-          <button class="btn btn-danger btn-sm btn-icon" title="Delete"
-                  data-action="delete-vehicle" data-id="${v.VehicleID}">${icon('trash',14)}</button>
-        </div>
-      </td>
-    </tr>`).join('');
-}
-
-// ── Event wiring for drivers filtering ───────────────────────────────
-
-export function wireDriverFilters(container: HTMLElement): void {
-  const searchInput = container.querySelector('#driver-search') as HTMLInputElement;
-  const statusFilter = container.querySelector('#driver-filter-status') as HTMLSelectElement;
-
-  if (searchInput && statusFilter) {
-    let driversData: any[] = [];
-
-    // Load drivers and cache - don't render immediately, drivers are already rendered
-    void Fleet.drivers().then(data => {
-      driversData = data;
-    });
-
-    const filterDrivers = () => {
-      // If data hasn't loaded yet, don't filter
-      if (driversData.length === 0) return;
-      
-      const searchTerm = searchInput.value.toLowerCase();
-      const statusValue = statusFilter.value;
-
-      const filtered = driversData.filter(d => {
-        const matchesSearch = searchTerm === '' ||
-          d.FirstName.toLowerCase().includes(searchTerm) ||
-          d.LastName.toLowerCase().includes(searchTerm) ||
-          d.DepotName.toLowerCase().includes(searchTerm);
-        const matchesStatus = statusValue === '' || d.EmploymentStatus === statusValue;
-        return matchesSearch && matchesStatus;
-      });
-
-      renderDriverTable(filtered);
-    };
-
-    searchInput.addEventListener('input', filterDrivers);
-    statusFilter.addEventListener('change', filterDrivers);
-  }
-}
-
-function renderDriverTable(drivers: any[]): void {
-  const tbody = document.querySelector('#drivers-table-body');
-  if (!tbody) return;
-
-  tbody.innerHTML = drivers.map(d => `
-    <tr data-id="${d.DriverID}">
-      <td><strong>${d.FirstName} ${d.LastName}</strong></td>
-      <td>${d.DepotName}</td>
-      <td>${d.LicenceType}</td>
-      <td>${d.LicenceExpiryDate}</td>
-      <td>
-        <div class="flex items-center gap-8">
-          <div style="flex:1;max-width:80px">
-            <div class="progress-bar"><div class="progress-fill ${Number(d.SafetyScore)<=50?'danger':Number(d.SafetyScore)<=75?'warning':''}" style="width:${d.SafetyScore}%"></div></div>
-          </div>
-          <span style="font-weight:600">${d.SafetyScore}</span>
-        </div>
-      </td>
-      <td>${driverStatusBadge(d.EmploymentStatus as never)}</td>
-      <td>
-        <div class="flex gap-8">
-          <button class="btn btn-secondary btn-sm btn-icon" title="Edit" data-action="edit-driver" data-id="${d.DriverID}">${icon('edit',14)}</button>
-          <button class="btn btn-danger btn-sm btn-icon" title="Delete"
-                  data-action="delete-driver" data-id="${d.DriverID}">${icon('trash',14)}</button>
-        </div>
-      </td>
-    </tr>`).join('');
 }

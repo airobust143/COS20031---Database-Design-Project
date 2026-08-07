@@ -76,14 +76,17 @@ if ($resource === 'kpis') {
 if ($resource === 'vehicles') {
     requirePermission('Vehicles', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_search_vehicles(:status, NULL, NULL, :search, NULL)');
-        $stmt->execute([
-            ':status' => ($_GET['status'] ?? '') ?: null,
-            ':search' => ($_GET['filter'] ?? '') ?: null,
-        ]);
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
-        jsonOk($rows);
+        jsonOk(callProcedure(
+            $pdo,
+            'CALL sp_search_vehicles(:status, :category, :depot, :search, :driver)',
+            [
+                ':status' => queryOptionalEnum('status', ['Active','Available','Under Maintenance','Awaiting Inspection','Out of Service','Retired']),
+                ':category' => queryOptionalPositiveInt('category_id'),
+                ':depot' => queryOptionalPositiveInt('depot_id'),
+                ':search' => queryOptionalString('search') ?? queryOptionalString('filter'),
+                ':driver' => queryOptionalPositiveInt('driver_id'),
+            ]
+        )[0] ?? []);
     }
     if ($method === 'POST') {
         requirePermission('Vehicles', 'INSERT');
@@ -179,11 +182,17 @@ if ($resource === 'depots') {
 if ($resource === 'assignments') {
     requirePermission('VehicleAssignments', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_vehicle_assignment_history(NULL, NULL, :limit)');
-        $stmt->execute([':limit' => 500]);
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
-        jsonOk($rows);
+        $limit = queryOptionalPositiveInt('limit') ?? 500;
+        if ($limit > 500) jsonErr("Query parameter 'limit' cannot exceed 500.", 422);
+        jsonOk(callProcedure(
+            $pdo,
+            'CALL sp_vehicle_assignment_history(:vehicle, :driver, :limit)',
+            [
+                ':vehicle' => queryOptionalPositiveInt('vehicle_id'),
+                ':driver' => queryOptionalPositiveInt('driver_id'),
+                ':limit' => $limit,
+            ]
+        )[0] ?? []);
     }
     if ($method === 'POST') {
         requirePermission('VehicleAssignments', 'INSERT');
@@ -219,26 +228,35 @@ if ($resource === 'assignments') {
 if ($resource === 'drivers') {
     requirePermission('Drivers', 'SELECT');
     if ($method === 'GET') {
-        $rows = $pdo->query("
-            SELECT dr.*, d.Name AS DepotName,
-                   COALESCE(latest_score.FinalScore, 100) AS SafetyScore
-            FROM Drivers dr
-            JOIN Depots d ON d.DepotID=dr.DepotID
-            LEFT JOIN (
-                SELECT DriverID, FinalScore,
-                       ROW_NUMBER() OVER (PARTITION BY DriverID ORDER BY ScorePeriod DESC) AS rn
-                FROM DriverSafetyScore
-            ) latest_score ON latest_score.DriverID=dr.DriverID AND latest_score.rn=1
-            ORDER BY dr.LastName
-        ")->fetchAll();
+        $minScore = queryOptionalBoundedInt('min_score', 0, 100);
+        $maxScore = queryOptionalBoundedInt('max_score', 0, 100);
+        if ($minScore !== null && $maxScore !== null && $minScore > $maxScore) {
+            jsonErr('Minimum score cannot exceed maximum score.', 422);
+        }
+        $rows = callProcedure(
+            $pdo,
+            'CALL sp_search_drivers(:search, :status, :min_score, :max_score, :depot)',
+            [
+                ':search' => queryOptionalString('search'),
+                ':status' => queryOptionalEnum('status', ['Active','Inactive','Suspended','Terminated']),
+                ':min_score' => $minScore,
+                ':max_score' => $maxScore,
+                ':depot' => queryOptionalPositiveInt('depot_id'),
+            ]
+        )[0] ?? [];
+
+        foreach ($rows as &$row) {
+            $row['SafetyScore'] = $row['CurrentSafetyScore'];
+        }
+        unset($row);
         jsonOk($rows);
     }
     if ($method === 'POST') {
         requirePermission('Drivers', 'INSERT');
         $b = readBody();
         $pdo->prepare("INSERT INTO Drivers
-            (FirstName,LastName,ContactInformation,DepotID,LicenceType,
-            LicenceExpiryDate,EmploymentStatus,EmergencyContactDetails)
+            (FirstName,LastName,ContactPhoneNumber,DepotID,LicenceType,
+            LicenceExpiryDate,EmploymentStatus,EmergencyContactPhone)
             VALUES (:fn,:ln,:ci,:dep,:lt,:led,:es,:ec)")->execute([
             ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
@@ -250,9 +268,9 @@ if ($resource === 'drivers') {
         requirePermission('Drivers', 'UPDATE');
         $b = readBody();
         $pdo->prepare("UPDATE Drivers SET
-            FirstName=:fn,LastName=:ln,ContactInformation=:ci,
+            FirstName=:fn,LastName=:ln,ContactPhoneNumber=:ci,
             DepotID=:dep,LicenceType=:lt,LicenceExpiryDate=:led,
-            EmploymentStatus=:es,EmergencyContactDetails=:ec
+            EmploymentStatus=:es,EmergencyContactPhone=:ec
             WHERE DriverID=:id")->execute([
             ':fn'=>$b['FirstName'],':ln'=>$b['LastName'],':ci'=>$b['ContactInformation']??null,
             ':dep'=>$b['DepotID'],':lt'=>$b['LicenceType'],':led'=>$b['LicenceExpiryDate'],
@@ -331,11 +349,11 @@ if ($resource === 'mechanics') {
 if ($resource === 'users') {
     requirePermission('UserAccount', 'SELECT');
     if ($method === 'GET') {
-        $stmt = $pdo->prepare('CALL sp_list_users_by_role(NULL)');
-        $stmt->execute();
-        $rows = $stmt->fetchAll();
-        $stmt->closeCursor();
-        jsonOk($rows);
+        jsonOk(callProcedure(
+            $pdo,
+            'CALL sp_list_users_by_role(:role)',
+            [':role' => queryOptionalString('role', 50)]
+        )[0] ?? []);
     }
     if ($method === 'POST') {
         requirePermission('UserAccount', 'INSERT');

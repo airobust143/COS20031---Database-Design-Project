@@ -7,7 +7,7 @@
 import type { AuthUser } from './api.ts';
 import { Auth, ApiError, Fleet, Safety, Workshop } from './api.ts';
 import { icon, NAV_ICONS } from './icons.ts';
-import { renderFleetAdmin, wireVehicleFilters, wireDriverFilters }      from './views/fleetAdmin.ts';
+import { renderFleetAdmin }                                             from './views/fleetAdmin.ts';
 import { renderSafetyOps }       from './views/safetyOps.ts';
 import { renderWorkshopManager } from './views/workshopManager.ts';
 import { renderMechanic }        from './views/mechanic.ts';
@@ -322,13 +322,6 @@ function renderAppShell(root: HTMLElement): void {
       wireTabSwitchers(mainContent);
       wireActions(mainContent, currentUser!.role);
       wireTableFilters(mainContent);
-      // Wire vehicle filters if on vehicles page
-      if (currentUser!.role === 'fleet_admin' && navId === 'vehicles') {
-        wireVehicleFilters(mainContent);
-      }
-      if (currentUser!.role === 'fleet_admin' && navId === 'drivers') {
-        wireDriverFilters(mainContent);
-      }
     } catch (err) {
       const msg = err instanceof ApiError
         ? `Error ${err.status}: ${err.message}`
@@ -395,6 +388,38 @@ function wireTabSwitchers(container: HTMLElement): void {
 // ── Delegated action handling ─────────────────────────────────────────
 // Wire declarative search fields and optional select filters to their tables.
 function wireTableFilters(container: HTMLElement): void {
+  let generatedTableId = 0;
+
+  // Views with select filters provide their own data-table-* attributes.
+  // All other rendered data tables receive the same searchable control here.
+  container.querySelectorAll<HTMLTableElement>('table').forEach(table => {
+    if (table.dataset['noSearch'] === 'true') return;
+
+    const tbody = table.tBodies.item(0);
+    if (!tbody) return;
+
+    const tableId = tbody.dataset['tableBody'] ?? `auto-table-${++generatedTableId}`;
+    tbody.dataset['tableBody'] = tableId;
+
+    if (container.querySelector(`[data-table-search="${tableId}"]`)) return;
+
+    const controls = document.createElement('div');
+    controls.className = 'action-row table-search-row';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.className = 'form-control';
+    input.dataset['tableSearch'] = tableId;
+    input.placeholder = 'Search table…';
+    input.setAttribute('aria-label', 'Search this table');
+    input.style.width = '220px';
+    controls.append(input);
+
+    const tableWrap = table.closest<HTMLElement>('.table-wrap');
+    const anchor = tableWrap ?? table;
+    anchor.parentElement?.insertBefore(controls, anchor);
+  });
+
   container.querySelectorAll<HTMLInputElement>('[data-table-search]').forEach(searchInput => {
     const tableId = searchInput.dataset['tableSearch'];
     if (!tableId) return;
