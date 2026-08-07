@@ -1,40 +1,4 @@
-=
 -- ACTIVITY LOG / AUDIT TRAIL
-
--- MUST be run last, fter 01-08 AND smartfleet_rbac.sql
-
--- WHAT THIS FILE DOES
---   1. (Re)creates `AuditLog`: one row per INSERT/UPDATE/DELETE on every
---      business table, with full before/after JSON snapshots, exactly
---      which columns changed, and who did it (app user + role at the
---      time, raw DB login, client IP, and a RequestID that groups every
---      row written by the same HTTP request — useful since a single
---      action here routinely cascades into several tables, e.g. closing
---      a MaintenanceJobs row also updates Vehicles and PredictiveAlert).
---   2. `sp_write_audit_log`: the one procedure every trigger below
---      calls. It diffs OldData/NewData generically via
---      JSON_KEYS/JSON_EXTRACT, so no trigger hand-lists "which columns
---      changed", and a no-op UPDATE (nothing actually changed) is
---      silently skipped instead of spamming the log.
---   3. One AFTER INSERT/UPDATE/DELETE trigger set per business table —
---      34 tables total, i.e. everything in 01-05 except the purely
---      internal `login_attempts` table (security bookkeeping, not
---      business data) and `AuditLog` itself. These triggers are
---      ADDITIONAL — MySQL/MariaDB allow multiple AFTER triggers per
---      table/event, so the existing business-rule triggers in
---      06_procedures_triggers.sql (eligibility checks, stock sync,
---      status sync, etc.) are untouched and keep firing exactly as
---      before; this file only adds more triggers alongside them.
---   4. Because the database already does a lot of its own writing
---      (trg_se_ai_recalc_and_critical flips Drivers.EmploymentStatus
---      and inserts CoachingRecord, trg_mj_ai_sync/au_sync flips
---      Vehicles.OperationalStatus and PredictiveAlert.Status,
---      trg_ap_bi_stock/bu_stock/ad_stock adjust Part.QuantityInStock,
---      trg_dss_ai/au_auto_coaching inserts CoachingRecord), logging at
---      the database layer via triggers is the only way to catch those
---      writes too, not just the ones the API directly makes.
-
-
 
 USE `smart_fleet_management`;
 
@@ -688,8 +652,6 @@ BEGIN
         NULL);
 END$$
 DELIMITER ;
-
--
 
 -- ActivityType 
 DROP TRIGGER IF EXISTS `trg_aty_ai_audit`;

@@ -1,45 +1,7 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” STORED PROCEDURES & TRIGGERS
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 6. Run after 01â€“05 (all tables must exist first).
--- =====================================================================
--- Consolidated business-rule enforcement logic: procedures, triggers
--- and computed columns that implement the brief's requirements:
---
--- FROM 01_core_fleet_schema.sql:
---   â€¢ sp_check_vehicle_assignment_eligibility
---   â€¢ trg_va_bi_eligibility, trg_va_bu_eligibility
---
--- FROM 02_driver_safety_schema.sql:
---   â€¢ trg_dss_bi_flags, trg_dss_bu_flags
---   â€¢ trg_dss_ai_auto_coaching, trg_dss_au_auto_coaching
---   â€¢ sp_recalc_driver_safety_score
---   â€¢ trg_se_bi_review_flag / trg_se_bu_review_flag
---   â€¢ trg_se_ai_recalc_and_critical / trg_se_au_recalc / trg_se_ad_recalc
---
--- FROM 04_maintenance_schema.sql:
---   â€¢ sp_check_mechanic_certified
---   â€¢ trg_am_bi_mechanic_cert, trg_am_bu_mechanic_cert
---   â€¢ trg_ap_bi_stock / trg_ap_bu_stock / trg_ap_ad_stock
---   â€¢ trg_mj_ai_sync, trg_mj_au_sync
--- =====================================================================
-
-USE `smart_fleet_management`;
+﻿USE `smart_fleet_management`;
 
 -- =====================================================================
--- CORE FLEET DOMAIN â€” vehicle assignment eligibility
--- =====================================================================
--- Brief requirements enforced:
---   â€¢ "A vehicle that is currently under maintenance or marked out of
---      service cannot be assigned to a driver."
---   â€¢ "Drivers cannot be assigned to vehicles unless they hold the
---      required certifications for that vehicle category."
---   â€¢ "A driver with expired certificates cannot be assigned to a
---      vehicle."
---   â€¢ "A driver with a safety score of 50 or below cannot be assigned
---      to a vehicle until they complete safety training."
---   â€¢ (Implied) a driver whose employment/base licence is not currently
---      valid cannot be assigned either.
+-- CORE FLEET DOMAIN ehicle assignment eligibility
 -- =====================================================================
 
 DROP PROCEDURE IF EXISTS `sp_check_vehicle_assignment_eligibility`;
@@ -170,15 +132,6 @@ DELIMITER ;
 
 -- =====================================================================
 -- DRIVER & SAFETY DOMAIN  safety score calculation & automation
--- =====================================================================
--- Enforces:
---   â€¢ FinalScore = 100 - DeductedPoints, floored at 0
---   â€¢ CoachingRequired = FinalScore <= 75
---   â€¢ Suspended = FinalScore <= 50
---   â€¢ Auto-log CoachingRecord when CoachingRequired becomes true
---   â€¢ High/Critical events require review
---   â€¢ Critical events auto-inactivate driver and log coaching
---   â€¢ Every SafetyEvent insert recalculates live monthly score
 -- =====================================================================
 
 DROP TRIGGER IF EXISTS `trg_vdh_bi_no_overlap`;
@@ -436,13 +389,6 @@ DELIMITER ;
 -- =====================================================================
 -- MAINTENANCE DOMAIN â€” mechanic certification & stock/status sync
 -- =====================================================================
--- Enforces:
---   â€¢ Mechanic must hold valid cert for activity type
---   â€¢ Part consumption decrements stock
---   â€¢ Opening a job sets vehicle to 'Under Maintenance'
---   â€¢ Closing a job returns vehicle to 'Available'
---   â€¢ Linking an alert to a job updates alert status to 'Scheduled'
--- =====================================================================
 
 DROP PROCEDURE IF EXISTS `sp_check_mechanic_certified`;
 
@@ -653,22 +599,9 @@ DELIMITER ;
 
 
 -- =====================================================================
--- QUERY HELPER PROCEDURES â€” for backend API use
--- =====================================================================
--- These procedures encapsulate common query patterns used by the
--- backend API, ensuring consistent query structure and taking advantage
--- of indexes defined in 08_indexes.sql.
---
--- ROLE: FLEET ADMIN
--- The procedures below are primarily used by the Fleet Admin role
--- for vehicle management, assignment tracking, and fleet oversight.
+-- QUERY HELPER PROCEDURES for backend API use
 -- =====================================================================
 
--- ---------------------------------------------------------------------
--- sp_search_vehicles: Search/filter vehicles by multiple criteria
--- ROLE: Fleet Admin
--- Uses indexes: idx_vehicles_status, idx_va_vehicle, idx_va_driver
--- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS `sp_search_vehicles`;
 
 DELIMITER $$
@@ -1132,18 +1065,8 @@ DELIMITER ;
 
 
 -- =====================================================================
--- SAFETY OPS PROCEDURES â€” for safety operations management
+-- SAFETY OPS PROCEDURES for safety operations management
 -- =====================================================================
--- ROLE: SAFETY OPS
--- These procedures support driver safety monitoring, coaching,
--- suspension management, and predictive alert tracking.
--- =====================================================================
-
--- ---------------------------------------------------------------------
--- sp_search_drivers: Search/filter drivers by multiple criteria
--- ROLE: Safety Ops
--- Uses indexes: idx_drivers_status, idx_drivers_depot, idx_drivers_licexp
--- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS `sp_search_drivers`;
 
 DELIMITER $$
@@ -1552,18 +1475,8 @@ DELIMITER ;
 
 
 -- =====================================================================
--- WORKSHOP MANAGER PROCEDURES â€” for maintenance operations management
+-- WORKSHOP MANAGER PROCEDURES for maintenance operations management
 -- =====================================================================
--- ROLE: WORKSHOP MANAGER
--- These procedures support maintenance job tracking, parts inventory
--- management, mechanic workload monitoring, and workshop operations.
--- =====================================================================
-
--- ---------------------------------------------------------------------
--- sp_search_maintenance_jobs: Search/filter jobs by multiple criteria
--- ROLE: Workshop Manager
--- Uses indexes: idx_mj_vehicle, idx_mj_workshop, idx_ma_job, idx_am_mechanic
--- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS `sp_search_maintenance_jobs`;
 
 DELIMITER $$
@@ -2012,18 +1925,9 @@ DELIMITER ;
 
 
 -- =====================================================================
--- MECHANIC PROCEDURES â€” for individual mechanic operations
--- =====================================================================
--- ROLE: MECHANIC
--- These procedures provide row-scoped access to jobs and activities
--- assigned to the specific mechanic, supporting their daily work tasks.
+-- MECHANIC PROCEDURES for individual mechanic operations
 -- =====================================================================
 
--- ---------------------------------------------------------------------
--- sp_get_mechanic_assigned_jobs: Get own assigned jobs/activities
--- ROLE: Mechanic
--- Uses indexes: idx_am_mechanic, idx_ma_job, idx_mj_workshop
--- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS `sp_get_mechanic_assigned_jobs`;
 
 DELIMITER $$
@@ -2753,86 +2657,3 @@ BEGIN
         latest_score.CoachingRequired, latest_score.Suspended;
 END$$
 DELIMITER ;
-
--- =====================================================================
--- End of Driver procedures
--- =====================================================================
-
-
--- =====================================================================
--- SYSTEM/AUTHENTICATION PROCEDURES 
--- =====================================================================
--- ROLE: System (Authentication/Authorization)
--- 
--- The following procedures were implemented earlier in this file and
--- are used by the backend authentication and authorization system:
---
--- 1. sp_get_user_permissions (lines ~840-865)
---    - Get user's roles and resolved permissions
---    - Used during login to load user's permission set
---    - Returns 2 result sets: roles and permissions
---    - Uses indexes: idx_ur_role, idx_rp_permission
---
--- 2. sp_check_user_permission (lines ~877-892)
---    - Check if user has specific permission (table.action)
---    - Used by requirePermission() middleware in _bootstrap.php
---    - Returns: 1 if permission exists, 0 if not
---    - Uses indexes: idx_ur_role, idx_rp_permission
---
--- 3. sp_list_users_by_role (lines ~804-830)
---    - List users filtered by role
---    - Used by Fleet Admin for user management
---    - Uses indexes: idx_ur_role, idx_ua_driver, idx_ua_mechanic, idx_ua_depot
---
--- AUTHENTICATION IMPLEMENTATION (in backend/api/auth.php):
--- 
---  POST /api/auth.php?action=login                                 
---    - Authenticates user with username/password                   
---    - Rate limiting (5 attempts per 15 minutes per IP)            
---    - Uses login_attempts table for brute-force protection        
---    - Stores user session with permissions in $_SESSION           
---    - Calls sp_get_user_permissions to load permission set        
---                                                                    
---  POST /api/auth.php?action=logout                                
---    - Destroys user session                                       
---                                                                    
---  GET /api/auth.php?action=me                                     
---    - Returns current user info and permissions                   
--- 
---
--- AUTHORIZATION MIDDLEWARE (in backend/api/_bootstrap.php):
--- 
--- â”‚ requirePermission($table, $action)                              â”‚
--- â”‚   - Called before each API operation                            â”‚
--- â”‚   - Checks $_SESSION['permissions'] against requested action    â”‚
--- â”‚   - Returns 403 Forbidden if permission denied                  â”‚
--- â”‚   - Uses cached permissions (no DB query per request)           â”‚
--- â”‚                                                                   â”‚
--- â”‚ hasPermission($table, $action)                                  â”‚
--- â”‚   - Helper function to check permission                         â”‚
--- â”‚   - Returns boolean                                             â”‚
--- 
---
--- USAGE EXAMPLE:
---   // In any API endpoint (fleet.php, workshop.php, etc.):
---   requirePermission('Vehicles', 'SELECT');  // Check read permission
---   requirePermission('Vehicles', 'INSERT');  // Check create permission
---   requirePermission('Vehicles', 'UPDATE');  // Check update permission
---   requirePermission('Vehicles', 'DELETE');  // Check delete permission
---
--- SECURITY FEATURES:
---   âœ“ Bcrypt password hashing (PASSWORD_DEFAULT)
---   âœ“ Automatic hash rehashing when algorithm improves
---   âœ“ Timing-safe username enumeration protection
---   âœ“ Rate limiting (5 attempts / 15 minutes / IP)
---   âœ“ Session-based authentication
---   âœ“ Permission caching in session (no DB query per request)
---   âœ“ Role-based access control (RBAC)
---   âœ“ Table.Action granular permissions
---
--- NOTES:
---   - No additional authentication procedures needed
---   - System already implements best-practice auth/authz
---   - Permissions are loaded once at login and cached in session
---   - requirePermission() is called before every sensitive operation
--- =====================================================================

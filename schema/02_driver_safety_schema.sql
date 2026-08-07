@@ -116,7 +116,7 @@ CREATE TABLE `DriverSafetyScore` (
 
 
 -- SafetyEvents
--
+
 CREATE TABLE `SafetyEvents` (
     `EventID`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
     `Timestamp`       DATETIME    NOT NULL,
