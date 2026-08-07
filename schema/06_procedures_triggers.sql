@@ -1,46 +1,10 @@
-﻿-- =====================================================================
--- Smart Fleet Management Database â€” STORED PROCEDURES & TRIGGERS
--- COS20031 Group 4 â€” MySQL 8.0 / MariaDB 10.4+
--- File 6. Run after 01â€“05 (all tables must exist first).
--- =====================================================================
--- Consolidated business-rule enforcement logic: procedures, triggers
--- and computed columns that implement the brief's requirements:
---
--- FROM 01_core_fleet_schema.sql:
---   â€¢ sp_check_vehicle_assignment_eligibility
---   â€¢ trg_va_bi_eligibility, trg_va_bu_eligibility
---
--- FROM 02_driver_safety_schema.sql:
---   â€¢ trg_dss_bi_flags, trg_dss_bu_flags
---   â€¢ trg_dss_ai_auto_coaching, trg_dss_au_auto_coaching
---   â€¢ sp_recalc_driver_safety_score
---   â€¢ trg_se_bi_review_flag / trg_se_bu_review_flag
---   â€¢ trg_se_ai_recalc_and_critical / trg_se_au_recalc / trg_se_ad_recalc
---
--- FROM 04_maintenance_schema.sql:
---   â€¢ sp_check_mechanic_certified
---   â€¢ trg_am_bi_mechanic_cert, trg_am_bu_mechanic_cert
---   â€¢ trg_ap_bi_stock / trg_ap_bu_stock / trg_ap_ad_stock
---   â€¢ trg_mj_ai_sync, trg_mj_au_sync
--- =====================================================================
+﻿
+-- File 6. Run after 01-05 (all tables must exist first)
+
 
 USE `smart_fleet_management`;
 
--- =====================================================================
--- CORE FLEET DOMAIN â€” vehicle assignment eligibility
--- =====================================================================
--- Brief requirements enforced:
---   â€¢ "A vehicle that is currently under maintenance or marked out of
---      service cannot be assigned to a driver."
---   â€¢ "Drivers cannot be assigned to vehicles unless they hold the
---      required certifications for that vehicle category."
---   â€¢ "A driver with expired certificates cannot be assigned to a
---      vehicle."
---   â€¢ "A driver with a safety score of 50 or below cannot be assigned
---      to a vehicle until they complete safety training."
---   â€¢ (Implied) a driver whose employment/base licence is not currently
---      valid cannot be assigned either.
--- =====================================================================
+
 
 DROP PROCEDURE IF EXISTS `sp_check_vehicle_assignment_eligibility`;
 
@@ -2754,85 +2718,4 @@ BEGIN
 END$$
 DELIMITER ;
 
--- =====================================================================
--- End of Driver procedures
--- =====================================================================
 
-
--- =====================================================================
--- SYSTEM/AUTHENTICATION PROCEDURES 
--- =====================================================================
--- ROLE: System (Authentication/Authorization)
--- 
--- The following procedures were implemented earlier in this file and
--- are used by the backend authentication and authorization system:
---
--- 1. sp_get_user_permissions (lines ~840-865)
---    - Get user's roles and resolved permissions
---    - Used during login to load user's permission set
---    - Returns 2 result sets: roles and permissions
---    - Uses indexes: idx_ur_role, idx_rp_permission
---
--- 2. sp_check_user_permission (lines ~877-892)
---    - Check if user has specific permission (table.action)
---    - Used by requirePermission() middleware in _bootstrap.php
---    - Returns: 1 if permission exists, 0 if not
---    - Uses indexes: idx_ur_role, idx_rp_permission
---
--- 3. sp_list_users_by_role (lines ~804-830)
---    - List users filtered by role
---    - Used by Fleet Admin for user management
---    - Uses indexes: idx_ur_role, idx_ua_driver, idx_ua_mechanic, idx_ua_depot
---
--- AUTHENTICATION IMPLEMENTATION (in backend/api/auth.php):
--- 
---  POST /api/auth.php?action=login                                 
---    - Authenticates user with username/password                   
---    - Rate limiting (5 attempts per 15 minutes per IP)            
---    - Uses login_attempts table for brute-force protection        
---    - Stores user session with permissions in $_SESSION           
---    - Calls sp_get_user_permissions to load permission set        
---                                                                    
---  POST /api/auth.php?action=logout                                
---    - Destroys user session                                       
---                                                                    
---  GET /api/auth.php?action=me                                     
---    - Returns current user info and permissions                   
--- 
---
--- AUTHORIZATION MIDDLEWARE (in backend/api/_bootstrap.php):
--- 
--- â”‚ requirePermission($table, $action)                              â”‚
--- â”‚   - Called before each API operation                            â”‚
--- â”‚   - Checks $_SESSION['permissions'] against requested action    â”‚
--- â”‚   - Returns 403 Forbidden if permission denied                  â”‚
--- â”‚   - Uses cached permissions (no DB query per request)           â”‚
--- â”‚                                                                   â”‚
--- â”‚ hasPermission($table, $action)                                  â”‚
--- â”‚   - Helper function to check permission                         â”‚
--- â”‚   - Returns boolean                                             â”‚
--- 
---
--- USAGE EXAMPLE:
---   // In any API endpoint (fleet.php, workshop.php, etc.):
---   requirePermission('Vehicles', 'SELECT');  // Check read permission
---   requirePermission('Vehicles', 'INSERT');  // Check create permission
---   requirePermission('Vehicles', 'UPDATE');  // Check update permission
---   requirePermission('Vehicles', 'DELETE');  // Check delete permission
---
--- SECURITY FEATURES:
---   âœ“ Bcrypt password hashing (PASSWORD_DEFAULT)
---   âœ“ Automatic hash rehashing when algorithm improves
---   âœ“ Timing-safe username enumeration protection
---   âœ“ Rate limiting (5 attempts / 15 minutes / IP)
---   âœ“ Session-based authentication
---   âœ“ Permission caching in session (no DB query per request)
---   âœ“ Role-based access control (RBAC)
---   âœ“ Table.Action granular permissions
---
--- NOTES:
---   - No additional authentication procedures needed
---   - System already implements best-practice auth/authz
---   - Permissions are loaded once at login and cached in session
---   - requirePermission() is called before every sensitive operation
--- =====================================================================
