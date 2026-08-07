@@ -95,7 +95,6 @@ async function renderVehicles(): Promise<string> {
         </select>
       </div>
       <div class="action-row-right">
-        <button id="export-vehicles" class="btn btn-secondary btn-sm">${icon('export',14)} Export</button>
         <button class="btn btn-primary btn-sm" data-action="create-vehicle">${icon('plus',14)} Add Vehicle</button>
       </div>
     </div>

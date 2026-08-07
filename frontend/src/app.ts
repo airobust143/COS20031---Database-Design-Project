@@ -275,16 +275,6 @@ function renderAppShell(root: HTMLElement): void {
     <div class="topbar-left">
       <span class="topbar-title" id="topbar-title">${cfg.nav[0]!.label}</span>
     </div>
-    <div class="topbar-right">
-      <div class="topbar-user">
-        <div class="topbar-avatar">${initials}</div>
-        <div class="topbar-user-info">
-          <span class="topbar-user-name">${currentUser.username}</span>
-          <span class="topbar-user-role">${cfg.label}</span>
-        </div>
-        <span class="topbar-chevron" aria-hidden="true">${icon('chevronDown', 14)}</span>
-      </div>
-    </div>
   </header>
 
   <!-- ── Main ── -->
